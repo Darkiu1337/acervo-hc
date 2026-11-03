@@ -1,361 +1,143 @@
-![platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS%20%7C%20Windows%20%7C%20MacOS%20%7C%20Linux-brightgreen)
-![last-commit](https://img.shields.io/github/last-commit/jiangtian616/JHenTai)
-[![downloads](https://img.shields.io/github/downloads/jiangtian616/JHenTai/total)](https://github.com/jiangtian616/JHenTai/releases)
-[![downloads](https://img.shields.io/github/downloads/jiangtian616/JHenTai/latest/total)](https://github.com/jiangtian616/JHenTai/releases)
-![star](https://img.shields.io/github/stars/jiangtian616/JHenTai)
-[![issue](https://img.shields.io/badge/chat-issue-brightgreen)](https://github.com/jiangtian616/JHenTai/issues/new)
-[![telegram](https://img.shields.io/badge/chat-telegram(Chinese_Mainly)-brightgreen)](https://t.me/+PindoE9yvIpmOWI9)
-
 # JHenTai
 
-English | [简体中文](https://github.com/jiangtian616/JHenTai/blob/master/README_cn.md) | [한국어](https://github.com/jiangtian616/JHenTai/blob/master/README_kr.md)
+Leitor de mangá para **E-Hentai / ExHentai** feito em Flutter, para Android, iOS, Windows, macOS e Linux.
 
-[Q&A](https://github.com/jiangtian616/JHenTai/wiki/Common-Questions)
+Este fork mantém o cliente original intacto e concentra as mudanças no que importa para quem lê: leitor com zoom contínuo e upscale 2×, visualizador externo de imagens, uma segunda fonte de galerias (**8muses**), a lista de **já lidos** e a tradução completa para **português do Brasil**.
 
-## Description
+## Mudanças do fork
 
-A manga app for E-Hentai, supporting Android & iOS & Windows & MacOS & Linux.
+| Área | O que foi adicionado |
+| --- | --- |
+| **Leitor** | Zoom preservado entre páginas, retorno ao topo, atalhos de teclado, upscale 2× e visualizador externo |
+| **8muses** | Segunda fonte de galerias, com busca, filtros de tag e artista, favoritos locais e prévia das páginas |
+| **Já lidos** | Lista local que esconde obras concluídas das listas de navegação |
+| **Idioma** | Tradução pt-BR completa (824 chaves) e correções de i18n |
+| **Builds** | Workflows de Windows e Linux (AppImage) no GitHub Actions |
 
-Still in development stage, welcome to submit issues or feature requests.
+O resto do app — busca, favoritos, downloads, arquivos, histórico e rankings — continua como no original.
 
-> ### 🍴 This repository is a fork
->
-> `Darkiu1337/JHenTai` keeps upstream behaviour and adds the reader improvements,
-> the external image viewer, the complete pt-BR locale and the **8muses** gallery
-> source. See [Fork changes](#fork-changes). Windows builds of this fork are
-> produced by the `Build Windows (reader)` GitHub Actions workflow
-> (artifact `JHenTai-Windows-reader`).
+## Leitor
 
-## Download & Install
+- **Zoom contínuo entre páginas** — em página única, coluna dupla e listas, cada página já é montada na escala atual e alinhada ao topo, inclusive as pré-carregadas. Virar a página nunca mostra um quadro em 1.0× antes de ajustar.
+- **Volta ao topo ao virar a página** (Configurações → Leitura), limitada ao tamanho real do conteúdo em vez do viewport.
+- **Atalhos de teclado** — `Ctrl` + `←`/`→` deslocam na horizontal, `↑`/`↓` na vertical e `+`/`-` alteram o zoom no passo configurado (5/8/12/20%), todos com repetição de tecla.
+- **`photo_view` próprio** (`packages/photo_view`) — escala inicial correta, zoom multiplicativo com `Ctrl` + roda do mouse ancorado no cursor, arraste mais sensível e duplo clique em passos de 1.5×.
+- **Placeholders de carregamento** não sofrem zoom: ficam centralizados e no tamanho normal.
+- **Upscale 2× da página atual** — Catmull-Rom bicúbico + shaders AMD FidelityFX CAS com cache LRU, para o texto dos balões continuar nítido em zoom alto (Configurações → Leitura).
+- **Visualizador externo** — botão direito → *Abrir no visualizador externo* (nomacs, ImageGlass, XnView ou qualquer `.exe`). Galerias online são transmitidas página a página para `%TEMP%\jhentai_viewer\...`, com overlay de progresso e limpeza automática.
 
-[<img src="https://raw.githubusercontent.com/jiangtian616/JHenTai/master/badges/download_from_github.png" 
-      alt="Download from GitHub" 
-      height="60">](https://github.com/jiangtian616/JHenTai/releases)
-[<img src="https://raw.githubusercontent.com/jiangtian616/JHenTai/master/badges/get_it_on_obtainium.png" 
-      alt="Get it on Obtainium" 
-      height="60">](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22top.jtmonster.jhentai%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fjiangtian616%2FJHenTai%22%2C%22author%22%3A%22jiangtian616%22%2C%22name%22%3A%22JHenTai%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Afalse%2C%5C%22fallbackToOlderReleases%5C%22%3Atrue%2C%5C%22filterReleaseTitlesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22filterReleaseNotesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22verifyLatestTag%5C%22%3Afalse%2C%5C%22sortMethodChoice%5C%22%3A%5C%22date%5C%22%2C%5C%22useLatestAssetDateAsReleaseDate%5C%22%3Afalse%2C%5C%22releaseTitleAsVersion%5C%22%3Afalse%2C%5C%22trackOnly%5C%22%3Afalse%2C%5C%22versionExtractionRegEx%5C%22%3A%5C%22v(.*)%5C%22%2C%5C%22matchGroupToUse%5C%22%3A%5C%22%241%5C%22%2C%5C%22versionDetection%5C%22%3Atrue%2C%5C%22releaseDateAsVersion%5C%22%3Afalse%2C%5C%22useVersionCodeAsOSVersion%5C%22%3Afalse%2C%5C%22apkFilterRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22invertAPKFilter%5C%22%3Afalse%2C%5C%22autoApkFilterByArch%5C%22%3Atrue%2C%5C%22appName%5C%22%3A%5C%22JHenTai%5C%22%2C%5C%22appAuthor%5C%22%3A%5C%22JTMonster%5C%22%2C%5C%22shizukuPretendToBeGooglePlay%5C%22%3Afalse%2C%5C%22allowInsecure%5C%22%3Afalse%2C%5C%22exemptFromBackgroundUpdates%5C%22%3Afalse%2C%5C%22skipUpdateNotifications%5C%22%3Afalse%2C%5C%22about%5C%22%3A%5C%22https%3A%2F%2Fgithub.com%2Fjiangtian616%2FJHenTai%2Fblob%2Fmaster%2FREADME.md%5C%22%2C%5C%22refreshBeforeDownload%5C%22%3Afalse%7D%22%2C%22overrideSource%22%3Anull%7D)
+## Fonte 8muses
 
-[<img src="https://raw.githubusercontent.com/jiangtian616/JHenTai/master/badges/add_to_altstore.png" 
-      alt="Add to AltStore" 
-      height="60">](https://intradeus.github.io/http-protocol-redirector?r=altstore://source?url=https://raw.githubusercontent.com/jiangtian616/JHenTai/refs/heads/master/altsource/AltSource.json)
-[<img src="https://raw.githubusercontent.com/jiangtian616/JHenTai/master/badges/add_to_sidestore.png" 
-      alt="Add to SideStore" 
-      height="60">](https://intradeus.github.io/http-protocol-redirector?r=sidestore://source?url=https://raw.githubusercontent.com/jiangtian616/JHenTai/refs/heads/master/altsource/AltSource.json)
-[<img src="https://raw.githubusercontent.com/jiangtian616/JHenTai/master/badges/add_to_feather.png" 
-      alt="Add to Feather" 
-      height="60">](https://intradeus.github.io/http-protocol-redirector?r=feather://source/https://raw.githubusercontent.com/jiangtian616/JHenTai/refs/heads/master/altsource/AltSource.json)
+Uma segunda fonte, independente, para quadrinhos ocidentais que não podem ser publicados no E-Hentai. Não interfere em nenhum caminho do código do E-H e não exige login, cookie ou liberação do Cloudflare.
 
-Install for Android: download .apk according to your device architecture and install.
+- Aba própria com **Populares**, **Recentes**, **Explorar tudo** e uma barra de busca embutida.
+- **Busca por palavra-chave** com ordenação no servidor: melhor correspondência, mais recentes e mais vistos.
+- **Filtro por tag** — as 120 tags do site, com contagem de galerias, em um painel com inclusão e exclusão. A primeira tag incluída vai para o servidor; as demais e a palavra-chave são cruzadas localmente, e o rodapé mostra o filtro ativo.
+- **Filtro por artista** — artistas em destaque, com busca e contagem de galerias, no mesmo painel. A listagem do artista vira a base e as tags/palavra-chave são aplicadas por cima.
+- **Buscas recentes** e **tags populares** sugeridas ao focar o campo, com remoção individual ou em bloco.
+- **Favoritos locais** — o coração no card, o menu de contexto ou a página de detalhes salvam a galeria em uma lista local, sem login e sem gastar slot do E-H. A página de Favoritos ganha um seletor `E-Hentai` / `Favoritos locais`.
+- **Detalhes completos** — capa, autor, número de páginas, descrição e as tags reais da galeria, clicáveis para ampliar o filtro atual. Dá para ler ou baixar direto da mesma página.
+- **Prévia das páginas** — grade preguiçosa de miniaturas abaixo dos detalhes. Tocar em uma miniatura abre o leitor naquela página, com a posição salva destacada.
+- **Mesmo leitor e mesmo downloader do E-H** — zoom, upscale 2×, teclado, tira de miniaturas, progresso de leitura, histórico e visualizador externo funcionam igual, porque a lista de páginas é resolvida de antemão.
+- Área de transferência, `-g <url>` e o compartilhamento abrem a página de detalhes do 8muses diretamente.
 
-- arm64-v8a：Suitable for Android phones with 8th generation ARM processor(common choice)
-- armeabiv-v7a：Suitable for Android phones with 7th generation ARM processor
-- x86_64：rare
+### Limitações conhecidas
 
-Install for iOS: download .ipa, then use [AltStore](https://altstore.io) or SideLoadly to sign.
+- Sem deduplicação com o E-Hentai: a mesma obra pode aparecer duas vezes.
+- O site expõe no máximo 5 tags por galeria.
+- Filtros combinados de tag e artista são locais, então interseções raras podem exigir *Carregar mais*.
+- A cobertura de um artista é parcial, já que o site espelha `8muses.com` e `allporncomic.com`.
 
-- You can get easier installation and updates by adding [AltStore Repo](https://intradeus.github.io/http-protocol-redirector?r=altstore://source?url=https://raw.githubusercontent.com/jiangtian616/JHenTai/refs/heads/master/altsource/AltSource.json)
+## Já lidos
 
-Install for Windows: download Windows_xxx.zip, then unpack it.
+Lista manual que tira das listas de navegação as obras já terminadas, para elas não voltarem sempre. Funciona nas duas fontes.
 
-- If you use a proxy server, set proxy address at network setting page.
-- If you're using Windows 11 and can't launch app, try to run jhentai.exe in compatibility mode.
-- If it's blocked by Windows Defender, Please trust it.
+- **Marcar lido** na página de detalhes do E-H, na página do 8muses ou no menu de contexto do card alterna a galeria na lista local (`GetStorage`, sem login e sem slot do E-H).
+- As galerias marcadas somem do feed inicial, da busca, dos populares, dos watched e de todas as listagens do 8muses. Favoritos, histórico, rankings e a própria página de já lidos continuam mostrando. Quando uma página inteira de resultados ficaria vazia, o app pula para a próxima.
+- A entrada **Já lidos** na barra lateral lista tudo com os cards normais, 100 por página; clique direito ou toque longo remove um item, e a lixeira da barra remove todos. A lista é independente de fonte: E-H e 8muses juntos.
 
-Install for MacOS(No maintenance): download .dmg.
+## Tradução
 
-- Trust it in system setting.
-- If you use a proxy server, set proxy address at network setting page.
+- **pt-BR completo**: 824 chaves traduzidas, com terminologia consistente em todo o app. O idioma é escolhido em Configurações → Idioma.
+- As strings novas do 8muses existem nos seis idiomas do projeto.
+- Correções de i18n que vinham de antes: a chave duplicada `quickSearch` foi separada em `quickSearchConfig`, e chaves que apareciam cruas na interface foram adicionadas a todos os locales.
 
-Install for Linux(No maintenance): download Linux-amd64.deb or Linux-x86_64.AppImage due to your platform, then install
-or execute it (You may need to install webkit2gtk-4.1).
+## Download e instalação
 
-Fedora-based dnf linux distro:
+### Windows
+
+1. Baixe o `JHenTai_<versão>_Windows_reader.zip` na aba [Releases](../../releases).
+2. Extraia e execute `jhentai.exe`.
+
+Builds de desenvolvimento saem do workflow **Build Windows (reader)**, na aba Actions, no artefato `JHenTai-Windows-reader`.
+
+Se o app não abrir no Windows 11, tente o modo de compatibilidade. Se o Windows Defender bloquear, autorize o executável. Para usar proxy, configure o endereço em Configurações → Rede.
+
+### Linux
+
+O workflow **Build Linux (AppImage)** publica o artefato `JHenTai-Linux-AppImage`. Baixe, dê permissão de execução (`chmod +x`) e rode. É necessário ter `webkit2gtk-4.1` instalado.
+
+### Android, iOS e macOS
+
+Este fork não publica builds para essas plataformas — compile localmente, como descrito abaixo.
+
+## Compilando
+
+Requisitos: Flutter `3.44.8` e o toolchain da plataforma desejada.
 
 ```bash
-sudo rpm --import https://meeks233.github.io/Jhentai-rpm/fedora/RPM-GPG-KEY-jhentai
-sudo curl -fsSL -o /etc/yum.repos.d/jhentai.repo https://meeks233.github.io/Jhentai-rpm/fedora/jhentai.repo
-sudo dnf install -y jhentai
+flutter pub get
+
+# Windows
+flutter build windows --release
+
+# Android (a assinatura é responsabilidade sua)
+flutter build apk --release
+
+# Linux / macOS / iOS
+flutter build linux --release
+flutter build macos --release
+flutter build ios --release
 ```
 
+O projeto também abre normalmente no Android Studio, IntelliJ ou VS Code.
 
-- If you use a proxy server, set proxy address at network setting page.
+## Capturas de tela
 
-## Update
+| Desktop | Leitura | Duas colunas |
+| --- | --- | --- |
+| <img width="380" src="screenshot/desktop1.png" alt="Layout desktop"/> | <img width="170" src="screenshot/read.jpg" alt="Leitura de página única"/> | <img width="170" src="screenshot/read_double_column.png" alt="Leitura em duas colunas"/> |
 
-Update for Android: download .apk according to your device architecture and install.
+## Linha de comando (desktop)
 
-Update for iOS: download .ipa, then use [AltStore](https://altstore.io) or SideLoadly to sign.
-
-Update for Windows: Delete old unpacked directory directly, then download latest Windows_xxx.zip, unpack it.
-
-Update for MacOS(No maintenance): download .dmg.
-
-Update for Linux(No maintenance): Delete old and download the latest product.
-
-## Help With Translation
-
-Please submit a PR if you want to help with translation.
-
-[steps](https://github.com/jiangtian616/JHenTai#Translation)
-
-## Develop Motivation
-
-My first project With Flutter. I aim at getting familiar with Flutter during development. Devices I use include Android
-phone, Ipad and Windows computer. E-hentai apps I used before have several bugs, and I don't understand source code
-because I have no development
-experience with Android or ios, so I choose JHenTai to become my first Flutter Project.
-
-2022.08.20 After five months of development, JHenTai has gradually become more and more strong, and I have completely
-refactored some codes for gallery page, reading page, download, etc.
-which are written at the beginning stage. I tried my best to extract the commonality between different page and style to
-reduce coupling,
-in order to benefit the development of new features. I would be very grateful if any kind of you could give me some
-advice on coding style,
-design patterns and anything related to Flutter development or participate in the development of JHenTai.
-
-2022.10.29 I have been more familiar with basic Flutter development, and I'll focus on another area from now on.
-So updates for JHenTai will be less than previous, but I'll still handle bugs or issues in time。
-
-## References & Thanks
-
-Layout and style references:
-
-- [FEhviewer](https://github.com/honjow/FEhViewer) : Mainly
-- [EHPanda](https://github.com/tatsuz0u/EhPanda)
-- [EHViewer](https://gitlab.com/NekoInverter/EhViewer)
-
-Tag translation:
-
-- [EhTagTranslation](https://github.com/EhTagTranslation/Database)
-
-Tag order optimization:
-
-- [e-hentai-db](https://github.com/ccloli/e-hentai-db)
-- [e-hentai-tag-count](https://github.com/mokurin000/e-hentai-tag-count)
-- [EhSyringe](https://github.com/EhTagTranslation/EhSyringe)
-
-App translation：
-
-- [andyching168](https://github.com/andyching168) [kenny03211](https://github.com/kenny03211) [NeKoOuO](https://github.com/NeKoOuO) 繁體中文(台灣)
-- [lucas-04](https://github.com/lucas-04) Português brasileiro
-- [qlife1146](https://github.com/qlife1146) 한국어
-- [bropines](https://github.com/bropines) Russian
-
-mush thanks to these projects and people🙇‍
-
-## Screenshots
-
-### Mobile Layout
-
-<img width="250" src="screenshot/mobile_v2.jpg"/>
-
-### Tablet Layout
-
-<img width="770" src="screenshot/tabletV2.png"/>
-
-### Desktop Layout
-
-<img width="770" src="screenshot/desktop1.png"/>
-
-### Gallery & Search
-
-<img width="250" style="margin-right:10px" src="screenshot/mobile_v2.jpg"/><img width="250" style="margin-right:10px" src="screenshot/search.jpg"/> 
-
-### Gallery Detail
-
-<img width="250" src="screenshot/detail.png" style="margin-right:10px" /><img width="250" src="screenshot/archive.jpg" style="margin-right:10px" />
-
-### Setting & Download
-
-<img width="270" src="screenshot/setting_en.jpg" style="margin-right:10px" /><img width="250" src="screenshot/download.jpg" style="margin-right:10px" />
-
-### Read
-
-<img width="250" src="screenshot/read.jpg" /><img src="screenshot/read_double_column.png" /><img src="screenshot/read_continuous_scroll.png" />
-
-## Main Features
-
--   [x] Mobile, tablet, desktop layout(3 kinds)
--   [x] Vertical, horizontal, double column read page layout(4 kinds)
--   [x] GalleryPage, Popular, Favorite, Watched, History, support multiple gallery list style
--   [x] search, search suggestion, tap tag to search, file search, jump to a certain page
--   [x] online reading and download, support restore download task, support synchronize updates after the uploader has
-    uploaded a new version
--   [x] archive download and automatic unpacking and reading
--   [x] support loading local images and read
--   [x] support assign priority to download task manually
--   [x] support assign group to gallery and archive
--   [x] favorite, rating, torrent, archive, statistics, share
--   [x] password login, Cookie login, web login
--   [x] support EX site(domain fronting optional)
--   [x] vote for Tag, watch and hidden tags
--   [x] comment, vote for comment
--   [x] Fingerprint unlock
-
-> Fork-only features (reader fixes, 2× upscale, external viewer, 8muses source,
-> pt-BR) are described in [Fork changes](#fork-changes).
-
-## Fork changes
-
-This fork keeps the E-Hentai client untouched and layers the following on top.
-
-### Windows build (GitHub Actions)
-
-`.github/workflows/build-windows-reader.yml` builds on `windows-2022` (Flutter
-`3.44.8`) for pushes to `master`, `reader-features`, `reader-external` and
-`eightmuses`, and uploads the artifact **`JHenTai-Windows-reader`**
-(`JHenTai_<version>_Windows_reader.zip`). Unpack it and run `jhentai.exe`.
-
-### Reader
-
--   **Zoom is kept between pages** (single page, double column and lists): every
-    page is created already at the current scale and aligned to the top, including
-    preloaded neighbours, so a swipe never shows a 1.0× frame first.
--   **Back to the top when turning the page** (Settings → Read), clamped against
-    the real content size instead of the viewport.
--   **Keyboard**: `Ctrl+←/→` pans horizontally, `↑/↓` pans vertically, `+`/`-`
-    zooms by the configured step (5/8/12/20%), all with key repeat.
--   **`photo_view` is vendored** in `packages/photo_view`: initial-scale seeding,
-    multiplicative `Ctrl`+wheel zoom anchored on the cursor, 1.2 tap-drag
-    sensitivity and a ×1.5 double-click step.
--   **Loading placeholders do not zoom**; they stay centred and at normal size.
--   **2× upscale of the current page**: Catmull-Rom bicubic + AMD FidelityFX CAS
-    fragment shaders with an LRU cache, so balloon text stays sharp at high zoom
-    (Settings → Read).
--   **External image viewer**: right-click → *Open in external viewer* (nomacs,
-    ImageGlass, XnView, any `.exe`). Online galleries stream page by page into
-    `%TEMP%\jhentai_viewer\...` with a progress overlay and automatic cleanup.
-
-### 8muses source
-
-A second, independent source for western comics that cannot be posted on
-E-Hentai. It does not touch any E-H code path and needs no login, cookie or
-Cloudflare clearance.
-
--   New tab with the 8muses brand mark (drawn with a painter, no asset):
-    *Popular*, *Latest*, *Browse all* and an inline search bar (no dialog).
--   **Keyword search** with sorting (*best match*, *newest*, *most viewed*),
-    server-side. Content type and language were deliberately left out: the site
-    only has data for two content types (`manga`, `image-set`) and every gallery
-    is English, so those controls would do nothing.
--   **Tag search**: the 120 tags of `/genres` (with gallery counts) in a filter
-    panel, supporting **include and exclude**. The first included tag is sent to
-    the site (`/tag/<slug>`); the remaining tags and an extra keyword are
-    intersected locally, and the footer shows *Filtering within "<tag>"*.
--   **Artist filter**: the featured artists of `/artists` (with gallery counts),
-    searched and picked in the same panel. An artist listing
-    (`/artist/<slug>`, paginated) becomes the base, and tags/keyword are applied
-    on top locally.
--   Sorting only applies to keyword searches; tag/artist listings are ordered by
-    the site.
--   **Recent searches** and **popular tags** are suggested when the field is
-    focused; each recent search has a ✕ to remove it (and *Delete all* clears the
-    list).
--   **Local favorites**: the heart on a grid card, its right-click/long-press
-    menu or the gallery detail page saves the gallery to a local list (no login,
-    no E-H slot). The *Favorites* page has an `E-Hentai`/`Local favorites`
-    switcher, and the local list opens in local mode automatically when you are
-    logged out. Stored in the local GetStorage file, newest first.
--   **Gallery detail**: cover, author, page count, description and the **real
-    tags** of the gallery; each tag is clickable and *adds* to the current tag
-    filter. Read or download from the same page.
--   **Page preview**: a lazy thumbnail grid of every page below the details
-    (same style/settings as the E-H detail grid). Tapping a thumbnail opens the
-    reader **on that page**; the saved reading position is highlighted. If the
-    site's thumbnail CDN refuses a request, the tile falls back to the full page
-    image.
--   **The reader and downloads are the E-H ones**: zoom, 2× upscale, keyboard,
-    thumbnail strip, reading progress, history and the external viewer all work,
-    because the page list (`/api/legacy-media/<id>/<n>`) is resolved up front.
--   Clipboard, `-g <url>` and the share intent open the 8muses detail page
-    directly (no E-H login required).
-
-Known limitations:
-
--   No de-duplication against E-Hentai: the same work may appear as two galleries.
--   8muses exposes at most **5 tags per gallery** (site limitation).
--   Multi-tag and artist+tag filtering are local, so rare intersections may need
-    *Load more*.
--   The site mirrors `8muses.com` and `allporncomic.com`, so coverage of a given
-    artist is partial.
-
-### Already read list
-
-A manual list that hides finished works from the browsing feeds, so they do not
-keep coming back. Works for both sources.
-
--   **Mark read** on the E-H detail action row, on the 8muses detail page (app
-    bar) or in the 8muses card context menu toggles the gallery in/out of the
-    local list (`GetStorage`, no login, no E-H slot).
--   Marked galleries disappear from the home feed, search, popular, watched and
-    every 8muses listing. Favorites, History, Ranklist and the *Already read*
-    page itself keep showing them. When a whole result page would be hidden, the
-    app skips to the next one instead of showing an empty list.
--   The **Already read** sidebar entry lists them with the normal gallery cards
-    (paged, 100 per page); right-click/long-press removes one, the app bar
-    trash removes all. The list is source-agnostic (E-H and 8muses together).
-
-### Localization
-
--   Complete **pt-BR** translation (824 keys) with corrected wording and
-    consistent terminology; the new 8muses strings exist in all six locales.
--   Two long-standing i18n issues fixed: the duplicated `quickSearch` key was
-    split into `quickSearchConfig`, and keys that used to render raw were added
-    to every locale.
-
-## Translation
-
-> [languageCode](https://github.com/unicode-org/cldr/blob/master/common/validity/language.xml)
->
-> [countryCode](https://github.com/unicode-org/cldr/blob/master/common/validity/region.xml)
-
-1. Copy `/lib/src/l18n/en_US.dart ` and rename to `{your_languageCode}_{your_countryCode}.dart`
-2. Rename classname in new file(optional)
-3. Modify k-v pairs in method `keys` ,translate values to your language
-
-Now you can submit your PR, I'll do the remaining things. Or you can go on with:
-
-4. Enter `/lib/src/l18n/locale_text.dart ` , add a new k-v pair in method `keys`
-   => `{your_languageCode}_{your_countryCode} : {your_className}.keys()`
-5. Enter `/lib/src/consts/locale_consts.dart`, add a new k-v pair in
-   property `localeCode2Description`: `{your_languageCode}_{your_countryCode} : {languageDescription}` to describe your
-   language.
-
-## About compiling
-
-1. You need to manage your Android signing by yourself,
-   check https://docs.flutter.dev/deployment/android#signing-the-app
-2. Just run this project via IDEA or VSCode simply.
-
-## About code contribution
-
-1. There is no fixed requirement for branch names. You can make changes on your local master branch and submit a PR.
-2. For changes that are large in scope or involve interactions between multiple modules, code submitted via Vibe Coding by developers without code review capability will not be accepted. Such code often fails to follow the project's existing coding conventions, is harmful to code extensibility, and its correctness cannot be guaranteed.
-3. A single PR should focus on the minimal feature scope. If multiple features are involved, please submit separate PRs.
-
-## Developer Documentation
-
-On desktop platforms(Windows/MacOS/Linux), you can pass a gallery url via command line argument, so that external
-software can use JHenTai as a reader and open a gallery directly:
+No Windows, macOS e Linux dá para abrir uma galeria direto pela linha de comando, o que permite usar o app como leitor externo de outras ferramentas:
 
 ```bash
-# open a gallery on launch
 JHenTai.exe -g "https://e-hentai.org/g/1234567/abcdef1234/"
 JHenTai.exe --gallery="https://exhentai.org/g/1234567/abcdef1234/"
 
-# single image page url is also supported
+# página de imagem única também funciona
 JHenTai.exe -g "https://e-hentai.org/s/abcdef1234/123456-0"
 ```
 
-- `-g` / `--gallery <url>`: open the gallery (or image page) on launch, other arguments are ignored. If no valid url is
-  provided, the app starts normally.
-- If a password/biometric lock is enabled, the gallery opens after unlocking.
-- On MacOS, launch the executable inside the app bundle to pass arguments, e.g.
-  `/Applications/JHenTai.app/Contents/MacOS/JHenTai -g <url>` (double-clicking in Finder doesn't pass arguments).
+- `-g` / `--gallery <url>` abre a galeria (ou a página de imagem) na inicialização; outros argumentos são ignorados. Sem URL válida, o app inicia normalmente.
+- Com bloqueio por senha ou biometria, a galeria abre depois do desbloqueio.
+- No macOS, execute o binário dentro do bundle: `/Applications/JHenTai.app/Contents/MacOS/JHenTai -g <url>` (abrir pelo Finder não passa argumentos).
 
-## Main Dart Dependencies
+## Estrutura
 
-- [get](https://pub.flutter-io.cn/packages/get): dependency management, state management, l18n, NoSQL
-- [dio](https://pub.flutter-io.cn/packages?q=dio): network
-- [extendedImage](https://pub.flutter-io.cn/packages/extended_image): image
-- [drift](https://pub.flutter-io.cn/packages/drift): database
+| Caminho | Conteúdo |
+| --- | --- |
+| `lib/src/pages/read/` | Leitor: layout, zoom, atalhos e progresso |
+| `lib/src/pages/eight_muses/` | Aba, busca, filtros e detalhes do 8muses |
+| `lib/src/network/eight_muses_request.dart` | Cliente HTTP do 8muses |
+| `lib/src/pages/already_read/` | Lista de já lidos |
+| `lib/src/service/upscale_service.dart` | Upscale 2× (shaders + cache) |
+| `packages/photo_view/` | `photo_view` modificado para o leitor |
+| `.github/workflows/build-*.yml` | Builds de Windows e Linux |
+
+## Créditos e licença
+
+Distribuído sob a **Apache License 2.0** — veja [LICENSE](LICENSE).
+
+Baseado em **JHenTai**, de [jiangtian616](https://github.com/jiangtian616/JHenTai). Layout e estilo inspirados em [FEhViewer](https://github.com/honjow/FEhViewer), [EhPanda](https://github.com/tatsuz0u/EhPanda) e [EHViewer](https://gitlab.com/NekoInverter/EhViewer); tradução de tags do [EhTagTranslation](https://github.com/EhTagTranslation/Database).
