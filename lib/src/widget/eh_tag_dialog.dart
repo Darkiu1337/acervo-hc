@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:jhentai/src/widget/eh_tag_dialog_desktop_actions.dart';
+import 'package:acervo_hc/src/widget/eh_tag_dialog_desktop_actions.dart';
 
 import '../database/database.dart';
 import '../model/gallery_tag.dart';

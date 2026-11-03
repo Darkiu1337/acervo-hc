@@ -3,8 +3,8 @@ import 'dart:math';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/service/image_viewer_scanner_service.dart';
-import 'package:jhentai/src/service/log.dart';
+import 'package:acervo_hc/src/service/image_viewer_scanner_service.dart';
+import 'package:acervo_hc/src/service/log.dart';
 import 'package:path/path.dart' as p;
 
 /// Result of [ImageViewerSelectDialog].

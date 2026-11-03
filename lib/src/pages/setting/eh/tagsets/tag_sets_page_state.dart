@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:jhentai/src/mixin/scroll_to_top_state_mixin.dart';
-import 'package:jhentai/src/model/tag_set.dart';
-import 'package:jhentai/src/widget/loading_state_indicator.dart';
+import 'package:acervo_hc/src/mixin/scroll_to_top_state_mixin.dart';
+import 'package:acervo_hc/src/model/tag_set.dart';
+import 'package:acervo_hc/src/widget/loading_state_indicator.dart';
 
 class TagSetsState with Scroll2TopStateMixin {
   int currentTagSetNo = 1;

@@ -2,9 +2,9 @@ import 'package:animate_do/animate_do.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:jhentai/src/config/ui_config.dart';
-import 'package:jhentai/src/widget/eh_keyboard_listener.dart';
-import 'package:jhentai/src/widget/eh_mouse_button_listener.dart';
+import 'package:acervo_hc/src/config/ui_config.dart';
+import 'package:acervo_hc/src/widget/eh_keyboard_listener.dart';
+import 'package:acervo_hc/src/widget/eh_mouse_button_listener.dart';
 
 import '../utils/route_util.dart';
 

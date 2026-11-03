@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:get/get.dart';
-import 'package:jhentai/src/consts/eh_consts.dart';
-import 'package:jhentai/src/enum/config_enum.dart';
-import 'package:jhentai/src/service/path_service.dart';
-import 'package:jhentai/src/service/log.dart';
+import 'package:acervo_hc/src/consts/eh_consts.dart';
+import 'package:acervo_hc/src/enum/config_enum.dart';
+import 'package:acervo_hc/src/service/path_service.dart';
+import 'package:acervo_hc/src/service/log.dart';
 import 'package:path/path.dart';
 
 import '../service/jh_service.dart';

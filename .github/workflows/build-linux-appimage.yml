@@ -61,27 +61,27 @@ jobs:
 
           BUNDLE="build/linux/x64/release/bundle"
           APPDIR="$PWD/build/linux/AppDir"
-          test -x "$BUNDLE/jhentai"
+          test -x "$BUNDLE/acervo-hc"
           rm -rf "$APPDIR"
           mkdir -p "$APPDIR/usr/bin" \
                    "$APPDIR/usr/share/applications" \
                    "$APPDIR/usr/share/icons/hicolor/512x512/apps"
 
-          # Flutter's RPATH is $ORIGIN/lib, so jhentai + lib/ + data/ stay together.
+          # Flutter's RPATH is $ORIGIN/lib, so acervo-hc + lib/ + data/ stay together.
           cp -a "$BUNDLE/." "$APPDIR/usr/bin/"
 
-          cp linux/assets/top.jtmonster.jhentai.desktop "$APPDIR/usr/share/applications/"
-          cp linux/assets/top.jtmonster.jhentai.desktop "$APPDIR/"
+          cp linux/assets/app.acervo.hc.desktop "$APPDIR/usr/share/applications/"
+          cp linux/assets/app.acervo.hc.desktop "$APPDIR/"
 
-          cp assets/icon/JHenTai_512.png "$APPDIR/top.jtmonster.jhentai.png"
-          cp assets/icon/JHenTai_512.png \
-             "$APPDIR/usr/share/icons/hicolor/512x512/apps/top.jtmonster.jhentai.png"
+          cp assets/icon/acervo-hc_512.png "$APPDIR/app.acervo.hc.png"
+          cp assets/icon/acervo-hc_512.png \
+             "$APPDIR/usr/share/icons/hicolor/512x512/apps/app.acervo.hc.png"
 
           cat > "$APPDIR/AppRun" <<'APPRUN'
           #!/bin/sh
           HERE="$(dirname "$(readlink -f "$0")")"
           export LD_LIBRARY_PATH="$HERE/usr/bin/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-          exec "$HERE/usr/bin/jhentai" "$@"
+          exec "$HERE/usr/bin/acervo-hc" "$@"
           APPRUN
           chmod 0755 "$APPDIR/AppRun"
 
@@ -89,14 +89,14 @@ jobs:
           echo "--- bundled libs ---"
           ls -1 "$APPDIR/usr/bin/lib" || true
           echo "--- external deps of the runner binary ---"
-          readelf -d "$APPDIR/usr/bin/jhentai" | grep NEEDED || true
+          readelf -d "$APPDIR/usr/bin/acervo-hc" | grep NEEDED || true
           echo "--- plugin deps that are not bundled ---"
           for so in "$APPDIR"/usr/bin/lib/*.so; do
             echo "== $(basename "$so")"
             readelf -d "$so" | grep NEEDED | grep -v 'libapp.so' || true
           done
           echo "--- unresolved deps (informational) ---"
-          ldd "$APPDIR/usr/bin/jhentai" | grep -i 'not found' || echo "none"
+          ldd "$APPDIR/usr/bin/acervo-hc" | grep -i 'not found' || echo "none"
 
       - name: Build AppImage
         run: |
@@ -105,7 +105,7 @@ jobs:
             https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool
 
-          OUT="build/linux/JHenTai_${VERSION}_Linux_x64.AppImage"
+          OUT="build/linux/AcervoHC_${VERSION}_Linux_x64.AppImage"
           APPIMAGE_EXTRACT_AND_RUN=1 ARCH=x86_64 VERSION="$VERSION" \
             ./appimagetool --no-appstream --comp zstd \
             build/linux/AppDir "$OUT"
@@ -147,7 +147,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: JHenTai-Linux-AppImage
+          name: AcervoHC-Linux-AppImage
           path: build/linux/*.AppImage
           if-no-files-found: error
           retention-days: 30

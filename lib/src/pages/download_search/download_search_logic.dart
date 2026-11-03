@@ -1,14 +1,14 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/enum/config_enum.dart';
-import 'package:jhentai/src/extension/get_logic_extension.dart';
-import 'package:jhentai/src/service/local_config_service.dart';
-import 'package:jhentai/src/service/log.dart';
-import 'package:jhentai/src/service/tag_translation_service.dart';
-import 'package:jhentai/src/utils/convert_util.dart';
-import 'package:jhentai/src/utils/string_uril.dart';
-import 'package:jhentai/src/widget/loading_state_indicator.dart';
+import 'package:acervo_hc/src/enum/config_enum.dart';
+import 'package:acervo_hc/src/extension/get_logic_extension.dart';
+import 'package:acervo_hc/src/service/local_config_service.dart';
+import 'package:acervo_hc/src/service/log.dart';
+import 'package:acervo_hc/src/service/tag_translation_service.dart';
+import 'package:acervo_hc/src/utils/convert_util.dart';
+import 'package:acervo_hc/src/utils/string_uril.dart';
+import 'package:acervo_hc/src/widget/loading_state_indicator.dart';
 import 'package:throttling/throttling.dart';
 
 import '../../config/ui_config.dart';

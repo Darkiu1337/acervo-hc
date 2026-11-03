@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/model/tap_zone_config.dart';
-import 'package:jhentai/src/setting/read_setting.dart';
+import 'package:acervo_hc/src/model/tap_zone_config.dart';
+import 'package:acervo_hc/src/setting/read_setting.dart';
 
 /// One-time semi-transparent overlay that depicts the current tap zone grid.
 /// The grid fills the whole screen and matches the real gesture regions.

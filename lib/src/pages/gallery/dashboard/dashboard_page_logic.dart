@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/extension/dio_exception_extension.dart';
-import 'package:jhentai/src/pages/base/base_page_logic.dart';
-import 'package:jhentai/src/pages/gallery/dashboard/dashboard_page_state.dart';
-import 'package:jhentai/src/pages/ranklist/ranklist_page_state.dart';
+import 'package:acervo_hc/src/extension/dio_exception_extension.dart';
+import 'package:acervo_hc/src/pages/base/base_page_logic.dart';
+import 'package:acervo_hc/src/pages/gallery/dashboard/dashboard_page_state.dart';
+import 'package:acervo_hc/src/pages/ranklist/ranklist_page_state.dart';
 
 import '../../../consts/eh_consts.dart';
 import '../../../exception/eh_site_exception.dart';

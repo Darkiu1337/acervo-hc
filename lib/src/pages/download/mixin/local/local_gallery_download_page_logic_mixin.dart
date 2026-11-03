@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/extension/string_extension.dart';
+import 'package:acervo_hc/src/extension/string_extension.dart';
 import 'package:path/path.dart';
 
 import '../../../../config/ui_config.dart';

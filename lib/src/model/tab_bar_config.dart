@@ -1,4 +1,4 @@
-import 'package:jhentai/src/model/search_config.dart';
+import 'package:acervo_hc/src/model/search_config.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 @JsonSerializable()

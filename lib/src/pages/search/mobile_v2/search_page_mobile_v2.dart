@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/config/ui_config.dart';
-import 'package:jhentai/src/pages/search/mobile_v2/search_page_mobile_v2_logic.dart';
-import 'package:jhentai/src/pages/search/mobile_v2/search_page_mobile_v2_state.dart';
-import 'package:jhentai/src/routes/routes.dart';
-import 'package:jhentai/src/setting/preference_setting.dart';
-import 'package:jhentai/src/utils/route_util.dart';
-import 'package:jhentai/src/utils/uuid_util.dart';
+import 'package:acervo_hc/src/config/ui_config.dart';
+import 'package:acervo_hc/src/pages/search/mobile_v2/search_page_mobile_v2_logic.dart';
+import 'package:acervo_hc/src/pages/search/mobile_v2/search_page_mobile_v2_state.dart';
+import 'package:acervo_hc/src/routes/routes.dart';
+import 'package:acervo_hc/src/setting/preference_setting.dart';
+import 'package:acervo_hc/src/utils/route_util.dart';
+import 'package:acervo_hc/src/utils/uuid_util.dart';
 
 import '../../../service/quick_search_service.dart';
 import '../../base/base_page.dart';

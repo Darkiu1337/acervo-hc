@@ -1,5 +1,5 @@
 import 'package:get/get.dart';
-import 'package:jhentai/src/service/archive_download_service.dart';
+import 'package:acervo_hc/src/service/archive_download_service.dart';
 
 import '../../../../database/database.dart';
 import '../../../../mixin/scroll_to_top_state_mixin.dart';

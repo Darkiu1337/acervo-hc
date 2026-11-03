@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/service/history_service.dart';
+import 'package:acervo_hc/src/service/history_service.dart';
 
 import '../base/base_page.dart';
 import 'history_page_logic.dart';

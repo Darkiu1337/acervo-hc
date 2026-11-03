@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
-import 'package:jhentai/src/model/gallery_image_page_url.dart';
-import 'package:jhentai/src/model/gallery_url.dart';
-import 'package:jhentai/src/pages/base/base_page_state.dart';
+import 'package:acervo_hc/src/model/gallery_image_page_url.dart';
+import 'package:acervo_hc/src/model/gallery_url.dart';
+import 'package:acervo_hc/src/pages/base/base_page_state.dart';
 
 import '../../../service/tag_translation_service.dart';
 

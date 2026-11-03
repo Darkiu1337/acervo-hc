@@ -4,25 +4,25 @@ import 'dart:io';
 
 import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
-import 'package:jhentai/src/database/dao/gallery_history_dao.dart';
-import 'package:jhentai/src/enum/config_enum.dart';
-import 'package:jhentai/src/extension/list_extension.dart';
-import 'package:jhentai/src/model/search_config.dart';
-import 'package:jhentai/src/network/eh_request.dart';
-import 'package:jhentai/src/service/archive_download_service.dart';
-import 'package:jhentai/src/service/gallery_download/gallery_download_service.dart';
-import 'package:jhentai/src/service/isolate_service.dart';
-import 'package:jhentai/src/service/local_block_rule_service.dart';
-import 'package:jhentai/src/service/local_config_service.dart';
-import 'package:jhentai/src/service/quick_search_service.dart';
-import 'package:jhentai/src/service/search_history_service.dart';
-import 'package:jhentai/src/service/storage_service.dart';
-import 'package:jhentai/src/service/tag_translation_service.dart';
-import 'package:jhentai/src/service/path_service.dart';
-import 'package:jhentai/src/setting/eh_setting.dart';
-import 'package:jhentai/src/setting/read_setting.dart';
-import 'package:jhentai/src/setting/super_resolution_setting.dart';
-import 'package:jhentai/src/utils/convert_util.dart';
+import 'package:acervo_hc/src/database/dao/gallery_history_dao.dart';
+import 'package:acervo_hc/src/enum/config_enum.dart';
+import 'package:acervo_hc/src/extension/list_extension.dart';
+import 'package:acervo_hc/src/model/search_config.dart';
+import 'package:acervo_hc/src/network/eh_request.dart';
+import 'package:acervo_hc/src/service/archive_download_service.dart';
+import 'package:acervo_hc/src/service/gallery_download/gallery_download_service.dart';
+import 'package:acervo_hc/src/service/isolate_service.dart';
+import 'package:acervo_hc/src/service/local_block_rule_service.dart';
+import 'package:acervo_hc/src/service/local_config_service.dart';
+import 'package:acervo_hc/src/service/quick_search_service.dart';
+import 'package:acervo_hc/src/service/search_history_service.dart';
+import 'package:acervo_hc/src/service/storage_service.dart';
+import 'package:acervo_hc/src/service/tag_translation_service.dart';
+import 'package:acervo_hc/src/service/path_service.dart';
+import 'package:acervo_hc/src/setting/eh_setting.dart';
+import 'package:acervo_hc/src/setting/read_setting.dart';
+import 'package:acervo_hc/src/setting/super_resolution_setting.dart';
+import 'package:acervo_hc/src/utils/convert_util.dart';
 import 'package:path/path.dart';
 
 import '../database/database.dart';
@@ -71,7 +71,7 @@ class AppUpdateService with JHLifeCircleBeanErrorCatch implements JHLifeCircleBe
 
   @override
   Future<void> doInitBean() async {
-    file = File(join(pathService.getVisibleDir().path, 'jhentai.version'));
+    file = File(join(pathService.getVisibleDir().path, 'acervo_hc.version'));
     if (file.existsSync()) {
       fromVersion = int.tryParse(await file.readAsString());
     } else {

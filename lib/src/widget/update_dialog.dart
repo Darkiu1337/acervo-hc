@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/enum/config_enum.dart';
-import 'package:jhentai/src/service/local_config_service.dart';
-import 'package:jhentai/src/utils/route_util.dart';
+import 'package:acervo_hc/src/enum/config_enum.dart';
+import 'package:acervo_hc/src/service/local_config_service.dart';
+import 'package:acervo_hc/src/utils/route_util.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class UpdateDialog extends StatelessWidget {
@@ -45,7 +45,7 @@ class UpdateDialog extends StatelessWidget {
           child: Text('check'.tr + ' ->'),
           onPressed: () {
             backRoute();
-            launchUrlString('https://github.com/jiangtian616/JHenTai/releases', mode: LaunchMode.externalApplication);
+            launchUrlString('https://github.com/Darkiu1337/acervo-hc/releases', mode: LaunchMode.externalApplication);
           },
         )
       ],

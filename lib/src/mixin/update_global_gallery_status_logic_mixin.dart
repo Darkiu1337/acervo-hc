@@ -1,8 +1,8 @@
 import 'package:get/get.dart';
-import 'package:jhentai/src/pages/favorite/favorite_page_logic.dart';
-import 'package:jhentai/src/pages/popular/popular_page_logic.dart';
-import 'package:jhentai/src/pages/ranklist/ranklist_page_logic.dart';
-import 'package:jhentai/src/pages/watched/watched_page_logic.dart';
+import 'package:acervo_hc/src/pages/favorite/favorite_page_logic.dart';
+import 'package:acervo_hc/src/pages/popular/popular_page_logic.dart';
+import 'package:acervo_hc/src/pages/ranklist/ranklist_page_logic.dart';
+import 'package:acervo_hc/src/pages/watched/watched_page_logic.dart';
 
 import '../pages/gallery/dashboard/dashboard_page_logic.dart';
 import '../pages/gallery/dashboard/simple/simple_dashboard_page_logic.dart';

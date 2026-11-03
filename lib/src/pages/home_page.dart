@@ -4,18 +4,18 @@ import 'package:args/args.dart';
 import 'package:clipboard/clipboard.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/model/gallery_image_page_url.dart';
-import 'package:jhentai/src/model/gallery_source.dart';
-import 'package:jhentai/src/model/gallery_url.dart';
-import 'package:jhentai/src/pages/details/details_page_logic.dart';
-import 'package:jhentai/src/pages/gallery_image/gallery_image_page_logic.dart';
-import 'package:jhentai/src/pages/layout/desktop/desktop_layout_page.dart';
-import 'package:jhentai/src/pages/layout/mobile_v2/mobile_layout_page_v2.dart';
-import 'package:jhentai/src/pages/layout/tablet_v2/tablet_layout_page_v2.dart';
-import 'package:jhentai/src/setting/style_setting.dart';
-import 'package:jhentai/src/setting/user_setting.dart';
-import 'package:jhentai/src/service/log.dart';
-import 'package:jhentai/src/utils/toast_util.dart';
+import 'package:acervo_hc/src/model/gallery_image_page_url.dart';
+import 'package:acervo_hc/src/model/gallery_source.dart';
+import 'package:acervo_hc/src/model/gallery_url.dart';
+import 'package:acervo_hc/src/pages/details/details_page_logic.dart';
+import 'package:acervo_hc/src/pages/gallery_image/gallery_image_page_logic.dart';
+import 'package:acervo_hc/src/pages/layout/desktop/desktop_layout_page.dart';
+import 'package:acervo_hc/src/pages/layout/mobile_v2/mobile_layout_page_v2.dart';
+import 'package:acervo_hc/src/pages/layout/tablet_v2/tablet_layout_page_v2.dart';
+import 'package:acervo_hc/src/setting/style_setting.dart';
+import 'package:acervo_hc/src/setting/user_setting.dart';
+import 'package:acervo_hc/src/service/log.dart';
+import 'package:acervo_hc/src/utils/toast_util.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -39,7 +39,7 @@ Routing leftRouting = Routing();
 Routing rightRouting = Routing();
 
 /// Command line arguments passed to the app when launched from outside, e.g.
-/// `JHenTai.exe -g "https://e-hentai.org/g/1234567/abcdef1234/"`.
+/// `acervo-hc.exe -g "https://e-hentai.org/g/1234567/abcdef1234/"`.
 ///
 /// Assigned in main() before runApp, consumed in [_HomePageState._initLaunchArguments],
 /// only meaningful on desktop platforms.
@@ -189,7 +189,7 @@ class _HomePageState extends State<HomePage> with LoginRequiredMixin, WindowList
   }
 
   /// Handle command line arguments passed to the app on launch, e.g.
-  /// `JHenTai.exe -g "https://e-hentai.org/g/1234567/abcdef1234/"`, so that
+  /// `acervo-hc.exe -g "https://e-hentai.org/g/1234567/abcdef1234/"`, so that
   /// external software can open a gallery directly (desktop only).
   void _initLaunchArguments() {
     if (!GetPlatform.isDesktop || launchArguments.isEmpty) {

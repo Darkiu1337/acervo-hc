@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Acervo H&C
+Comment=Leitor de mangá para E-Hentai/ExHentai com fonte 8muses e leitor aprimorado.
+Exec=acervo-hc
+Icon=app.acervo.hc
+Categories=Network;Graphics
+Terminal=false

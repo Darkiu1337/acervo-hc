@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_resizable_container/flutter_resizable_container.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/pages/layout/mobile_v2/mobile_layout_page_v2.dart';
-import 'package:jhentai/src/widget/will_pop_interceptor.dart';
+import 'package:acervo_hc/src/pages/layout/mobile_v2/mobile_layout_page_v2.dart';
+import 'package:acervo_hc/src/widget/will_pop_interceptor.dart';
 
 import '../../../config/ui_config.dart';
 import '../../../routes/routes.dart';

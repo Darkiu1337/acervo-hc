@@ -4,7 +4,7 @@ import 'dart:math';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/setting/read_setting.dart';
+import 'package:acervo_hc/src/setting/read_setting.dart';
 import 'package:photo_view/photo_view.dart';
 
 import '../base/base_layout_logic.dart';

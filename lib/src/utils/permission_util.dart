@@ -75,7 +75,7 @@ Future<List<PermissionStatus>> checkAndRequestPermissions({MediaType mediaType =
 
 bool checkPermissionForPath(String path) {
   try {
-    File file = File(join(path, 'JHenTaiTest'));
+    File file = File(join(path, 'AcervoHCTest'));
     file.createSync(recursive: true);
     file.deleteSync();
   } on FileSystemException catch (e) {

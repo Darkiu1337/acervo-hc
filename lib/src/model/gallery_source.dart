@@ -1,6 +1,6 @@
 /// Identifies which site a gallery belongs to.
 ///
-/// JHenTai was written for E-Hentai only. This enum lets a second, external
+/// Acervo H&C was written for E-Hentai only. This enum lets a second, external
 /// source (8muses) reuse the same models, database tables and reader without
 /// touching the E-H code paths.
 ///
@@ -13,10 +13,10 @@ enum GallerySource { eh, eightMuses }
 /// First gid handed out to external galleries.
 const int eightMusesGidOffset = 2000000000;
 
-/// Encode an 8muses gallery id as a JHenTai gid.
+/// Encode an 8muses gallery id as an Acervo H&C gid.
 int eightMusesGid(int externalId) => eightMusesGidOffset + externalId;
 
-/// Decode an 8muses gallery id from a JHenTai gid, or null for E-H galleries.
+/// Decode an 8muses gallery id from an Acervo H&C gid, or null for E-H galleries.
 int? eightMusesExternalId(int? gid) {
   if (gid == null || gid < eightMusesGidOffset) {
     return null;

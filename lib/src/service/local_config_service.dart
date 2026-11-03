@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
-import 'package:jhentai/src/enum/config_enum.dart';
-import 'package:jhentai/src/service/jh_service.dart';
+import 'package:acervo_hc/src/enum/config_enum.dart';
+import 'package:acervo_hc/src/service/jh_service.dart';
 
 import '../database/database.dart';
 

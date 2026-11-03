@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/config/ui_config.dart';
-import 'package:jhentai/src/extension/get_logic_extension.dart';
-import 'package:jhentai/src/pages/setting/account/login/login_page_logic.dart';
-import 'package:jhentai/src/pages/setting/account/login/login_page_state.dart';
-import 'package:jhentai/src/widget/icon_text_button.dart';
-import 'package:jhentai/src/widget/loading_state_indicator.dart';
+import 'package:acervo_hc/src/config/ui_config.dart';
+import 'package:acervo_hc/src/extension/get_logic_extension.dart';
+import 'package:acervo_hc/src/pages/setting/account/login/login_page_logic.dart';
+import 'package:acervo_hc/src/pages/setting/account/login/login_page_state.dart';
+import 'package:acervo_hc/src/widget/icon_text_button.dart';
+import 'package:acervo_hc/src/widget/loading_state_indicator.dart';
 
 class LoginPage extends StatelessWidget {
   final LoginPageLogic logic = Get.put<LoginPageLogic>(LoginPageLogic());

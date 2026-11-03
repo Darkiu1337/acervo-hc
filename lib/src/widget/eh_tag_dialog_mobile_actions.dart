@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/config/ui_config.dart';
-import 'package:jhentai/src/widget/loading_state_indicator.dart';
+import 'package:acervo_hc/src/config/ui_config.dart';
+import 'package:acervo_hc/src/widget/loading_state_indicator.dart';
 
 /// Scrollable action list for the mobile tag bottom sheet.
 /// Common actions (vote / follow / hide) are visible by default; management

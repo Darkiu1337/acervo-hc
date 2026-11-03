@@ -4,10 +4,10 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/enum/config_enum.dart';
-import 'package:jhentai/src/extension/get_logic_extension.dart';
-import 'package:jhentai/src/model/search_config.dart';
-import 'package:jhentai/src/utils/toast_util.dart';
+import 'package:acervo_hc/src/enum/config_enum.dart';
+import 'package:acervo_hc/src/extension/get_logic_extension.dart';
+import 'package:acervo_hc/src/model/search_config.dart';
+import 'package:acervo_hc/src/utils/toast_util.dart';
 
 import '../widget/eh_search_config_dialog.dart';
 import 'jh_service.dart';

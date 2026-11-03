@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/utils/route_util.dart';
+import 'package:acervo_hc/src/utils/route_util.dart';
 
 class EHDialog extends StatelessWidget {
   final String title;

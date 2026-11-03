@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_resizable_container/flutter_resizable_container.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/pages/home_page.dart';
-import 'package:jhentai/src/pages/layout/desktop/desktop_home_page.dart';
-import 'package:jhentai/src/pages/layout/desktop/desktop_layout_page_state.dart';
+import 'package:acervo_hc/src/pages/home_page.dart';
+import 'package:acervo_hc/src/pages/layout/desktop/desktop_home_page.dart';
+import 'package:acervo_hc/src/pages/layout/desktop/desktop_layout_page_state.dart';
 
 import '../../../config/ui_config.dart';
 import '../../../routes/routes.dart';

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:jhentai/src/service/log.dart';
+import 'package:acervo_hc/src/service/log.dart';
 
 class CheckException implements Exception {
   final String msg;

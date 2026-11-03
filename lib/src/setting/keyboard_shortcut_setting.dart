@@ -3,10 +3,10 @@ import 'dart:convert';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/enum/config_enum.dart';
-import 'package:jhentai/src/model/read_action.dart';
-import 'package:jhentai/src/service/jh_service.dart';
-import 'package:jhentai/src/service/log.dart';
+import 'package:acervo_hc/src/enum/config_enum.dart';
+import 'package:acervo_hc/src/model/read_action.dart';
+import 'package:acervo_hc/src/service/jh_service.dart';
+import 'package:acervo_hc/src/service/log.dart';
 
 KeyboardShortcutSetting keyboardShortcutSetting = KeyboardShortcutSetting();
 

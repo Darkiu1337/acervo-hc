@@ -1,4 +1,4 @@
-import 'package:jhentai/src/model/gallery_count.dart';
+import 'package:acervo_hc/src/model/gallery_count.dart';
 
 import 'gallery.dart';
 

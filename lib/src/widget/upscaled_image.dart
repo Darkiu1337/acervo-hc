@@ -1,7 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:jhentai/src/service/upscale_service.dart';
+import 'package:acervo_hc/src/service/upscale_service.dart';
 
 /// Displays [source] immediately and swaps it for the 2x upscaled texture once
 /// the shader pipeline finishes. While processing (or if it fails) the original

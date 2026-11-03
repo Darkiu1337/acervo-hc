@@ -1,12 +1,12 @@
 import 'dart:collection';
 import 'dart:convert';
 
-import 'package:jhentai/src/model/eight_muses_detail.dart';
-import 'package:jhentai/src/model/eight_muses_search.dart';
-import 'package:jhentai/src/model/gallery.dart';
-import 'package:jhentai/src/model/gallery_image.dart';
-import 'package:jhentai/src/model/gallery_tag.dart';
-import 'package:jhentai/src/model/gallery_url.dart';
+import 'package:acervo_hc/src/model/eight_muses_detail.dart';
+import 'package:acervo_hc/src/model/eight_muses_search.dart';
+import 'package:acervo_hc/src/model/gallery.dart';
+import 'package:acervo_hc/src/model/gallery_image.dart';
+import 'package:acervo_hc/src/model/gallery_tag.dart';
+import 'package:acervo_hc/src/model/gallery_url.dart';
 import 'package:intl/intl.dart';
 
 /// Parsers for https://8muses.io.

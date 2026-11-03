@@ -1,9 +1,9 @@
 import 'package:battery_plus/battery_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/mixin/scroll_status_listener_state.dart';
-import 'package:jhentai/src/model/read_page_info.dart';
-import 'package:jhentai/src/setting/site_setting.dart';
+import 'package:acervo_hc/src/mixin/scroll_status_listener_state.dart';
+import 'package:acervo_hc/src/model/read_page_info.dart';
+import 'package:acervo_hc/src/setting/site_setting.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 import '../../model/gallery_image.dart';

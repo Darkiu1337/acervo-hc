@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
-import 'package:jhentai/src/extension/get_logic_extension.dart';
-import 'package:jhentai/src/routes/routes.dart';
-import 'package:jhentai/src/utils/route_util.dart';
+import 'package:acervo_hc/src/extension/get_logic_extension.dart';
+import 'package:acervo_hc/src/routes/routes.dart';
+import 'package:acervo_hc/src/utils/route_util.dart';
 
 import '../../../../../service/local_block_rule_service.dart';
 import '../../../../../utils/snack_util.dart';

@@ -6,12 +6,12 @@ import 'package:get/get_core/src/get_main.dart';
 import 'package:get/get_instance/get_instance.dart';
 import 'package:get/get_state_manager/src/simple/get_controllers.dart';
 import 'package:get/get_utils/get_utils.dart';
-import 'package:jhentai/src/database/database.dart';
-import 'package:jhentai/src/extension/dio_exception_extension.dart';
-import 'package:jhentai/src/extension/get_logic_extension.dart';
-import 'package:jhentai/src/network/eh_request.dart';
-import 'package:jhentai/src/setting/super_resolution_setting.dart';
-import 'package:jhentai/src/utils/table.dart';
+import 'package:acervo_hc/src/database/database.dart';
+import 'package:acervo_hc/src/extension/dio_exception_extension.dart';
+import 'package:acervo_hc/src/extension/get_logic_extension.dart';
+import 'package:acervo_hc/src/network/eh_request.dart';
+import 'package:acervo_hc/src/setting/super_resolution_setting.dart';
+import 'package:acervo_hc/src/utils/table.dart';
 import 'package:path/path.dart';
 import 'package:retry/retry.dart';
 

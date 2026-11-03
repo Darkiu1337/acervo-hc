@@ -13,11 +13,11 @@ class FileUtil {
     return s.endsWith('.jpg') || s.endsWith('.png') || s.endsWith('.gif') || s.endsWith('.jpeg') || s.endsWith('.webp');
   }
 
-  static bool isJHenTaiGalleryDirectory(Directory directory) {
+  static bool isAcervoGalleryDirectory(Directory directory) {
     return _galleryPathPattern.hasMatch(directory.path) || _archivePathPattern.hasMatch(directory.path);
   }
 
-  static bool isJHenTaiFile(File file) {
+  static bool isAcervoFile(File file) {
     return basename(file.path) == '.nomedia' || _galleryPathPattern.hasMatch(file.parent.path) || _archivePathPattern.hasMatch(file.parent.path);
   }
 

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_draggable_gridview/flutter_draggable_gridview.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/config/ui_config.dart';
-import 'package:jhentai/src/extension/string_extension.dart';
-import 'package:jhentai/src/model/gallery_image.dart';
-import 'package:jhentai/src/utils/route_util.dart';
-import 'package:jhentai/src/widget/eh_image.dart';
-import 'package:jhentai/src/widget/eh_wheel_speed_controller.dart';
-import 'package:jhentai/src/service/super_resolution_service.dart';
+import 'package:acervo_hc/src/config/ui_config.dart';
+import 'package:acervo_hc/src/extension/string_extension.dart';
+import 'package:acervo_hc/src/model/gallery_image.dart';
+import 'package:acervo_hc/src/utils/route_util.dart';
+import 'package:acervo_hc/src/widget/eh_image.dart';
+import 'package:acervo_hc/src/widget/eh_wheel_speed_controller.dart';
+import 'package:acervo_hc/src/service/super_resolution_service.dart';
 
 import '../../../../mixin/scroll_to_top_logic_mixin.dart';
 import '../../../../mixin/scroll_to_top_page_mixin.dart';

@@ -32,7 +32,7 @@ class VolumeService extends GetxService with WidgetsBindingObserver, JHLifeCircl
     WidgetsBinding.instance.addObserver(this);
 
     if (GetPlatform.isAndroid) {
-      _methodChannel = const MethodChannel('top.jtmonster.jhentai.volume.event.intercept');
+      _methodChannel = const MethodChannel('app.acervo.hc.volume.event.intercept');
     }
   }
 

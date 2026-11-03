@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:jhentai/src/setting/style_setting.dart';
+import 'package:acervo_hc/src/setting/style_setting.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 import '../utils/screen_size_util.dart';
@@ -423,7 +423,7 @@ class UIConfig {
   static Color get readPageRightBottomRegionColor => Colors.grey.withValues(alpha: 0.8);
 
   /// Blank page
-  static Color jHentaiIconColor(BuildContext context) => Theme.of(context).colorScheme.outline;
+  static Color acervoIconColor(BuildContext context) => Theme.of(context).colorScheme.outline;
 
   /// Dashboard page
   static Color dashboardPageSeeAllTextColor(BuildContext context) => Theme.of(context).colorScheme.outline;

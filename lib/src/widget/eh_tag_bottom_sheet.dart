@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/widget/eh_tag_dialog_mobile_actions.dart';
+import 'package:acervo_hc/src/widget/eh_tag_dialog_mobile_actions.dart';
 
 import '../database/database.dart';
 import '../model/gallery_tag.dart';

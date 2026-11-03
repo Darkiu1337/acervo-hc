@@ -1,6 +1,6 @@
 import 'package:extended_image/extended_image.dart';
 import 'package:flutter/material.dart';
-import 'package:jhentai/src/model/gallery_thumbnail.dart';
+import 'package:acervo_hc/src/model/gallery_thumbnail.dart';
 
 import '../model/gallery_image.dart';
 import 'eh_image.dart';

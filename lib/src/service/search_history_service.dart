@@ -1,8 +1,8 @@
 import 'dart:convert';
 
-import 'package:jhentai/src/enum/config_enum.dart';
-import 'package:jhentai/src/model/search_history.dart';
-import 'package:jhentai/src/service/tag_translation_service.dart';
+import 'package:acervo_hc/src/enum/config_enum.dart';
+import 'package:acervo_hc/src/model/search_history.dart';
+import 'package:acervo_hc/src/service/tag_translation_service.dart';
 
 import '../database/database.dart';
 import 'jh_service.dart';

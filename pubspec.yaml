@@ -1,5 +1,5 @@
-name: jhentai
-description: A flutter app for E-Hentai/EXHentai
+name: acervo_hc
+description: Acervo H&C — leitor de mangá para E-Hentai/EXHentai com fonte 8muses, leitor aprimorado e tradução pt-BR
 
 publish_to: 'none'
 version: 8.0.18+344

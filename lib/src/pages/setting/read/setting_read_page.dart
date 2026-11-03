@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/config/ui_config.dart';
-import 'package:jhentai/src/extension/widget_extension.dart';
-import 'package:jhentai/src/pages/setting/keyboard_shortcuts/setting_keyboard_shortcuts_page.dart';
-import 'package:jhentai/src/pages/setting/read/tap_zone/setting_tap_zone_page.dart';
-import 'package:jhentai/src/setting/preference_setting.dart';
-import 'package:jhentai/src/setting/read_setting.dart';
-import 'package:jhentai/src/setting/style_setting.dart';
+import 'package:acervo_hc/src/config/ui_config.dart';
+import 'package:acervo_hc/src/extension/widget_extension.dart';
+import 'package:acervo_hc/src/pages/setting/keyboard_shortcuts/setting_keyboard_shortcuts_page.dart';
+import 'package:acervo_hc/src/pages/setting/read/tap_zone/setting_tap_zone_page.dart';
+import 'package:acervo_hc/src/setting/preference_setting.dart';
+import 'package:acervo_hc/src/setting/read_setting.dart';
+import 'package:acervo_hc/src/setting/style_setting.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../routes/routes.dart';

@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jhentai/src/service/gallery_download/download_path_resolver.dart';
+import 'package:acervo_hc/src/service/gallery_download/download_path_resolver.dart';
 
 void main() {
   group('legacy gallery restore path', () {

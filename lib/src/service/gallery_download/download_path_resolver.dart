@@ -1,7 +1,7 @@
 import 'package:get/get_utils/src/platform/platform.dart';
-import 'package:jhentai/src/database/database.dart';
-import 'package:jhentai/src/setting/download_setting.dart';
-import 'package:jhentai/src/utils/file_util.dart';
+import 'package:acervo_hc/src/database/database.dart';
+import 'package:acervo_hc/src/setting/download_setting.dart';
+import 'package:acervo_hc/src/utils/file_util.dart';
 import 'package:path/path.dart' as path;
 
 import '../path_service.dart';

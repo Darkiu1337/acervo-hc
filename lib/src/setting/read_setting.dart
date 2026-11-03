@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:ui';
 
 import 'package:get/get.dart';
-import 'package:jhentai/src/enum/config_enum.dart';
-import 'package:jhentai/src/model/tap_zone_config.dart';
-import 'package:jhentai/src/service/log.dart';
+import 'package:acervo_hc/src/enum/config_enum.dart';
+import 'package:acervo_hc/src/model/tap_zone_config.dart';
+import 'package:acervo_hc/src/service/log.dart';
 
 import '../service/jh_service.dart';
 

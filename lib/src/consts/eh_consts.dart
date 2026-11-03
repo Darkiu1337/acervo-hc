@@ -1,7 +1,7 @@
-import 'package:jhentai/src/setting/eh_setting.dart';
+import 'package:acervo_hc/src/setting/eh_setting.dart';
 
 class EHConsts {
-  static const String appName = "JHenTai";
+  static const String appName = "Acervo H&C";
 
   static String get EIndex => ehSetting.site.value == 'EH' ? EHIndex : EXIndex;
 

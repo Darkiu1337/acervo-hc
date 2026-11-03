@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          xmlns:tools="http://schemas.android.com/tools" package="top.jtmonster.jhentai">
+          xmlns:tools="http://schemas.android.com/tools" package="app.acervo.hc">
     <application
-            android:label="JHenTai"
+            android:label="Acervo H&amp;C"
             android:name="${applicationName}"
             android:requestLegacyExternalStorage="true"
             android:icon="@mipmap/launcher_icon">
@@ -71,7 +71,7 @@
 
         <provider
                 android:name="androidx.core.content.FileProvider"
-                android:authorities="top.jtmonster.jhentai.provider"
+                android:authorities="app.acervo.hc.provider"
                 android:exported="false"
                 android:grantUriPermissions="true">
             <meta-data

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/model/eight_muses_search.dart';
-import 'package:jhentai/src/network/eight_muses_request.dart';
-import 'package:jhentai/src/pages/eight_muses/eight_muses_logic.dart';
+import 'package:acervo_hc/src/model/eight_muses_search.dart';
+import 'package:acervo_hc/src/network/eight_muses_request.dart';
+import 'package:acervo_hc/src/pages/eight_muses/eight_muses_logic.dart';
 
 /// Inline search bar of the 8muses page: keyword field, filter button and the
 /// active filter chips. Replaces the old keyword dialog.

@@ -3,9 +3,9 @@ import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
-import 'package:jhentai/src/database/dao/dio_cache_dao.dart';
-import 'package:jhentai/src/setting/network_setting.dart';
-import 'package:jhentai/src/service/log.dart';
+import 'package:acervo_hc/src/database/dao/dio_cache_dao.dart';
+import 'package:acervo_hc/src/setting/network_setting.dart';
+import 'package:acervo_hc/src/service/log.dart';
 
 import '../database/database.dart';
 

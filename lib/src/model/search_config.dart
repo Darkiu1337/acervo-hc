@@ -1,5 +1,5 @@
-import 'package:jhentai/src/consts/eh_consts.dart';
-import 'package:jhentai/src/database/database.dart';
+import 'package:acervo_hc/src/consts/eh_consts.dart';
+import 'package:acervo_hc/src/database/database.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 enum SearchType {

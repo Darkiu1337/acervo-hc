@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/routes/routes.dart';
+import 'package:acervo_hc/src/routes/routes.dart';
 import '../../setting/user_setting.dart';
 import '../../utils/route_util.dart';
 import '../layout/mobile_v2/notification/tap_menu_button_notification.dart';

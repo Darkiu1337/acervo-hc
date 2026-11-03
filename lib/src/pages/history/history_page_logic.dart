@@ -1,9 +1,9 @@
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/config/ui_config.dart';
-import 'package:jhentai/src/extension/get_logic_extension.dart';
-import 'package:jhentai/src/widget/eh_alert_dialog.dart';
-import 'package:jhentai/src/widget/eh_context_menu.dart';
+import 'package:acervo_hc/src/config/ui_config.dart';
+import 'package:acervo_hc/src/extension/get_logic_extension.dart';
+import 'package:acervo_hc/src/widget/eh_alert_dialog.dart';
+import 'package:acervo_hc/src/widget/eh_context_menu.dart';
 
 import '../../model/gallery.dart';
 import '../../model/gallery_history_model.dart';

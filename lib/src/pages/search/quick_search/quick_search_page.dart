@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/extension/widget_extension.dart';
-import 'package:jhentai/src/model/search_config.dart';
-import 'package:jhentai/src/service/quick_search_service.dart';
-import 'package:jhentai/src/utils/search_util.dart';
+import 'package:acervo_hc/src/extension/widget_extension.dart';
+import 'package:acervo_hc/src/model/search_config.dart';
+import 'package:acervo_hc/src/service/quick_search_service.dart';
+import 'package:acervo_hc/src/utils/search_util.dart';
 
 class QuickSearchPage extends StatelessWidget {
   final bool automaticallyImplyLeading;

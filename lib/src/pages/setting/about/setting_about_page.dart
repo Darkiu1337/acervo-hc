@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/extension/widget_extension.dart';
+import 'package:acervo_hc/src/extension/widget_extension.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -16,10 +16,9 @@ class _SettingAboutPageState extends State<SettingAboutPage> {
   String packageName = '';
   String version = '';
   String buildNumber = '';
-  String author = '酱天小禽兽(JTMonster)';
-  String telegram = 'https://t.me/+PindoE9yvIpmOWI9';
-  String gitRepo = 'https://github.com/jiangtian616/JHenTai';
-  String helpPage = 'https://github.com/jiangtian616/JHenTai/wiki';
+  String author = 'Darkiu1337';
+  String gitRepo = 'https://github.com/Darkiu1337/acervo-hc';
+  String helpPage = 'https://github.com/Darkiu1337/acervo-hc#readme';
 
   @override
   void initState() {
@@ -37,7 +36,7 @@ class _SettingAboutPageState extends State<SettingAboutPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(centerTitle: true, title: const Text('JHenTai')),
+      appBar: AppBar(centerTitle: true, title: const Text('Acervo H&C')),
       body: ListView(
         padding: const EdgeInsets.only(top: 16),
         children: [
@@ -47,11 +46,6 @@ class _SettingAboutPageState extends State<SettingAboutPage> {
             title: const Text('Github'),
             subtitle: SelectableText(gitRepo),
             onTap: () => launchUrlString(gitRepo, mode: LaunchMode.externalApplication),
-          ),
-          ListTile(
-            title: const Text('Telegram(Chinese Mainly)'),
-            subtitle: Text('telegramHint'.tr + '\n' + telegram),
-            onTap: () => launchUrlString(telegram, mode: LaunchMode.externalApplication),
           ),
           ListTile(
             title: Text('Q&A'.tr),

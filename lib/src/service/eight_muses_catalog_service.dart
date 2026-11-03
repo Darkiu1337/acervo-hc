@@ -1,9 +1,9 @@
 import 'dart:convert';
 
-import 'package:jhentai/src/model/eight_muses_search.dart';
-import 'package:jhentai/src/network/eight_muses_request.dart';
-import 'package:jhentai/src/service/log.dart';
-import 'package:jhentai/src/service/storage_service.dart';
+import 'package:acervo_hc/src/model/eight_muses_search.dart';
+import 'package:acervo_hc/src/network/eight_muses_request.dart';
+import 'package:acervo_hc/src/service/log.dart';
+import 'package:acervo_hc/src/service/storage_service.dart';
 
 EightMusesCatalogService eightMusesCatalogService = EightMusesCatalogService();
 

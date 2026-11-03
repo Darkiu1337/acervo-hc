@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/extension/widget_extension.dart';
-import 'package:jhentai/src/service/frame_rate_service.dart';
+import 'package:acervo_hc/src/extension/widget_extension.dart';
+import 'package:acervo_hc/src/service/frame_rate_service.dart';
 
 class SettingFrameRatePage extends StatefulWidget {
   const SettingFrameRatePage({super.key});

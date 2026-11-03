@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/config/ui_config.dart';
-import 'package:jhentai/src/service/archive_download_service.dart';
-import 'package:jhentai/src/utils/route_util.dart';
+import 'package:acervo_hc/src/config/ui_config.dart';
+import 'package:acervo_hc/src/service/archive_download_service.dart';
+import 'package:acervo_hc/src/utils/route_util.dart';
 
 class EHArchiveParseSourceSelectDialog extends StatefulWidget {
   const EHArchiveParseSourceSelectDialog({super.key});

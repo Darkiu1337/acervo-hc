@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:get/get_rx/src/rx_workers/rx_workers.dart';
-import 'package:jhentai/src/consts/archive_bot_consts.dart';
-import 'package:jhentai/src/model/archive_bot_response/archive_bot_response.dart';
-import 'package:jhentai/src/network/eh_request.dart';
-import 'package:jhentai/src/setting/archive_bot_setting.dart';
+import 'package:acervo_hc/src/consts/archive_bot_consts.dart';
+import 'package:acervo_hc/src/model/archive_bot_response/archive_bot_response.dart';
+import 'package:acervo_hc/src/network/eh_request.dart';
+import 'package:acervo_hc/src/setting/archive_bot_setting.dart';
 
 import '../service/jh_service.dart';
 import '../setting/network_setting.dart';

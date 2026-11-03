@@ -1,6 +1,6 @@
-import 'package:jhentai/src/enum/config_enum.dart';
-import 'package:jhentai/src/service/local_config_service.dart';
-import 'package:jhentai/src/service/path_service.dart';
+import 'package:acervo_hc/src/enum/config_enum.dart';
+import 'package:acervo_hc/src/service/local_config_service.dart';
+import 'package:acervo_hc/src/service/path_service.dart';
 
 import '../main.dart';
 import 'log.dart';

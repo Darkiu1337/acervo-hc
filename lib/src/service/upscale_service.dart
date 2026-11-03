@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:ui' as ui;
 
-import 'package:jhentai/src/service/log.dart';
+import 'package:acervo_hc/src/service/log.dart';
 
 /// Builds a 2x upscaled copy of a decoded page image so zoomed pages stay
 /// crisp.

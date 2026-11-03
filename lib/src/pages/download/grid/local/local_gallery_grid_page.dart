@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_draggable_gridview/flutter_draggable_gridview.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/mixin/scroll_to_top_page_mixin.dart';
-import 'package:jhentai/src/pages/download/download_base_page.dart';
-import 'package:jhentai/src/service/local_gallery_service.dart';
+import 'package:acervo_hc/src/mixin/scroll_to_top_page_mixin.dart';
+import 'package:acervo_hc/src/pages/download/download_base_page.dart';
+import 'package:acervo_hc/src/service/local_gallery_service.dart';
 import 'package:path/path.dart';
 
 import '../../../../utils/toast_util.dart';

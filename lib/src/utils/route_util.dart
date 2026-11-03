@@ -1,10 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/extension/list_extension.dart';
-import 'package:jhentai/src/pages/home_page.dart';
-import 'package:jhentai/src/routes/eh_page.dart';
-import 'package:jhentai/src/routes/routes.dart';
-import 'package:jhentai/src/setting/style_setting.dart';
+import 'package:acervo_hc/src/extension/list_extension.dart';
+import 'package:acervo_hc/src/pages/home_page.dart';
+import 'package:acervo_hc/src/routes/eh_page.dart';
+import 'package:acervo_hc/src/routes/routes.dart';
+import 'package:acervo_hc/src/setting/style_setting.dart';
 
 import '../model/jh_layout.dart';
 import '../pages/layout/desktop/desktop_layout_page_logic.dart';

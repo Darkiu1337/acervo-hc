@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
-import 'package:jhentai/src/service/log.dart';
+import 'package:acervo_hc/src/service/log.dart';
 
 ImageViewerScannerService imageViewerScannerService = const ImageViewerScannerService();
 
@@ -45,7 +45,7 @@ class ImageViewerScannerService {
     try {
       final String script = await rootBundle.loadString(_scriptAsset);
 
-      tempDir = await Directory.systemTemp.createTemp('jhentai_viewer_scan_');
+      tempDir = await Directory.systemTemp.createTemp('acervo_hc_viewer_scan_');
       final File scriptFile = File('${tempDir.path}${Platform.pathSeparator}scan_image_viewers.ps1');
       await scriptFile.writeAsString(script, flush: true);
 

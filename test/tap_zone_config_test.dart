@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jhentai/src/model/tap_zone_config.dart';
+import 'package:acervo_hc/src/model/tap_zone_config.dart';
 
 void main() {
   test('normalizes out-of-range ratios so derived segments stay >= 1', () {

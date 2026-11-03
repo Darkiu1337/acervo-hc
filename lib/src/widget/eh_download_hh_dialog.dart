@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/extension/dio_exception_extension.dart';
-import 'package:jhentai/src/extension/widget_extension.dart';
-import 'package:jhentai/src/utils/route_util.dart';
+import 'package:acervo_hc/src/extension/dio_exception_extension.dart';
+import 'package:acervo_hc/src/extension/widget_extension.dart';
+import 'package:acervo_hc/src/utils/route_util.dart';
 
 import '../config/ui_config.dart';
 import '../exception/eh_site_exception.dart';

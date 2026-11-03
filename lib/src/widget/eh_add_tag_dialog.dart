@@ -2,11 +2,11 @@ import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/config/ui_config.dart';
-import 'package:jhentai/src/extension/get_logic_extension.dart';
-import 'package:jhentai/src/extension/list_extension.dart';
-import 'package:jhentai/src/extension/widget_extension.dart';
-import 'package:jhentai/src/pages/search/mixin/search_page_mixin.dart';
+import 'package:acervo_hc/src/config/ui_config.dart';
+import 'package:acervo_hc/src/extension/get_logic_extension.dart';
+import 'package:acervo_hc/src/extension/list_extension.dart';
+import 'package:acervo_hc/src/extension/widget_extension.dart';
+import 'package:acervo_hc/src/pages/search/mixin/search_page_mixin.dart';
 import 'package:throttling/throttling.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 

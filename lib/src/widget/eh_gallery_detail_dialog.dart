@@ -1,13 +1,13 @@
 import 'package:clipboard/clipboard.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/config/ui_config.dart';
-import 'package:jhentai/src/extension/string_extension.dart';
-import 'package:jhentai/src/extension/widget_extension.dart';
-import 'package:jhentai/src/model/gallery_detail.dart';
-import 'package:jhentai/src/setting/preference_setting.dart';
-import 'package:jhentai/src/utils/date_util.dart';
-import 'package:jhentai/src/utils/string_uril.dart';
+import 'package:acervo_hc/src/config/ui_config.dart';
+import 'package:acervo_hc/src/extension/string_extension.dart';
+import 'package:acervo_hc/src/extension/widget_extension.dart';
+import 'package:acervo_hc/src/model/gallery_detail.dart';
+import 'package:acervo_hc/src/setting/preference_setting.dart';
+import 'package:acervo_hc/src/utils/date_util.dart';
+import 'package:acervo_hc/src/utils/string_uril.dart';
 
 import '../utils/toast_util.dart';
 

@@ -8,24 +8,24 @@ import 'package:extended_image/extended_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/enum/config_enum.dart';
-import 'package:jhentai/src/exception/eh_parse_exception.dart';
-import 'package:jhentai/src/exception/eh_site_exception.dart';
-import 'package:jhentai/src/extension/dio_exception_extension.dart';
-import 'package:jhentai/src/extension/get_logic_extension.dart';
-import 'package:jhentai/src/model/gallery_source.dart';
-import 'package:jhentai/src/model/tap_zone_config.dart';
-import 'package:jhentai/src/pages/read/layout/base/base_layout_logic.dart';
-import 'package:jhentai/src/pages/read/layout/horizontal_double_column/horizontal_double_column_layout_logic.dart';
-import 'package:jhentai/src/pages/read/layout/horizontal_list/horizontal_list_layout_logic.dart';
-import 'package:jhentai/src/pages/read/layout/horizontal_page/horizontal_page_layout_logic.dart';
-import 'package:jhentai/src/pages/read/layout/vertical_list/vertical_list_layout_logic.dart';
-import 'package:jhentai/src/pages/read/read_page_state.dart';
-import 'package:jhentai/src/service/super_resolution_service.dart';
-import 'package:jhentai/src/service/external_viewer_service.dart';
-import 'package:jhentai/src/service/volume_service.dart';
-import 'package:jhentai/src/setting/style_setting.dart';
-import 'package:jhentai/src/utils/eh_executor.dart';
+import 'package:acervo_hc/src/enum/config_enum.dart';
+import 'package:acervo_hc/src/exception/eh_parse_exception.dart';
+import 'package:acervo_hc/src/exception/eh_site_exception.dart';
+import 'package:acervo_hc/src/extension/dio_exception_extension.dart';
+import 'package:acervo_hc/src/extension/get_logic_extension.dart';
+import 'package:acervo_hc/src/model/gallery_source.dart';
+import 'package:acervo_hc/src/model/tap_zone_config.dart';
+import 'package:acervo_hc/src/pages/read/layout/base/base_layout_logic.dart';
+import 'package:acervo_hc/src/pages/read/layout/horizontal_double_column/horizontal_double_column_layout_logic.dart';
+import 'package:acervo_hc/src/pages/read/layout/horizontal_list/horizontal_list_layout_logic.dart';
+import 'package:acervo_hc/src/pages/read/layout/horizontal_page/horizontal_page_layout_logic.dart';
+import 'package:acervo_hc/src/pages/read/layout/vertical_list/vertical_list_layout_logic.dart';
+import 'package:acervo_hc/src/pages/read/read_page_state.dart';
+import 'package:acervo_hc/src/service/super_resolution_service.dart';
+import 'package:acervo_hc/src/service/external_viewer_service.dart';
+import 'package:acervo_hc/src/service/volume_service.dart';
+import 'package:acervo_hc/src/setting/style_setting.dart';
+import 'package:acervo_hc/src/utils/eh_executor.dart';
 import 'package:retry/retry.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
@@ -393,7 +393,7 @@ class ReadPageLogic extends GetxController with WidgetsBindingObserver, GalleryI
       state.thumbnails[i] = detailPageInfo.thumbnails[i - detailPageInfo.imageNoFrom];
     }
 
-    /// If we changed profile setting in EH site and have cached in JHenTai, we need to remove the cache to get the latest page info before re-parsing
+    /// If we changed profile setting in EH site and have cached in Acervo H&C, we need to remove the cache to get the latest page info before re-parsing
     if (state.thumbnails[index] == null) {
       log.download(
         'Parse image hrefs error, thumbnails count per page is not equal to default setting, parse again. Thumbnails count per page: ${detailPageInfo.thumbnailsCountPerPage}, changed: $thumbnailsCountPerPageChanged',

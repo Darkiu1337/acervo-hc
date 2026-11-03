@@ -1,9 +1,9 @@
 import 'dart:convert';
 
 import 'package:get/get.dart';
-import 'package:jhentai/src/model/gallery_history_model.dart';
-import 'package:jhentai/src/service/log.dart';
-import 'package:jhentai/src/service/storage_service.dart';
+import 'package:acervo_hc/src/model/gallery_history_model.dart';
+import 'package:acervo_hc/src/service/log.dart';
+import 'package:acervo_hc/src/service/storage_service.dart';
 
 AlreadyReadService alreadyReadService = AlreadyReadService();
 

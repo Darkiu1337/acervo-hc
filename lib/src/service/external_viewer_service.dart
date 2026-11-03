@@ -4,14 +4,14 @@ import 'dart:typed_data';
 
 import 'package:extended_image/extended_image.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/model/gallery_image.dart';
-import 'package:jhentai/src/model/read_page_info.dart';
-import 'package:jhentai/src/network/eh_request.dart';
-import 'package:jhentai/src/service/jh_service.dart';
-import 'package:jhentai/src/service/log.dart';
-import 'package:jhentai/src/service/path_service.dart';
-import 'package:jhentai/src/setting/read_setting.dart';
-import 'package:jhentai/src/utils/toast_util.dart';
+import 'package:acervo_hc/src/model/gallery_image.dart';
+import 'package:acervo_hc/src/model/read_page_info.dart';
+import 'package:acervo_hc/src/network/eh_request.dart';
+import 'package:acervo_hc/src/service/jh_service.dart';
+import 'package:acervo_hc/src/service/log.dart';
+import 'package:acervo_hc/src/service/path_service.dart';
+import 'package:acervo_hc/src/setting/read_setting.dart';
+import 'package:acervo_hc/src/utils/toast_util.dart';
 import 'package:path/path.dart' as p;
 
 typedef ExternalViewerImageResolver = Future<GalleryImage?> Function(int index);
@@ -96,7 +96,7 @@ class ExternalViewerService with JHLifeCircleBeanErrorCatch implements JHLifeCir
 
   static final ExternalViewerService instance = ExternalViewerService._();
 
-  static const String _tempRootName = 'jhentai_viewer';
+  static const String _tempRootName = 'acervo_hc_viewer';
   static const String _legacyTempRootName = 'jhentai_nomacs';
 
   static const Set<String> _allowedExtensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.avif'};

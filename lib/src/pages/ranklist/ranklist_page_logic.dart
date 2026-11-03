@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:jhentai/src/network/eh_request.dart';
-import 'package:jhentai/src/pages/ranklist/ranklist_page_state.dart';
-import 'package:jhentai/src/utils/eh_spider_parser.dart';
-import 'package:jhentai/src/widget/loading_state_indicator.dart';
+import 'package:acervo_hc/src/network/eh_request.dart';
+import 'package:acervo_hc/src/pages/ranklist/ranklist_page_state.dart';
+import 'package:acervo_hc/src/utils/eh_spider_parser.dart';
+import 'package:acervo_hc/src/widget/loading_state_indicator.dart';
 
 import '../../service/log.dart';
 import '../base/old_base_page_logic.dart';

@@ -1,11 +1,11 @@
 import 'package:flutter/rendering.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';import 'package:jhentai/src/config/ui_config.dart';
-import 'package:jhentai/src/setting/style_setting.dart';
-import 'package:jhentai/src/model/tag_set.dart';
-import 'package:jhentai/src/pages/setting/eh/tagsets/tag_sets_page_logic.dart';
-import 'package:jhentai/src/pages/setting/eh/tagsets/tag_sets_page_state.dart';
+import 'package:get/get.dart';import 'package:acervo_hc/src/config/ui_config.dart';
+import 'package:acervo_hc/src/setting/style_setting.dart';
+import 'package:acervo_hc/src/model/tag_set.dart';
+import 'package:acervo_hc/src/pages/setting/eh/tagsets/tag_sets_page_logic.dart';
+import 'package:acervo_hc/src/pages/setting/eh/tagsets/tag_sets_page_state.dart';
 
 import '../../../../widget/eh_tag_edit_dialog.dart';
 import '../../../../widget/eh_wheel_speed_controller.dart';

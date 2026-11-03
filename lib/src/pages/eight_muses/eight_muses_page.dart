@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/config/ui_config.dart';
-import 'package:jhentai/src/model/eight_muses_search.dart';
-import 'package:jhentai/src/model/gallery.dart';
-import 'package:jhentai/src/pages/eight_muses/eight_muses_logic.dart';
-import 'package:jhentai/src/routes/routes.dart';
-import 'package:jhentai/src/service/already_read_service.dart';
-import 'package:jhentai/src/service/local_favorite_service.dart';
-import 'package:jhentai/src/utils/convert_util.dart';
-import 'package:jhentai/src/utils/route_util.dart';
-import 'package:jhentai/src/utils/toast_util.dart';
-import 'package:jhentai/src/widget/eh_context_menu.dart';
-import 'package:jhentai/src/widget/eight_muses_card.dart';
-import 'package:jhentai/src/widget/eight_muses_filter_sheet.dart';
-import 'package:jhentai/src/widget/eight_muses_mark.dart';
-import 'package:jhentai/src/widget/eight_muses_search_bar.dart';
-import 'package:jhentai/src/widget/loading_state_indicator.dart';
+import 'package:acervo_hc/src/config/ui_config.dart';
+import 'package:acervo_hc/src/model/eight_muses_search.dart';
+import 'package:acervo_hc/src/model/gallery.dart';
+import 'package:acervo_hc/src/pages/eight_muses/eight_muses_logic.dart';
+import 'package:acervo_hc/src/routes/routes.dart';
+import 'package:acervo_hc/src/service/already_read_service.dart';
+import 'package:acervo_hc/src/service/local_favorite_service.dart';
+import 'package:acervo_hc/src/utils/convert_util.dart';
+import 'package:acervo_hc/src/utils/route_util.dart';
+import 'package:acervo_hc/src/utils/toast_util.dart';
+import 'package:acervo_hc/src/widget/eh_context_menu.dart';
+import 'package:acervo_hc/src/widget/eight_muses_card.dart';
+import 'package:acervo_hc/src/widget/eight_muses_filter_sheet.dart';
+import 'package:acervo_hc/src/widget/eight_muses_mark.dart';
+import 'package:acervo_hc/src/widget/eight_muses_search_bar.dart';
+import 'package:acervo_hc/src/widget/loading_state_indicator.dart';
 
 /// Browse/search page of the external 8muses source.
 class EightMusesPage extends StatelessWidget {

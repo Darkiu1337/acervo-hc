@@ -3,9 +3,9 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/enum/config_enum.dart';
-import 'package:jhentai/src/service/local_config_service.dart';
-import 'package:jhentai/src/utils/screen_size_util.dart';
+import 'package:acervo_hc/src/enum/config_enum.dart';
+import 'package:acervo_hc/src/service/local_config_service.dart';
+import 'package:acervo_hc/src/utils/screen_size_util.dart';
 import 'package:throttling/throttling.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -50,7 +50,7 @@ class WindowService with JHLifeCircleBeanErrorCatch implements JHLifeCircleBean 
         size: Size(windowWidth, windowHeight),
         backgroundColor: Colors.transparent,
         skipTaskbar: false,
-        title: 'JHenTai',
+        title: 'Acervo H&C',
         titleBarStyle: GetPlatform.isWindows ? TitleBarStyle.hidden : TitleBarStyle.normal,
       );
 

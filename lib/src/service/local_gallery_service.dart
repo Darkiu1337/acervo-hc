@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:get/get.dart';
-import 'package:jhentai/src/extension/list_extension.dart';
-import 'package:jhentai/src/service/gallery_download/gallery_download_service.dart';
-import 'package:jhentai/src/utils/file_util.dart';
+import 'package:acervo_hc/src/extension/list_extension.dart';
+import 'package:acervo_hc/src/service/gallery_download/gallery_download_service.dart';
+import 'package:acervo_hc/src/utils/file_util.dart';
 import 'package:path/path.dart';
 
 import '../model/gallery_image.dart';
@@ -16,7 +16,7 @@ import 'log.dart';
 import '../widget/loading_state_indicator.dart';
 import 'archive_download_service.dart';
 
-/// Load galleries in download directory but is not downloaded by JHenTai
+/// Load galleries in download directory but is not downloaded by Acervo H&C
 LocalGalleryService localGalleryService = LocalGalleryService();
 
 class LocalGalleryService extends GetxController with GridBasePageServiceMixin, JHLifeCircleBeanErrorCatch implements JHLifeCircleBean {
@@ -127,7 +127,7 @@ class LocalGalleryService extends GetxController with GridBasePageServiceMixin, 
 
     Future<bool> future = directory.exists();
 
-    /// skip if it is JHenTai gallery directory -> metadata file exists
+    /// skip if it is Acervo H&C gallery directory -> metadata file exists
     future = future.then<bool>((success) {
       if (success) {
         return File(join(directory.path, GalleryDownloadService.metadataFileName)).exists().then((value) => !value);

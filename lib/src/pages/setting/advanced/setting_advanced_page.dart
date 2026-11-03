@@ -8,15 +8,15 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:jhentai/src/extension/widget_extension.dart';
-import 'package:jhentai/src/model/config.dart';
-import 'package:jhentai/src/network/eh_request.dart';
-import 'package:jhentai/src/service/cloud_service.dart';
-import 'package:jhentai/src/setting/advanced_setting.dart';
-import 'package:jhentai/src/service/path_service.dart';
-import 'package:jhentai/src/service/log.dart';
-import 'package:jhentai/src/utils/toast_util.dart';
-import 'package:jhentai/src/widget/loading_state_indicator.dart';
+import 'package:acervo_hc/src/extension/widget_extension.dart';
+import 'package:acervo_hc/src/model/config.dart';
+import 'package:acervo_hc/src/network/eh_request.dart';
+import 'package:acervo_hc/src/service/cloud_service.dart';
+import 'package:acervo_hc/src/setting/advanced_setting.dart';
+import 'package:acervo_hc/src/service/path_service.dart';
+import 'package:acervo_hc/src/service/log.dart';
+import 'package:acervo_hc/src/utils/toast_util.dart';
+import 'package:acervo_hc/src/widget/loading_state_indicator.dart';
 import 'package:path/path.dart';
 
 import '../../../config/ui_config.dart';
@@ -194,7 +194,7 @@ class _SettingAdvancedPageState extends State<SettingAdvancedPage> {
         try {
           await const AndroidIntent(
             action: 'android.settings.APP_OPEN_BY_DEFAULT_SETTINGS',
-            data: 'package:top.jtmonster.jhentai',
+            data: 'package:app.acervo.hc',
           ).launch();
         } on Exception catch (e) {
           log.error(e);

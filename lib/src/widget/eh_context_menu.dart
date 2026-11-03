@@ -1,8 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/setting/style_setting.dart';
-import 'package:jhentai/src/utils/route_util.dart';
+import 'package:acervo_hc/src/setting/style_setting.dart';
+import 'package:acervo_hc/src/utils/route_util.dart';
 
 import 'eh_action_sheet_text.dart';
 

@@ -1,15 +1,15 @@
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/model/eight_muses_search.dart';
-import 'package:jhentai/src/model/gallery.dart';
-import 'package:jhentai/src/network/eight_muses_request.dart';
-import 'package:jhentai/src/pages/eight_muses/eight_muses_state.dart';
-import 'package:jhentai/src/service/already_read_service.dart';
-import 'package:jhentai/src/service/eight_muses_catalog_service.dart';
-import 'package:jhentai/src/service/local_favorite_service.dart';
-import 'package:jhentai/src/service/log.dart';
-import 'package:jhentai/src/utils/snack_util.dart';
-import 'package:jhentai/src/widget/loading_state_indicator.dart';
+import 'package:acervo_hc/src/model/eight_muses_search.dart';
+import 'package:acervo_hc/src/model/gallery.dart';
+import 'package:acervo_hc/src/network/eight_muses_request.dart';
+import 'package:acervo_hc/src/pages/eight_muses/eight_muses_state.dart';
+import 'package:acervo_hc/src/service/already_read_service.dart';
+import 'package:acervo_hc/src/service/eight_muses_catalog_service.dart';
+import 'package:acervo_hc/src/service/local_favorite_service.dart';
+import 'package:acervo_hc/src/service/log.dart';
+import 'package:acervo_hc/src/utils/snack_util.dart';
+import 'package:acervo_hc/src/widget/loading_state_indicator.dart';
 
 /// Lists https://8muses.io galleries: listings, keyword search and tag search.
 ///

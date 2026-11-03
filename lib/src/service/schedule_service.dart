@@ -9,17 +9,17 @@ import 'package:get/get_core/src/get_main.dart';
 import 'package:get/get_navigation/get_navigation.dart';
 import 'package:get/get_rx/get_rx.dart';
 import 'package:get/get_utils/get_utils.dart';
-import 'package:jhentai/src/database/dao/archive_dao.dart';
-import 'package:jhentai/src/database/dao/gallery_dao.dart';
-import 'package:jhentai/src/extension/dio_exception_extension.dart';
-import 'package:jhentai/src/network/eh_request.dart';
-import 'package:jhentai/src/setting/archive_bot_setting.dart';
-import 'package:jhentai/src/setting/network_setting.dart';
-import 'package:jhentai/src/setting/preference_setting.dart';
-import 'package:jhentai/src/setting/user_setting.dart';
-import 'package:jhentai/src/utils/convert_util.dart';
-import 'package:jhentai/src/utils/eh_spider_parser.dart';
-import 'package:jhentai/src/utils/snack_util.dart';
+import 'package:acervo_hc/src/database/dao/archive_dao.dart';
+import 'package:acervo_hc/src/database/dao/gallery_dao.dart';
+import 'package:acervo_hc/src/extension/dio_exception_extension.dart';
+import 'package:acervo_hc/src/network/eh_request.dart';
+import 'package:acervo_hc/src/setting/archive_bot_setting.dart';
+import 'package:acervo_hc/src/setting/network_setting.dart';
+import 'package:acervo_hc/src/setting/preference_setting.dart';
+import 'package:acervo_hc/src/setting/user_setting.dart';
+import 'package:acervo_hc/src/utils/convert_util.dart';
+import 'package:acervo_hc/src/utils/eh_spider_parser.dart';
+import 'package:acervo_hc/src/utils/snack_util.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -66,7 +66,7 @@ class ScheduleService with JHLifeCircleBeanErrorCatch implements JHLifeCircleBea
       return;
     }
 
-    String url = 'https://api.github.com/repos/jiangtian616/JHenTai/releases';
+    String url = 'https://api.github.com/repos/Darkiu1337/acervo-hc/releases';
     String latestVersion;
 
     try {

@@ -2,8 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/extension/dio_exception_extension.dart';
-import 'package:jhentai/src/utils/toast_util.dart';
+import 'package:acervo_hc/src/extension/dio_exception_extension.dart';
+import 'package:acervo_hc/src/utils/toast_util.dart';
 
 import '../exception/eh_site_exception.dart';
 import '../network/eh_request.dart';
@@ -77,7 +77,7 @@ class EHCommentDialogState extends State<EHCommentDialog> {
       return;
     }
 
-    if (content.removeAllWhitespace.toLowerCase().contains('jhentai')) {
+    if (content.removeAllWhitespace.toLowerCase().contains('acervo')) {
       toast('noJHenTaiHints'.tr, isShort: false);
       return;
     }

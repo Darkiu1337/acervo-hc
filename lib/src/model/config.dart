@@ -1,4 +1,4 @@
-import 'package:jhentai/src/enum/config_type_enum.dart';
+import 'package:acervo_hc/src/enum/config_type_enum.dart';
 
 class CloudConfig {
   final int id;

@@ -1,9 +1,9 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/setting/download_setting.dart';
-import 'package:jhentai/src/utils/string_uril.dart';
-import 'package:jhentai/src/widget/eh_alert_dialog.dart';
+import 'package:acervo_hc/src/setting/download_setting.dart';
+import 'package:acervo_hc/src/utils/string_uril.dart';
+import 'package:acervo_hc/src/widget/eh_alert_dialog.dart';
 
 import '../../../../service/log.dart';
 import '../../../../utils/permission_util.dart';

@@ -1,13 +1,13 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/extension/dio_exception_extension.dart';
-import 'package:jhentai/src/extension/get_logic_extension.dart';
-import 'package:jhentai/src/network/eh_request.dart';
-import 'package:jhentai/src/setting/my_tags_setting.dart';
-import 'package:jhentai/src/setting/user_setting.dart';
-import 'package:jhentai/src/utils/eh_spider_parser.dart';
-import 'package:jhentai/src/utils/toast_util.dart';
+import 'package:acervo_hc/src/extension/dio_exception_extension.dart';
+import 'package:acervo_hc/src/extension/get_logic_extension.dart';
+import 'package:acervo_hc/src/network/eh_request.dart';
+import 'package:acervo_hc/src/setting/my_tags_setting.dart';
+import 'package:acervo_hc/src/setting/user_setting.dart';
+import 'package:acervo_hc/src/utils/eh_spider_parser.dart';
+import 'package:acervo_hc/src/utils/toast_util.dart';
 
 import '../../../../database/database.dart';
 import '../../../../exception/eh_site_exception.dart';

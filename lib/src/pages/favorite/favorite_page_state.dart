@@ -1,4 +1,4 @@
-import 'package:jhentai/src/routes/routes.dart';
+import 'package:acervo_hc/src/routes/routes.dart';
 
 import '../../model/search_config.dart';
 import '../base/base_page_state.dart';

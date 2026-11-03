@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/service/local_gallery_service.dart';
-import 'package:jhentai/src/widget/fade_slide_widget.dart';
-import 'package:jhentai/src/widget/loading_state_indicator.dart';
+import 'package:acervo_hc/src/service/local_gallery_service.dart';
+import 'package:acervo_hc/src/widget/fade_slide_widget.dart';
+import 'package:acervo_hc/src/widget/loading_state_indicator.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../../config/ui_config.dart';

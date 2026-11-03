@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/extension/widget_extension.dart';
-import 'package:jhentai/src/model/tab_bar_icon.dart';
-import 'package:jhentai/src/pages/download/download_base_page.dart';
-import 'package:jhentai/src/service/tag_search_order_service.dart';
+import 'package:acervo_hc/src/extension/widget_extension.dart';
+import 'package:acervo_hc/src/model/tab_bar_icon.dart';
+import 'package:acervo_hc/src/pages/download/download_base_page.dart';
+import 'package:acervo_hc/src/service/tag_search_order_service.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../../consts/locale_consts.dart';
@@ -485,7 +485,7 @@ class SettingPreferencePage extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.help),
             onPressed: () => launchUrlString(
-              'https://raw.githubusercontent.com/jiangtian616/JHenTai/refs/heads/master/built_in_blocked_user.json',
+              'https://raw.githubusercontent.com/Darkiu1337/acervo-hc/refs/heads/master/built_in_blocked_user.json',
               mode: LaunchMode.externalApplication,
             ),
           ),

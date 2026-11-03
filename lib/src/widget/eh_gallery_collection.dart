@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_list_view/flutter_list_view.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/config/ui_config.dart';
-import 'package:jhentai/src/service/archive_download_service.dart';
-import 'package:jhentai/src/service/gallery_download/gallery_download_service.dart';
-import 'package:jhentai/src/widget/loading_state_indicator.dart';
+import 'package:acervo_hc/src/config/ui_config.dart';
+import 'package:acervo_hc/src/service/archive_download_service.dart';
+import 'package:acervo_hc/src/service/gallery_download/gallery_download_service.dart';
+import 'package:acervo_hc/src/widget/loading_state_indicator.dart';
 import 'package:waterfall_flow/waterfall_flow.dart';
 
 import '../model/gallery.dart';

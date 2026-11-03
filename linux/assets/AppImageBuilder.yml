@@ -2,11 +2,11 @@ version: 1
 AppDir:
   path: ../../build/linux/AppDir
   app_info:
-    id: top.jtmonster.jhentai
-    name: JHenTai
-    icon: top.jtmonster.jhentai
+    id: app.acervo.hc
+    name: Acervo H&C
+    icon: app.acervo.hc
     version: latest
-    exec: jhentai
+    exec: acervo-hc
     exec_args: $@
   files:
     include:

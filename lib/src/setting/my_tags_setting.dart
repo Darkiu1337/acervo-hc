@@ -2,9 +2,9 @@ import 'dart:ui';
 
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/database/database.dart';
-import 'package:jhentai/src/extension/dio_exception_extension.dart';
-import 'package:jhentai/src/setting/user_setting.dart';
+import 'package:acervo_hc/src/database/database.dart';
+import 'package:acervo_hc/src/extension/dio_exception_extension.dart';
+import 'package:acervo_hc/src/setting/user_setting.dart';
 import 'package:retry/retry.dart';
 
 import '../exception/eh_site_exception.dart';

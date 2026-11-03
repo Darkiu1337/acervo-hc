@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:jhentai/src/service/log.dart';
+import 'package:acervo_hc/src/service/log.dart';
 
 abstract interface class EHIpProvider {
   bool supports(String host);

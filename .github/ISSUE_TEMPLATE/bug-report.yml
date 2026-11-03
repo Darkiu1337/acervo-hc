@@ -92,7 +92,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: JHenTai 版本号 / JHenTai version
+      label: Acervo H&C 版本号 / Acervo H&C version
       description: |
         您可以在`设置` - `关于`处找到版本号 
         You can get version code in `Settings` - `About`

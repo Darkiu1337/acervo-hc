@@ -1,11 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/config/ui_config.dart';
-import 'package:jhentai/src/extension/get_logic_extension.dart';
-import 'package:jhentai/src/mixin/scroll_to_top_logic_mixin.dart';
-import 'package:jhentai/src/mixin/update_global_gallery_status_logic_mixin.dart';
-import 'package:jhentai/src/service/super_resolution_service.dart';
-import 'package:jhentai/src/setting/super_resolution_setting.dart';
+import 'package:acervo_hc/src/config/ui_config.dart';
+import 'package:acervo_hc/src/extension/get_logic_extension.dart';
+import 'package:acervo_hc/src/mixin/scroll_to_top_logic_mixin.dart';
+import 'package:acervo_hc/src/mixin/update_global_gallery_status_logic_mixin.dart';
+import 'package:acervo_hc/src/service/super_resolution_service.dart';
+import 'package:acervo_hc/src/setting/super_resolution_setting.dart';
 
 import '../../../../database/database.dart';
 import '../../../../model/read_page_info.dart';

@@ -2,9 +2,9 @@ import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/config/ui_config.dart';
-import 'package:jhentai/src/model/tag_set.dart';
-import 'package:jhentai/src/utils/route_util.dart';
+import 'package:acervo_hc/src/config/ui_config.dart';
+import 'package:acervo_hc/src/model/tag_set.dart';
+import 'package:acervo_hc/src/utils/route_util.dart';
 
 import '../utils/search_util.dart';
 

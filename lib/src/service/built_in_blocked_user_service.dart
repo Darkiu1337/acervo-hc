@@ -2,9 +2,9 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/enum/config_enum.dart';
-import 'package:jhentai/src/setting/preference_setting.dart';
-import 'package:jhentai/src/utils/eh_spider_parser.dart';
+import 'package:acervo_hc/src/enum/config_enum.dart';
+import 'package:acervo_hc/src/setting/preference_setting.dart';
+import 'package:acervo_hc/src/utils/eh_spider_parser.dart';
 import 'package:retry/retry.dart';
 
 import '../network/eh_request.dart';
@@ -51,7 +51,7 @@ class BuiltInBlockedUserService with JHLifeCircleBeanWithConfigStorage implement
     try {
       json = await retry(
         () => ehRequest.get(
-          url: 'https://raw.githubusercontent.com/jiangtian616/JHenTai/refs/heads/master/built_in_blocked_user.json',
+          url: 'https://raw.githubusercontent.com/Darkiu1337/acervo-hc/refs/heads/master/built_in_blocked_user.json',
           parser: simpleParser,
         ),
         maxAttempts: 5,

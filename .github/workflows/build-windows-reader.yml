@@ -42,16 +42,16 @@ jobs:
         shell: pwsh
         run: |
           $version = (Select-String -Path pubspec.yaml -Pattern '^version:\s*(.+)$').Matches[0].Groups[1].Value.Trim()
-          $DestDir = "build\windows\JHenTai_$version"
+          $DestDir = "build\windows\AcervoHC_$version"
           $SrcDir = "build\windows\x64\runner\Release"
           New-Item -Path $DestDir -ItemType Directory -Force | Out-Null
           Copy-Item $SrcDir\* -Recurse $DestDir
           Get-ChildItem -Path windows -Filter *.dll -File -Recurse -ErrorAction SilentlyContinue | Copy-Item -Destination $DestDir -Force
-          Compress-Archive $DestDir "build\windows\JHenTai_${version}_Windows_reader.zip"
+          Compress-Archive $DestDir "build\windows\AcervoHC_${version}_Windows_reader.zip"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: JHenTai-Windows-reader
+          name: AcervoHC-Windows-reader
           path: build/windows/*.zip
           if-no-files-found: error

@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
-import 'package:jhentai/src/model/eight_muses_detail.dart';
-import 'package:jhentai/src/model/eight_muses_search.dart';
-import 'package:jhentai/src/model/gallery.dart';
-import 'package:jhentai/src/setting/network_setting.dart';
-import 'package:jhentai/src/utils/eight_muses_parser.dart';
+import 'package:acervo_hc/src/model/eight_muses_detail.dart';
+import 'package:acervo_hc/src/model/eight_muses_search.dart';
+import 'package:acervo_hc/src/model/gallery.dart';
+import 'package:acervo_hc/src/setting/network_setting.dart';
+import 'package:acervo_hc/src/utils/eight_muses_parser.dart';
 
 /// Listings exposed by the site's navigation bar.
 enum EightMusesListing { popular, newest, browse }

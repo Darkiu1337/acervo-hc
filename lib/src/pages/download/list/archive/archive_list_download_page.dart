@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/config/ui_config.dart';
-import 'package:jhentai/src/database/database.dart';
-import 'package:jhentai/src/mixin/scroll_to_top_page_mixin.dart';
-import 'package:jhentai/src/model/gallery_url.dart';
-import 'package:jhentai/src/pages/download/mixin/archive/archive_download_page_logic_mixin.dart';
-import 'package:jhentai/src/pages/download/mixin/archive/archive_download_page_state_mixin.dart';
-import 'package:jhentai/src/widget/grouped_list.dart';
+import 'package:acervo_hc/src/config/ui_config.dart';
+import 'package:acervo_hc/src/database/database.dart';
+import 'package:acervo_hc/src/mixin/scroll_to_top_page_mixin.dart';
+import 'package:acervo_hc/src/model/gallery_url.dart';
+import 'package:acervo_hc/src/pages/download/mixin/archive/archive_download_page_logic_mixin.dart';
+import 'package:acervo_hc/src/pages/download/mixin/archive/archive_download_page_state_mixin.dart';
+import 'package:acervo_hc/src/widget/grouped_list.dart';
 
 import '../../../../model/gallery_image.dart';
 import '../../../../routes/routes.dart';

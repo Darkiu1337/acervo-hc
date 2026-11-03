@@ -1,7 +1,7 @@
 import 'dart:collection';
 
-import 'package:jhentai/src/model/gallery.dart';
-import 'package:jhentai/src/model/gallery_url.dart';
+import 'package:acervo_hc/src/model/gallery.dart';
+import 'package:acervo_hc/src/model/gallery_url.dart';
 
 import 'gallery_comment.dart';
 import 'gallery_image.dart';

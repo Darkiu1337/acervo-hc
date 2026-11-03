@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/pages/gallery_image/gallery_image_page_logic.dart';
-import 'package:jhentai/src/pages/gallery_image/gallery_image_page_state.dart';
-import 'package:jhentai/src/widget/loading_state_indicator.dart';
+import 'package:acervo_hc/src/pages/gallery_image/gallery_image_page_logic.dart';
+import 'package:acervo_hc/src/pages/gallery_image/gallery_image_page_state.dart';
+import 'package:acervo_hc/src/widget/loading_state_indicator.dart';
 
 class GalleryImagePage extends StatelessWidget {
   final GalleryImagePageLogic logic = Get.put(GalleryImagePageLogic());

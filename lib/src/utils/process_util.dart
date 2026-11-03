@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:get/get.dart';
-import 'package:jhentai/src/utils/string_uril.dart';
-import 'package:jhentai/src/utils/toast_util.dart';
+import 'package:acervo_hc/src/utils/string_uril.dart';
+import 'package:acervo_hc/src/utils/toast_util.dart';
 import 'package:path/path.dart';
 
 import '../setting/read_setting.dart';

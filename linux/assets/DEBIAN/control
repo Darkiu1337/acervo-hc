@@ -1,11 +1,11 @@
 Maintainer: madoka773 <valigarmanda55@gmail.com>
-Package: jhentai
+Package: acervo-hc
 Version: 
 Section: x11
 Priority: optional
 Architecture: amd64
 Essential: no
 Installed-Size: 34648
-Description: A cross-platform app made for e-hentai & exhentai by Flutter.
-Homepage: https://github.com/jiangtian616/JHenTai
+Description: Leitor de manga para E-Hentai/ExHentai com fonte 8muses e leitor aprimorado.
+Homepage: https://github.com/Darkiu1337/acervo-hc
 Depends: libwebkit2gtk-4.1-0

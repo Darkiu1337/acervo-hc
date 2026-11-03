@@ -1,5 +1,5 @@
-import 'package:jhentai/src/exception/internal_exception.dart';
-import 'package:jhentai/src/model/gallery_source.dart';
+import 'package:acervo_hc/src/exception/internal_exception.dart';
+import 'package:acervo_hc/src/model/gallery_source.dart';
 
 class GalleryUrl {
   /// E-Hentai (true) or EXHentai (false). Always false for external sources.
@@ -8,7 +8,7 @@ class GalleryUrl {
   /// Which site this url belongs to.
   final GallerySource source;
 
-  /// JHenTai-wide id: the E-Hentai gid, or [eightMusesGid] for external ones.
+  /// Acervo H&C-wide id: the E-Hentai gid, or [eightMusesGid] for external ones.
   final int gid;
 
   /// E-Hentai gallery token, or the external id as string.

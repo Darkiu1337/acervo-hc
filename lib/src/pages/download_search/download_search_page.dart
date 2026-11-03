@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/database/database.dart';
-import 'package:jhentai/src/extension/widget_extension.dart';
-import 'package:jhentai/src/pages/download_search/download_search_state.dart';
-import 'package:jhentai/src/service/archive_download_service.dart';
-import 'package:jhentai/src/widget/eh_image.dart';
-import 'package:jhentai/src/widget/eh_wheel_speed_controller.dart';
+import 'package:acervo_hc/src/database/database.dart';
+import 'package:acervo_hc/src/extension/widget_extension.dart';
+import 'package:acervo_hc/src/pages/download_search/download_search_state.dart';
+import 'package:acervo_hc/src/service/archive_download_service.dart';
+import 'package:acervo_hc/src/widget/eh_image.dart';
+import 'package:acervo_hc/src/widget/eh_wheel_speed_controller.dart';
 import 'package:waterfall_flow/waterfall_flow.dart';
 
 import '../../config/ui_config.dart';

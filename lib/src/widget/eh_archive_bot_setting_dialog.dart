@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/extension/widget_extension.dart';
-import 'package:jhentai/src/setting/archive_bot_setting.dart';
+import 'package:acervo_hc/src/extension/widget_extension.dart';
+import 'package:acervo_hc/src/setting/archive_bot_setting.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../setting/preference_setting.dart';

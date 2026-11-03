@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/extension/widget_extension.dart';
-import 'package:jhentai/src/model/tap_zone_config.dart';
-import 'package:jhentai/src/setting/read_setting.dart';
-import 'package:jhentai/src/widget/tap_zone_guide_overlay.dart';
+import 'package:acervo_hc/src/extension/widget_extension.dart';
+import 'package:acervo_hc/src/model/tap_zone_config.dart';
+import 'package:acervo_hc/src/setting/read_setting.dart';
+import 'package:acervo_hc/src/widget/tap_zone_guide_overlay.dart';
 
 class SettingTapZonePage extends StatefulWidget {
   const SettingTapZonePage({super.key});

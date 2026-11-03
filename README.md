@@ -24,7 +24,7 @@ O resto do app — busca, favoritos, downloads, arquivos, histórico e rankings 
 - **`photo_view` próprio** (`packages/photo_view`) — escala inicial correta, zoom multiplicativo com `Ctrl` + roda do mouse ancorado no cursor, arraste mais sensível e duplo clique em passos de 1.5×.
 - **Placeholders de carregamento** não sofrem zoom: ficam centralizados e no tamanho normal.
 - **Upscale 2× da página atual** — Catmull-Rom bicúbico + shaders AMD FidelityFX CAS com cache LRU, para o texto dos balões continuar nítido em zoom alto (Configurações → Leitura).
-- **Visualizador externo** — botão direito → *Abrir no visualizador externo* (nomacs, ImageGlass, XnView ou qualquer `.exe`). Galerias online são transmitidas página a página para `%TEMP%\jhentai_viewer\...`, com overlay de progresso e limpeza automática.
+- **Visualizador externo** — botão direito → *Abrir no visualizador externo* (nomacs, ImageGlass, XnView ou qualquer `.exe`). Galerias online são transmitidas página a página para `%TEMP%\acervo_hc_viewer\...`, com overlay de progresso e limpeza automática.
 
 ## Fonte 8muses
 
@@ -66,16 +66,18 @@ Lista manual que tira das listas de navegação as obras já terminadas, para el
 
 ### Windows
 
-1. Baixe o `JHenTai_<versão>_Windows_reader.zip` na aba [Releases](../../releases).
-2. Extraia e execute `jhentai.exe`.
+1. Baixe o `AcervoHC_<versão>_Windows_reader.zip` na aba [Releases](../../releases).
+2. Extraia e execute `acervo-hc.exe`.
 
-Builds de desenvolvimento saem do workflow **Build Windows (reader)**, na aba Actions, no artefato `JHenTai-Windows-reader`.
+Builds de desenvolvimento saem do workflow **Build Windows (reader)**, na aba Actions, no artefato `AcervoHC-Windows-reader`.
+
+O identificador do app é `app.acervo.hc`: ele instala em paralelo ao JHenTai, com dados próprios — configurações e downloads antigos não são importados.
 
 Se o app não abrir no Windows 11, tente o modo de compatibilidade. Se o Windows Defender bloquear, autorize o executável. Para usar proxy, configure o endereço em Configurações → Rede.
 
 ### Linux
 
-O workflow **Build Linux (AppImage)** publica o artefato `JHenTai-Linux-AppImage`. Baixe, dê permissão de execução (`chmod +x`) e rode. É necessário ter `webkit2gtk-4.1` instalado.
+O workflow **Build Linux (AppImage)** publica o artefato `AcervoHC-Linux-AppImage`. Baixe, dê permissão de execução (`chmod +x`) e rode. É necessário ter `webkit2gtk-4.1` instalado.
 
 ### Android, iOS e macOS
 
@@ -113,16 +115,16 @@ O projeto também abre normalmente no Android Studio, IntelliJ ou VS Code.
 No Windows, macOS e Linux dá para abrir uma galeria direto pela linha de comando, o que permite usar o app como leitor externo de outras ferramentas:
 
 ```bash
-JHenTai.exe -g "https://e-hentai.org/g/1234567/abcdef1234/"
-JHenTai.exe --gallery="https://exhentai.org/g/1234567/abcdef1234/"
+acervo-hc.exe -g "https://e-hentai.org/g/1234567/abcdef1234/"
+acervo-hc.exe --gallery="https://exhentai.org/g/1234567/abcdef1234/"
 
 # página de imagem única também funciona
-JHenTai.exe -g "https://e-hentai.org/s/abcdef1234/123456-0"
+acervo-hc.exe -g "https://e-hentai.org/s/abcdef1234/123456-0"
 ```
 
 - `-g` / `--gallery <url>` abre a galeria (ou a página de imagem) na inicialização; outros argumentos são ignorados. Sem URL válida, o app inicia normalmente.
 - Com bloqueio por senha ou biometria, a galeria abre depois do desbloqueio.
-- No macOS, execute o binário dentro do bundle: `/Applications/JHenTai.app/Contents/MacOS/JHenTai -g <url>` (abrir pelo Finder não passa argumentos).
+- No macOS, execute o binário dentro do bundle: `"/Applications/Acervo HC.app/Contents/MacOS/Acervo HC" -g <url>` (abrir pelo Finder não passa argumentos).
 
 ## Estrutura
 
@@ -140,4 +142,4 @@ JHenTai.exe -g "https://e-hentai.org/s/abcdef1234/123456-0"
 
 Distribuído sob a **Apache License 2.0** — veja [LICENSE](LICENSE).
 
-Baseado em **JHenTai**, de [jiangtian616](https://github.com/jiangtian616/JHenTai). Layout e estilo inspirados em [FEhViewer](https://github.com/honjow/FEhViewer), [EhPanda](https://github.com/tatsuz0u/EhPanda) e [EHViewer](https://gitlab.com/NekoInverter/EhViewer); tradução de tags do [EhTagTranslation](https://github.com/EhTagTranslation/Database).
+Fork de **JHenTai**, de [jiangtian616](https://github.com/jiangtian616/JHenTai) — a atribuição exigida pela licença. Layout e estilo inspirados em [FEhViewer](https://github.com/honjow/FEhViewer), [EhPanda](https://github.com/tatsuz0u/EhPanda) e [EHViewer](https://gitlab.com/NekoInverter/EhViewer); tradução de tags do [EhTagTranslation](https://github.com/EhTagTranslation/Database).

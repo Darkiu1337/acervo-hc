@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/config/ui_config.dart';
-import 'package:jhentai/src/model/gallery.dart';
-import 'package:jhentai/src/widget/eh_image.dart';
+import 'package:acervo_hc/src/config/ui_config.dart';
+import 'package:acervo_hc/src/model/gallery.dart';
+import 'package:acervo_hc/src/widget/eh_image.dart';
 
 /// Grid card for an external (8muses) gallery.
 ///

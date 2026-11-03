@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/service/external_viewer_service.dart';
+import 'package:acervo_hc/src/service/external_viewer_service.dart';
 
 /// Small non-blocking indicator shown while a gallery is being prepared for
 /// the external image viewer. It stays visible during the background download

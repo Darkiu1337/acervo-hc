@@ -1,4 +1,4 @@
-import 'package:jhentai/src/model/eight_muses_search.dart';
+import 'package:acervo_hc/src/model/eight_muses_search.dart';
 
 /// Metadata of an 8muses gallery, as far as the site exposes it.
 class EightMusesDetail {

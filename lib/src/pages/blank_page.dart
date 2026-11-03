@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:jhentai/src/config/ui_config.dart';
+import 'package:acervo_hc/src/config/ui_config.dart';
 
 class BlankPage extends StatelessWidget {
   const BlankPage({Key? key}) : super(key: key);
@@ -11,7 +11,7 @@ class BlankPage extends StatelessWidget {
       child: Center(
         child: Text(
           'J',
-          style: TextStyle(color: UIConfig.jHentaiIconColor(context), fontSize: 120, fontWeight: FontWeight.w600),
+          style: TextStyle(color: UIConfig.acervoIconColor(context), fontSize: 120, fontWeight: FontWeight.w600),
         ),
       ),
     );

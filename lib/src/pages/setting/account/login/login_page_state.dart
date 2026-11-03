@@ -1,5 +1,5 @@
 import 'package:flutter/cupertino.dart';
-import 'package:jhentai/src/widget/loading_state_indicator.dart';
+import 'package:acervo_hc/src/widget/loading_state_indicator.dart';
 
 enum LoginType { password, cookie, web }
 

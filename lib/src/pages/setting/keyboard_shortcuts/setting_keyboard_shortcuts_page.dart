@@ -2,10 +2,10 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/extension/widget_extension.dart';
-import 'package:jhentai/src/model/read_action.dart';
-import 'package:jhentai/src/setting/keyboard_shortcut_setting.dart';
-import 'package:jhentai/src/utils/toast_util.dart';
+import 'package:acervo_hc/src/extension/widget_extension.dart';
+import 'package:acervo_hc/src/model/read_action.dart';
+import 'package:acervo_hc/src/setting/keyboard_shortcut_setting.dart';
+import 'package:acervo_hc/src/utils/toast_util.dart';
 
 class SettingKeyboardShortcutsPage extends StatefulWidget {
   const SettingKeyboardShortcutsPage({Key? key}) : super(key: key);

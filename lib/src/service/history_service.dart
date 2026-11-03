@@ -1,9 +1,9 @@
 import 'dart:convert';
 
-import 'package:jhentai/src/database/dao/gallery_history_dao.dart';
-import 'package:jhentai/src/database/database.dart';
-import 'package:jhentai/src/extension/list_extension.dart';
-import 'package:jhentai/src/model/gallery_history_model.dart';
+import 'package:acervo_hc/src/database/dao/gallery_history_dao.dart';
+import 'package:acervo_hc/src/database/database.dart';
+import 'package:acervo_hc/src/extension/list_extension.dart';
+import 'package:acervo_hc/src/model/gallery_history_model.dart';
 import 'jh_service.dart';
 import 'log.dart';
 

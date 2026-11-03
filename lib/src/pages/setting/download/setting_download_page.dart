@@ -4,16 +4,16 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/config/ui_config.dart';
-import 'package:jhentai/src/extension/string_extension.dart';
-import 'package:jhentai/src/extension/widget_extension.dart';
-import 'package:jhentai/src/service/local_gallery_service.dart';
-import 'package:jhentai/src/setting/download_setting.dart';
-import 'package:jhentai/src/setting/user_setting.dart';
-import 'package:jhentai/src/utils/file_util.dart';
-import 'package:jhentai/src/utils/toast_util.dart';
-import 'package:jhentai/src/widget/eh_wheel_speed_controller.dart';
-import 'package:jhentai/src/widget/loading_state_indicator.dart';
+import 'package:acervo_hc/src/config/ui_config.dart';
+import 'package:acervo_hc/src/extension/string_extension.dart';
+import 'package:acervo_hc/src/extension/widget_extension.dart';
+import 'package:acervo_hc/src/service/local_gallery_service.dart';
+import 'package:acervo_hc/src/setting/download_setting.dart';
+import 'package:acervo_hc/src/setting/user_setting.dart';
+import 'package:acervo_hc/src/utils/file_util.dart';
+import 'package:acervo_hc/src/utils/toast_util.dart';
+import 'package:acervo_hc/src/widget/eh_wheel_speed_controller.dart';
+import 'package:acervo_hc/src/widget/loading_state_indicator.dart';
 import 'package:path/path.dart';
 
 import '../../../routes/routes.dart';
@@ -407,7 +407,7 @@ class _SettingDownloadPageState extends State<SettingDownloadPage> {
 
     /// copy directories first
     for (io.Directory oldDir in oldDirs) {
-      if (FileUtil.isJHenTaiGalleryDirectory(oldDir)) {
+      if (FileUtil.isAcervoGalleryDirectory(oldDir)) {
         io.Directory newDir = io.Directory(join(newDownloadPath, relative(oldDir.path, from: oldDownloadPath)));
         futures.add(newDir.create(recursive: true));
       }
@@ -417,7 +417,7 @@ class _SettingDownloadPageState extends State<SettingDownloadPage> {
 
     /// then copy files
     for (io.File oldFile in oldFiles) {
-      if (FileUtil.isJHenTaiFile(oldFile)) {
+      if (FileUtil.isAcervoFile(oldFile)) {
         futures.add(oldFile.copy(join(newDownloadPath, relative(oldFile.path, from: oldDownloadPath))));
       }
     }

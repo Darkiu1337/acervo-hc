@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
-import 'package:jhentai/src/mixin/scroll_to_top_state_mixin.dart';
-import 'package:jhentai/src/model/gallery_count.dart';
-import 'package:jhentai/src/model/search_config.dart';
-import 'package:jhentai/src/utils/uuid_util.dart';
+import 'package:acervo_hc/src/mixin/scroll_to_top_state_mixin.dart';
+import 'package:acervo_hc/src/model/gallery_count.dart';
+import 'package:acervo_hc/src/model/search_config.dart';
+import 'package:acervo_hc/src/utils/uuid_util.dart';
 
 import '../../model/gallery.dart';
 import '../../model/gallery_page.dart';

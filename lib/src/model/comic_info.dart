@@ -1,6 +1,6 @@
 import 'package:collection/collection.dart';
-import 'package:jhentai/src/database/database.dart';
-import 'package:jhentai/src/utils/string_uril.dart';
+import 'package:acervo_hc/src/database/database.dart';
+import 'package:acervo_hc/src/utils/string_uril.dart';
 import 'package:xml/xml.dart';
 
 abstract interface class ComicInfo {

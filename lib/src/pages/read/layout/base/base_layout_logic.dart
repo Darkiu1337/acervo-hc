@@ -15,22 +15,22 @@ import 'package:get/get_navigation/get_navigation.dart';
 import 'package:get/get_rx/get_rx.dart';
 import 'package:get/get_state_manager/get_state_manager.dart';
 import 'package:get/get_utils/get_utils.dart';
-import 'package:jhentai/src/consts/eh_consts.dart';
-import 'package:jhentai/src/extension/get_logic_extension.dart';
-import 'package:jhentai/src/model/gallery_source.dart';
-import 'package:jhentai/src/network/eh_request.dart';
-import 'package:jhentai/src/service/gallery_download/download_path_resolver.dart';
-import 'package:jhentai/src/service/gallery_download/eh_image_exception_matcher.dart';
-import 'package:jhentai/src/service/gallery_download/gallery_download_service.dart';
-import 'package:jhentai/src/service/external_viewer_service.dart';
-import 'package:jhentai/src/service/path_service.dart';
-import 'package:jhentai/src/setting/download_setting.dart';
-import 'package:jhentai/src/setting/style_setting.dart';
-import 'package:jhentai/src/setting/user_setting.dart';
-import 'package:jhentai/src/utils/permission_util.dart';
-import 'package:jhentai/src/utils/string_uril.dart';
-import 'package:jhentai/src/utils/toast_util.dart';
-import 'package:jhentai/src/widget/eh_action_sheet_text.dart';
+import 'package:acervo_hc/src/consts/eh_consts.dart';
+import 'package:acervo_hc/src/extension/get_logic_extension.dart';
+import 'package:acervo_hc/src/model/gallery_source.dart';
+import 'package:acervo_hc/src/network/eh_request.dart';
+import 'package:acervo_hc/src/service/gallery_download/download_path_resolver.dart';
+import 'package:acervo_hc/src/service/gallery_download/eh_image_exception_matcher.dart';
+import 'package:acervo_hc/src/service/gallery_download/gallery_download_service.dart';
+import 'package:acervo_hc/src/service/external_viewer_service.dart';
+import 'package:acervo_hc/src/service/path_service.dart';
+import 'package:acervo_hc/src/setting/download_setting.dart';
+import 'package:acervo_hc/src/setting/style_setting.dart';
+import 'package:acervo_hc/src/setting/user_setting.dart';
+import 'package:acervo_hc/src/utils/permission_util.dart';
+import 'package:acervo_hc/src/utils/string_uril.dart';
+import 'package:acervo_hc/src/utils/toast_util.dart';
+import 'package:acervo_hc/src/widget/eh_action_sheet_text.dart';
 import 'package:pasteboard/pasteboard.dart';
 import 'package:path/path.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -325,7 +325,7 @@ abstract class BaseLayoutLogic extends GetxController with GetTickerProviderStat
   /// The custom viewer path is configured in Settings > Read for desktop
   /// platforms only; the switch that redirects downloaded galleries to the
   /// viewer is intentionally not required, since it is usually off for people
-  /// who read inside JHenTai.
+  /// who read inside Acervo H&C.
   bool get showExternalViewerAction => GetPlatform.isDesktop && (readSetting.thirdPartyViewerPath.value?.trim().isNotEmpty ?? false);
 
   /// Opens the gallery in the external image viewer configured in
@@ -1037,7 +1037,7 @@ abstract class BaseLayoutLogic extends GetxController with GetTickerProviderStat
     SaveResult saveResult = await SaverGallery.saveFile(
       filePath: filePath,
       fileName: fileName,
-      albumPath: "JHenTai",
+      albumPath: "Acervo H&C",
       skipIfExists: false,
     );
 

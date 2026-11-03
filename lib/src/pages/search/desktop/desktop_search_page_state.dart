@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:jhentai/src/pages/search/desktop/desktop_search_page_tab_logic.dart';
-import 'package:jhentai/src/pages/search/mixin/new_search_argument.dart';
-import 'package:jhentai/src/setting/preference_setting.dart';
+import 'package:acervo_hc/src/pages/search/desktop/desktop_search_page_tab_logic.dart';
+import 'package:acervo_hc/src/pages/search/mixin/new_search_argument.dart';
+import 'package:acervo_hc/src/setting/preference_setting.dart';
 
 import '../../../mixin/scroll_to_top_state_mixin.dart';
 import '../../../utils/uuid_util.dart';

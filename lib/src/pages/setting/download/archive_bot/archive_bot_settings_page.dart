@@ -1,14 +1,14 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/extension/dio_exception_extension.dart';
-import 'package:jhentai/src/extension/widget_extension.dart';
-import 'package:jhentai/src/network/archive_bot_request.dart';
-import 'package:jhentai/src/service/log.dart';
-import 'package:jhentai/src/setting/archive_bot_setting.dart';
-import 'package:jhentai/src/utils/snack_util.dart';
-import 'package:jhentai/src/widget/eh_archive_bot_setting_dialog.dart';
-import 'package:jhentai/src/widget/loading_state_indicator.dart';
+import 'package:acervo_hc/src/extension/dio_exception_extension.dart';
+import 'package:acervo_hc/src/extension/widget_extension.dart';
+import 'package:acervo_hc/src/network/archive_bot_request.dart';
+import 'package:acervo_hc/src/service/log.dart';
+import 'package:acervo_hc/src/setting/archive_bot_setting.dart';
+import 'package:acervo_hc/src/utils/snack_util.dart';
+import 'package:acervo_hc/src/widget/eh_archive_bot_setting_dialog.dart';
+import 'package:acervo_hc/src/widget/loading_state_indicator.dart';
 
 import '../../../../model/archive_bot_response/archive_bot_response.dart';
 

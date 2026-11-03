@@ -4,10 +4,10 @@ import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/enum/config_enum.dart';
-import 'package:jhentai/src/extension/get_logic_extension.dart';
-import 'package:jhentai/src/service/local_config_service.dart';
-import 'package:jhentai/src/utils/screen_size_util.dart';
+import 'package:acervo_hc/src/enum/config_enum.dart';
+import 'package:acervo_hc/src/extension/get_logic_extension.dart';
+import 'package:acervo_hc/src/service/local_config_service.dart';
+import 'package:acervo_hc/src/utils/screen_size_util.dart';
 import 'package:photo_view/photo_view.dart';
 
 import '../../../../service/gallery_download/gallery_download_service.dart';

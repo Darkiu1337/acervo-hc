@@ -1,4 +1,4 @@
-import 'package:jhentai/src/pages/base/base_page_state.dart';
+import 'package:acervo_hc/src/pages/base/base_page_state.dart';
 
 import '../../../model/gallery.dart';
 import '../../../model/search_config.dart';

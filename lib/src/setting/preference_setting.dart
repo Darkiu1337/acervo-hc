@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:ui';
 
 import 'package:get/get.dart';
-import 'package:jhentai/src/enum/config_enum.dart';
-import 'package:jhentai/src/model/tab_bar_icon.dart';
-import 'package:jhentai/src/pages/download/download_base_page.dart';
+import 'package:acervo_hc/src/enum/config_enum.dart';
+import 'package:acervo_hc/src/model/tab_bar_icon.dart';
+import 'package:acervo_hc/src/pages/download/download_base_page.dart';
 
 import '../service/jh_service.dart';
 import '../utils/locale_util.dart';

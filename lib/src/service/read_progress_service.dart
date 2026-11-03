@@ -1,8 +1,8 @@
 import 'package:get/get.dart';
-import 'package:jhentai/src/enum/config_enum.dart';
-import 'package:jhentai/src/extension/get_logic_extension.dart';
-import 'package:jhentai/src/service/jh_service.dart';
-import 'package:jhentai/src/service/local_config_service.dart';
+import 'package:acervo_hc/src/enum/config_enum.dart';
+import 'package:acervo_hc/src/extension/get_logic_extension.dart';
+import 'package:acervo_hc/src/service/jh_service.dart';
+import 'package:acervo_hc/src/service/local_config_service.dart';
 
 ReadProgressService readProgressService = ReadProgressService();
 

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jhentai/src/setting/download_setting.dart';
+import 'package:acervo_hc/src/setting/download_setting.dart';
 
 void main() {
   test('recent gallery groups can be disabled', () {

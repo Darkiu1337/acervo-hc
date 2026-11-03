@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/model/eight_muses_search.dart';
-import 'package:jhentai/src/service/eight_muses_catalog_service.dart';
-import 'package:jhentai/src/setting/style_setting.dart';
+import 'package:acervo_hc/src/model/eight_muses_search.dart';
+import 'package:acervo_hc/src/service/eight_muses_catalog_service.dart';
+import 'package:acervo_hc/src/setting/style_setting.dart';
 
 enum _DirectoryTab { tags, artists }
 

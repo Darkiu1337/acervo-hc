@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:jhentai/src/setting/style_setting.dart';
+import 'package:acervo_hc/src/setting/style_setting.dart';
 
 import '../model/jh_layout.dart';
 

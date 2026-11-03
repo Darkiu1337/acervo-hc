@@ -1,8 +1,8 @@
-import 'package:jhentai/src/mixin/scroll_to_top_state_mixin.dart';
-import 'package:jhentai/src/model/gallery.dart';
-import 'package:jhentai/src/model/gallery_detail.dart';
-import 'package:jhentai/src/model/gallery_url.dart';
-import 'package:jhentai/src/widget/loading_state_indicator.dart';
+import 'package:acervo_hc/src/mixin/scroll_to_top_state_mixin.dart';
+import 'package:acervo_hc/src/model/gallery.dart';
+import 'package:acervo_hc/src/model/gallery_detail.dart';
+import 'package:acervo_hc/src/model/gallery_url.dart';
+import 'package:acervo_hc/src/widget/loading_state_indicator.dart';
 
 import '../../model/gallery_metadata.dart';
 

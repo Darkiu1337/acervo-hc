@@ -1,4 +1,4 @@
-import 'package:jhentai/src/model/gallery_url.dart';
+import 'package:acervo_hc/src/model/gallery_url.dart';
 
 class GalleryHistoryModel {
   GalleryUrl galleryUrl;
