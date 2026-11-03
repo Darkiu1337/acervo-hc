@@ -30,6 +30,7 @@ import 'package:acervo_hc/src/model/gallery_url.dart';
 import 'package:acervo_hc/src/model/jh_response/fetch_image_hashes_vo.dart';
 import 'package:acervo_hc/src/model/jh_response/jh_response.dart';
 import 'package:acervo_hc/src/network/eight_muses_request.dart';
+import 'package:acervo_hc/src/network/xlecx_request.dart';
 import 'package:acervo_hc/src/network/jh_request.dart';
 import 'package:acervo_hc/src/service/local_config_service.dart';
 import 'package:acervo_hc/src/service/log.dart';

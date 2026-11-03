@@ -14,7 +14,8 @@ class GalleryUrl {
   /// E-Hentai gallery token, or the external id as string.
   final String token;
 
-  /// 8muses gallery id (only set for [GallerySource.eightMuses]).
+  /// External gallery id (only set for [GallerySource.eightMuses] and
+  /// [GallerySource.xlecx]).
   final int? externalId;
 
   const GalleryUrl({
@@ -27,6 +28,10 @@ class GalleryUrl {
 
   static final RegExp _ehRegExp = RegExp(r'https://e([-x])hentai\.org/g/(\d+)/([a-z0-9]{10})');
   static final RegExp _eightMusesRegExp = RegExp(r'https?://(?:www\.)?8muses\.io/g/(\d+)');
+
+  /// Xlecx uses `/<id>-<slug>.html`, and a slug-less url redirects to the
+  /// canonical one, so only the id is required here.
+  static final RegExp _xlecxRegExp = RegExp(r'https?://(?:www\.)?xlecx\.one/(\d+)(?:-[^/?#]*)?\.html', caseSensitive: false);
 
   static GalleryUrl? tryParse(String url) {
     Match? match = _ehRegExp.firstMatch(url);
@@ -41,6 +46,11 @@ class GalleryUrl {
     match = _eightMusesRegExp.firstMatch(url);
     if (match != null) {
       return eightMusesGalleryUrl(int.parse(match.group(1)!));
+    }
+
+    match = _xlecxRegExp.firstMatch(url);
+    if (match != null) {
+      return xlecxGalleryUrl(int.parse(match.group(1)!));
     }
 
     return null;
@@ -65,9 +75,28 @@ class GalleryUrl {
     );
   }
 
+  /// Build the url of an external Xlecx gallery.
+  ///
+  /// The site resolves `/<id>-x.html` to the canonical `/<id>-<slug>.html`
+  /// with a 301, which is the only way to build the url from the id alone
+  /// (clipboard/share input). Listings give the canonical url, but the reader
+  /// and the download engine only keep the id.
+  static GalleryUrl xlecxGalleryUrl(int externalId) {
+    return GalleryUrl(
+      isEH: false,
+      source: GallerySource.xlecx,
+      gid: xlecxGid(externalId),
+      token: externalId.toString(),
+      externalId: externalId,
+    );
+  }
+
   String get url {
     if (source == GallerySource.eightMuses) {
       return 'https://8muses.io/g/$externalId';
+    }
+    if (source == GallerySource.xlecx) {
+      return 'https://xlecx.one/$externalId-x.html';
     }
     return isEH ? 'https://e-hentai.org/g/$gid/$token/' : 'https://exhentai.org/g/$gid/$token/';
   }

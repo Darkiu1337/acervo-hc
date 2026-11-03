@@ -125,6 +125,27 @@ class _GalleryDownloadTaskRunner {
         return _service._submitImageTask(gallery, serialNo, () => parseImageUrlTask(serialNo));
       }
 
+      /// Xlecx has no deterministic page url, but the post lists every page, so
+      /// the whole list is resolved once and cached by the request layer.
+      if (sourceOfGid(gallery.gid) == GallerySource.xlecx) {
+        final GalleryUrl galleryUrl = GalleryUrl.parse(gallery.galleryUrl);
+        final List<String> pageUrls = await retry(
+          () => xlecxRequest.requestPageUrls(galleryUrl),
+          retryIf: (e) => e is DioException && e.type != DioExceptionType.cancel,
+          onRetry: (e) => log.download('Parse Xlecx page urls failed, retry. Reason: ${(e as DioException).toString()}'),
+          maxAttempts: _maxRetryTimes,
+        );
+
+        if (serialNo >= pageUrls.length) {
+          log.download('Xlecx page $serialNo is out of range (gallery has ${pageUrls.length} pages)');
+          return;
+        }
+
+        final String pageUrl = pageUrls[serialNo];
+        galleryDownloadInfo.imageHrefs[serialNo] = GalleryThumbnail(href: pageUrl, isLarge: true, thumbUrl: pageUrl);
+        return _service._submitImageTask(gallery, serialNo, () => parseImageUrlTask(serialNo));
+      }
+
       int requestPageIndex = serialNo ~/ galleryDownloadInfo.thumbnailsCountPerPage;
 
       DetailPageInfo detailPageInfo;
@@ -183,9 +204,8 @@ class _GalleryDownloadTaskRunner {
 
       GalleryDownloadInfo galleryDownloadInfo = _service.galleryDownloadInfos[gallery.gid]!;
 
-      /// External sources (8muses): the href is already the final image url.
-      final int? externalId = eightMusesExternalId(gallery.gid);
-      if (externalId != null) {
+      /// External sources: the href is already the final image url.
+      if (sourceOfGid(gallery.gid) != GallerySource.eh) {
         final String href = galleryDownloadInfo.imageHrefs[serialNo]!.href;
         final GalleryImage image = GalleryImage(url: href);
         image.path = DownloadPathResolver.computeImageDownloadRelativePath(gallery.toGalleryDownloadedData(), href, serialNo);
@@ -299,7 +319,8 @@ class _GalleryDownloadTaskRunner {
       final String downloadUrl = _downloadUrlFor(gallery.toGalleryDownloadedData(), image);
       String path = DownloadPathResolver.computeImageDownloadAbsolutePath(gallery.toGalleryDownloadedData(), downloadUrl, serialNo);
 
-      final bool isExternal = sourceOfGid(gallery.gid) == GallerySource.eightMuses;
+      final GallerySource source = sourceOfGid(gallery.gid);
+      final bool isExternal = source != GallerySource.eh;
 
       /// The E-H disk cache only knows E-H urls; external images are fetched
       /// directly by their own client.
@@ -313,21 +334,29 @@ class _GalleryDownloadTaskRunner {
       Response response;
       try {
         response = await retry(
-          () => isExternal
-              ? eightMusesRequest.download(
-                  url: downloadUrl,
-                  path: path,
-                  receiveTimeout: 3 * 60 * 1000,
-                  cancelToken: galleryDownloadInfo.cancelToken,
-                  onReceiveProgress: (int count, int total) => galleryDownloadInfo.speedComputer.updateProgress(count, total, serialNo),
-                )
-              : ehRequest.download(
-                  url: downloadUrl,
-                  path: path,
-                  receiveTimeout: 3 * 60 * 1000,
-                  cancelToken: galleryDownloadInfo.cancelToken,
-                  onReceiveProgress: (int count, int total) => galleryDownloadInfo.speedComputer.updateProgress(count, total, serialNo),
-                ),
+          () => switch (source) {
+            GallerySource.eh => ehRequest.download(
+                url: downloadUrl,
+                path: path,
+                receiveTimeout: 3 * 60 * 1000,
+                cancelToken: galleryDownloadInfo.cancelToken,
+                onReceiveProgress: (int count, int total) => galleryDownloadInfo.speedComputer.updateProgress(count, total, serialNo),
+              ),
+            GallerySource.eightMuses => eightMusesRequest.download(
+                url: downloadUrl,
+                path: path,
+                receiveTimeout: 3 * 60 * 1000,
+                cancelToken: galleryDownloadInfo.cancelToken,
+                onReceiveProgress: (int count, int total) => galleryDownloadInfo.speedComputer.updateProgress(count, total, serialNo),
+              ),
+            GallerySource.xlecx => xlecxRequest.download(
+                url: downloadUrl,
+                path: path,
+                receiveTimeout: 3 * 60 * 1000,
+                cancelToken: galleryDownloadInfo.cancelToken,
+                onReceiveProgress: (int count, int total) => galleryDownloadInfo.speedComputer.updateProgress(count, total, serialNo),
+              ),
+          },
           maxAttempts: _maxRetryTimes,
 
           /// 403 is due to broken H@H node, we should re-parse

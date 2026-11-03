@@ -415,10 +415,18 @@ abstract class BasePageLogic extends GetxController with Scroll2TopLogicMixin {
   }
 
   void handleTapGalleryCard(Gallery gallery) async {
-    /// External sources (8muses) have their own, lighter detail page.
+    /// External sources have their own, lighter detail page.
     if (gallery.galleryUrl.source == GallerySource.eightMuses) {
       toRoute(
         Routes.eightMusesDetails,
+        arguments: gallery,
+      );
+      return;
+    }
+
+    if (gallery.galleryUrl.source == GallerySource.xlecx) {
+      toRoute(
+        Routes.xlecxDetails,
         arguments: gallery,
       );
       return;

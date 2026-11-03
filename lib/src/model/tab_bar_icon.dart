@@ -12,6 +12,10 @@ enum TabBarIconNameEnum {
   eightMuses,
   setting,
   alreadyRead,
+
+  /// New values must be appended: [PreferenceSetting] stores the index of the
+  /// default tab, so inserting in the middle would change existing configs.
+  xlecx,
 }
 
 class TabBarIcon {

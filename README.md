@@ -2,7 +2,7 @@
 
 Leitor de mangá para **E-Hentai / ExHentai** feito em Flutter, para Android, iOS, Windows, macOS e Linux. O nome é o programa: **H**entai **&** **C**omics no mesmo acervo.
 
-Este app nasceu como fork do JHenTai e hoje tem identidade própria. O cliente original segue intacto; as mudanças estão no que importa para quem lê: leitor com zoom contínuo e upscale 2×, visualizador externo de imagens, uma segunda fonte de galerias (**8muses**), a lista de **já lidos** e a tradução completa para **português do Brasil**.
+Este app nasceu como fork do JHenTai e hoje tem identidade própria. O cliente original segue intacto; as mudanças estão no que importa para quem lê: leitor com zoom contínuo e upscale 2×, visualizador externo de imagens, duas fontes externas de galerias (**8muses** e **Xlecx**), a lista de **já lidos** e a tradução completa para **português do Brasil**.
 
 ## O que este app acrescenta
 
@@ -10,6 +10,7 @@ Este app nasceu como fork do JHenTai e hoje tem identidade própria. O cliente o
 | --- | --- |
 | **Leitor** | Zoom preservado entre páginas, retorno ao topo, atalhos de teclado, upscale 2× e visualizador externo |
 | **8muses** | Segunda fonte de galerias, com busca, filtros de tag e artista, favoritos locais e prévia das páginas |
+| **Xlecx** | Terceira fonte: cinco listagens, filtros de categoria e tags, busca e prévia das páginas |
 | **Já lidos** | Lista local que esconde obras concluídas das listas de navegação |
 | **Idioma** | Tradução pt-BR completa (824 chaves) e correções de i18n |
 | **Builds** | Workflows de Windows e Linux (AppImage) no GitHub Actions |
@@ -47,6 +48,25 @@ Uma segunda fonte, independente, para quadrinhos ocidentais que não podem ser p
 - O site expõe no máximo 5 tags por galeria.
 - Filtros combinados de tag e artista são locais, então interseções raras podem exigir *Carregar mais*.
 - A cobertura de um artista é parcial, já que o site espelha `8muses.com` e `allporncomic.com`.
+
+## Fonte Xlecx
+
+Terceira fonte, para os quadrinhos de `xlecx.one` (um site DataLife Engine com mais de 2.400 páginas de listagem). Também é independente: sem login, sem cookie e sem passar pelo código do E-H.
+
+- Aba própria com as **cinco listagens** do site: Recentes, Atualizados recentemente, Mais bem avaliados, Mais vistos e Mais comentados.
+- **Busca por palavra-chave** com o esquema do próprio site (a paginação da busca só existe via POST, então a primeira página vai por GET e as seguintes por POST).
+- **Filtro por categoria** — as 13 seções de imagem do site (Comics, Manga, Pictures, 3D comics, Anime/Cartoon/Games Parody, Furry, Incest, Dickgirl, Yaoi, Yuri). As seções de vídeo ficam de fora, porque o app só lê galerias de imagem.
+- **Filtro por tag** — as 1.049 tags do diretório do site, com contagem, inclusão e exclusão, cruzadas no servidor (a URL `/f/n.m.tags=a,b/` aplica todas com AND).
+- **Filtro por artista, paródia e grupo** — os chips da página de detalhes viram filtro na aba, como no 8muses.
+- **Detalhes completos** — capa, artista, grupo, páginas, categorias, paródias e tags clicáveis, com prévia das páginas e leitura/download direto.
+- **Mesmo leitor e mesmo downloader do E-H** — as URLs das páginas saem prontas do post do site, então zoom, upscale 2×, progresso de leitura, histórico e visualizador externo funcionam igual.
+- Área de transferência, `-g <url>` e o compartilhamento abrem a página de detalhes do Xlecx diretamente.
+
+### Limitações conhecidas
+
+- No próprio site, a busca por palavra-chave ignora os filtros; a aba avisa isso no painel de filtros.
+- Posts de vídeo aparecem no site mas são omitidos do app.
+- Sem deduplicação com o E-Hentai nem com o 8muses.
 
 ## Já lidos
 

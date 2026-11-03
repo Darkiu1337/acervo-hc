@@ -507,9 +507,10 @@ class ReadPageLogic extends GetxController with WidgetsBindingObserver, GalleryI
   }
 
   Future<void> reloadImage(int index) async {
-    /// External sources (8muses) hand the reader final image urls, so there is
-    /// no E-H page to re-parse: a cache-busting query parameter is enough.
-    if (sourceOfGid(state.readPageInfo.gid) == GallerySource.eightMuses) {
+    /// External sources (8muses, Xlecx) hand the reader final image urls, so
+    /// there is no E-H page to re-parse: a cache-busting query parameter is
+    /// enough.
+    if (sourceOfGid(state.readPageInfo.gid) != GallerySource.eh) {
       final GalleryImage? image = state.images[index];
       if (image == null) {
         return;
