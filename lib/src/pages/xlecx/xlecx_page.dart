@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
-import 'package:acervo_hc/src/config/ui_config.dart';
 import 'package:acervo_hc/src/model/gallery.dart';
 import 'package:acervo_hc/src/model/xlecx_search.dart';
 import 'package:acervo_hc/src/pages/xlecx/xlecx_logic.dart';
