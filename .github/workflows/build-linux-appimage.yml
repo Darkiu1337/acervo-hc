@@ -7,7 +7,6 @@ on:
       - reader-features
       - reader-external
       - eightmuses
-      - ci/linux-appimage
     paths:
       - 'lib/**'
       - 'assets/**'
