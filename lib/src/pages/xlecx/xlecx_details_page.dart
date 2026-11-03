@@ -49,6 +49,10 @@ class _XlecxDetailsPageState extends State<XlecxDetailsPage> {
   LoadingState loadingState = LoadingState.idle;
   String? errorMessage;
 
+  /// Marker of a refused page ([XlecxRequest.restrictedErrorMarker] and
+  /// friends), used to pick a message and to hide a useless retry button.
+  String? errorMarker;
+
   /// Page the reader will resume at, highlighted in the preview grid.
   int? lastReadIndex;
 
@@ -72,6 +76,7 @@ class _XlecxDetailsPageState extends State<XlecxDetailsPage> {
       setState(() {
         loadingState = LoadingState.loading;
         errorMessage = null;
+        errorMarker = null;
       });
     }
 
@@ -122,6 +127,7 @@ class _XlecxDetailsPageState extends State<XlecxDetailsPage> {
 
       setState(() {
         loadingState = LoadingState.error;
+        errorMarker = XlecxRequest.errorMarkerOf(e);
         errorMessage = e.toString();
       });
     }
@@ -317,26 +323,47 @@ class _XlecxDetailsPageState extends State<XlecxDetailsPage> {
     );
   }
 
+  /// Message shown on the error state: the refused-page markers get a
+  /// translated explanation, anything else keeps the raw error.
+  String get _errorText => switch (errorMarker) {
+        XlecxRequest.restrictedErrorMarker => 'xlecxRestricted'.tr,
+        XlecxRequest.notFoundErrorMarker => 'xlecxNotFound'.tr,
+        XlecxRequest.cloudflareErrorMarker => 'xlecxBlocked'.tr,
+        _ => errorMessage ?? 'getGalleryDetailFailed'.tr,
+      };
+
   Widget _buildBody(BuildContext context) {
     if (loadingState == LoadingState.loading || loadingState == LoadingState.idle) {
       return Center(child: UIConfig.loadingAnimation(context));
     }
 
     if (loadingState == LoadingState.error || detail == null) {
+      final bool isPermanent = errorMarker == XlecxRequest.restrictedErrorMarker || errorMarker == XlecxRequest.notFoundErrorMarker;
+
       return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 48),
-            const SizedBox(height: 12),
-            Text(errorMessage ?? 'getGalleryDetailFailed'.tr, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            TextButton.icon(
-              onPressed: _load,
-              icon: const Icon(Icons.refresh),
-              label: Text('retry'.tr),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(isPermanent ? Icons.lock_outline : Icons.error_outline, size: 48),
+              const SizedBox(height: 12),
+              Text(_errorText, textAlign: TextAlign.center),
+              const SizedBox(height: 12),
+              if (isPermanent)
+                FilledButton.icon(
+                  onPressed: _openInBrowser,
+                  icon: const Icon(Icons.open_in_browser),
+                  label: Text('openInBrowser'.tr),
+                )
+              else
+                TextButton.icon(
+                  onPressed: _load,
+                  icon: const Icon(Icons.refresh),
+                  label: Text('retry'.tr),
+                ),
+            ],
+          ),
         ),
       );
     }

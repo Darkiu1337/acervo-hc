@@ -66,6 +66,7 @@ Terceira fonte, para os quadrinhos de `xlecx.one` (um site DataLife Engine com m
 
 - No próprio site, a busca por palavra-chave ignora os filtros; a aba avisa isso no painel de filtros.
 - Posts de vídeo aparecem no site mas são omitidos do app.
+- Alguns posts são restritos a usuários registrados: a listagem os mostra, mas a página de detalhes avisa e oferece o atalho para abrir no navegador.
 - Sem deduplicação com o E-Hentai nem com o 8muses.
 
 ## Já lidos

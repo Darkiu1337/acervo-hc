@@ -33,6 +33,29 @@ class XlecxRequest {
   static const String _accept =
       'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8';
 
+  /// Markers carried by the [DioException.error] of a page the site refuses to
+  /// serve, so the UI can show a source-specific message instead of the raw
+  /// status code.
+  static const String restrictedErrorMarker = 'xlecxRestricted';
+  static const String notFoundErrorMarker = 'xlecxNotFound';
+  static const String cloudflareErrorMarker = 'xlecxCloudflare';
+
+  static String? errorMarkerOf(Object error) {
+    if (error is! DioException) {
+      return null;
+    }
+    final dynamic value = error.error;
+    return value is String ? value : null;
+  }
+
+  /// Non-5xx statuses are accepted so the body can be inspected: the site
+  /// answers 403 both for its Cloudflare challenge and for posts that only
+  /// registered users may see, and the message tells them apart.
+  static Options get _htmlOptions => Options(
+        responseType: ResponseType.plain,
+        validateStatus: (int? status) => status != null && status < 500,
+      );
+
   Dio? _dio;
 
   /// Page lists resolved from a post, reused by the reader and by the download
@@ -90,7 +113,7 @@ class XlecxRequest {
               'subaction': 'search',
               'story': keyword,
             },
-            options: Options(responseType: ResponseType.plain),
+            options: _htmlOptions,
           )
         : await dio.post<String>(
             '$baseUrl/index.php',
@@ -103,6 +126,7 @@ class XlecxRequest {
             options: Options(
               responseType: ResponseType.plain,
               contentType: Headers.formUrlEncodedContentType,
+              validateStatus: (int? status) => status != null && status < 500,
             ),
           );
 
@@ -117,7 +141,7 @@ class XlecxRequest {
   Future<List<XlecxTag>> requestTags() async {
     final Response<String> response = await dio.get<String>(
       '$baseUrl/tags/',
-      options: Options(responseType: ResponseType.plain),
+      options: _htmlOptions,
     );
 
     return XlecxParser.parseTags(_checkedHtml(response));
@@ -126,17 +150,19 @@ class XlecxRequest {
   Future<XlecxDetail> requestDetail(GalleryUrl galleryUrl) async {
     final Response<String> response = await dio.get<String>(
       galleryUrl.url,
-      options: Options(responseType: ResponseType.plain),
+      options: _htmlOptions,
     );
 
     final int id = galleryUrl.externalId!;
     final XlecxDetail? detail = XlecxParser.parseDetail(_checkedHtml(response), id);
     if (detail == null) {
+      /// No page images: a video post or a post whose gallery was pulled.
       throw DioException(
         requestOptions: response.requestOptions,
-        error: 'Unable to parse Xlecx gallery #$id',
-        type: DioExceptionType.badResponse,
         response: response,
+        type: DioExceptionType.badResponse,
+        error: notFoundErrorMarker,
+        message: 'Xlecx post #$id has no page images',
       );
     }
 
@@ -179,7 +205,7 @@ class XlecxRequest {
   Future<XlecxPage> _requestGalleryPage(String path) async {
     final Response<String> response = await dio.get<String>(
       '$baseUrl$path',
-      options: Options(responseType: ResponseType.plain),
+      options: _htmlOptions,
     );
 
     final String html = _checkedHtml(response);
@@ -189,20 +215,43 @@ class XlecxRequest {
     );
   }
 
+  /// Turns a refused page into a marker the UI (and the download engine) can
+  /// translate.
+  ///
   /// The site is behind Cloudflare, but only as a proxy: a browser User-Agent
-  /// gets the page without a challenge. If that ever changes, fail with a clear
-  /// message instead of parsing the challenge document as an empty listing.
+  /// gets the HTML without a challenge. Two other answers are expected and are
+  /// not transient:
+  ///
+  /// - `403` + "Guests do not have the required permissions": the post is
+  ///   restricted to registered users (some listings still show it);
+  /// - `404`: the post was removed.
   static String _checkedHtml(Response<String> response) {
     final String html = response.data ?? '';
-    if (response.statusCode == 403 || html.contains('Just a moment') || html.contains('_cf_chl_opt')) {
-      throw DioException(
-        requestOptions: response.requestOptions,
-        response: response,
-        type: DioExceptionType.badResponse,
-        error: 'Xlecx is behind a Cloudflare challenge, try again later',
-      );
+    final int? status = response.statusCode;
+
+    if (html.contains('Just a moment') || html.contains('_cf_chl_opt')) {
+      throw _refused(response, cloudflareErrorMarker, 'Xlecx is behind a Cloudflare challenge');
     }
+
+    if (html.contains('do not have the required permissions')) {
+      throw _refused(response, restrictedErrorMarker, 'Xlecx post is restricted to registered users');
+    }
+
+    if (status != null && status >= 400) {
+      throw _refused(response, notFoundErrorMarker, 'Xlecx answered $status');
+    }
+
     return html;
+  }
+
+  static DioException _refused(Response<String> response, String marker, String message) {
+    return DioException(
+      requestOptions: response.requestOptions,
+      response: response,
+      type: DioExceptionType.badResponse,
+      error: marker,
+      message: message,
+    );
   }
 }
 

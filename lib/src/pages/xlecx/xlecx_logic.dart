@@ -328,7 +328,7 @@ class XlecxLogic extends GetxController {
     } on DioException catch (e) {
       log.error('Load Xlecx page failed', e.error);
       state.loadingState = LoadingState.error;
-      snack('refreshGalleryFailed'.tr, e.message ?? '', isShort: true);
+      snack('refreshGalleryFailed'.tr, _messageOf(e), isShort: true);
     } catch (e, s) {
       log.error('Load Xlecx page failed', e, s);
       state.loadingState = LoadingState.error;
@@ -344,4 +344,12 @@ class XlecxLogic extends GetxController {
 
     return xlecxRequest.requestFiltered(config: state.config, page: page);
   }
+
+  /// Refused pages are translated; anything else keeps the raw Dio message.
+  String _messageOf(DioException e) => switch (XlecxRequest.errorMarkerOf(e)) {
+        XlecxRequest.cloudflareErrorMarker => 'xlecxBlocked'.tr,
+        XlecxRequest.restrictedErrorMarker => 'xlecxRestricted'.tr,
+        XlecxRequest.notFoundErrorMarker => 'xlecxNotFound'.tr,
+        _ => e.message ?? '',
+      };
 }

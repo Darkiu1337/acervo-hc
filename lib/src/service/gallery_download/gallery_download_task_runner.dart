@@ -129,12 +129,42 @@ class _GalleryDownloadTaskRunner {
       /// the whole list is resolved once and cached by the request layer.
       if (sourceOfGid(gallery.gid) == GallerySource.xlecx) {
         final GalleryUrl galleryUrl = GalleryUrl.parse(gallery.galleryUrl);
-        final List<String> pageUrls = await retry(
-          () => xlecxRequest.requestPageUrls(galleryUrl),
-          retryIf: (e) => e is DioException && e.type != DioExceptionType.cancel,
-          onRetry: (e) => log.download('Parse Xlecx page urls failed, retry. Reason: ${(e as DioException).toString()}'),
-          maxAttempts: _maxRetryTimes,
-        );
+        final List<String> pageUrls;
+        try {
+          pageUrls = await retry(
+            () => xlecxRequest.requestPageUrls(galleryUrl),
+
+            /// A restricted/removed post will never succeed: stop right away
+            /// instead of burning the retry budget.
+            retryIf: (e) {
+              if (e is! DioException || e.type == DioExceptionType.cancel) {
+                return false;
+              }
+              final String? marker = XlecxRequest.errorMarkerOf(e);
+              return marker != XlecxRequest.restrictedErrorMarker && marker != XlecxRequest.notFoundErrorMarker;
+            },
+            onRetry: (e) => log.download('Parse Xlecx page urls failed, retry. Reason: ${(e as DioException).toString()}'),
+            maxAttempts: _maxRetryTimes,
+          );
+        } on DioException catch (e) {
+          if (e.type == DioExceptionType.cancel) {
+            return;
+          }
+
+          /// A restricted or removed post will never resolve, so pause the
+          /// gallery instead of retrying forever.
+          final String? marker = XlecxRequest.errorMarkerOf(e);
+          if (marker == XlecxRequest.restrictedErrorMarker || marker == XlecxRequest.notFoundErrorMarker) {
+            await _service._pauseOnSiteError(
+              gallery: gallery,
+              pauseAll: false,
+              message: marker == XlecxRequest.restrictedErrorMarker ? 'xlecxRestricted'.tr : 'xlecxNotFound'.tr,
+            );
+            return;
+          }
+
+          return _service._submitImageTask(gallery, serialNo, () => parseImageHrefTask(serialNo));
+        }
 
         if (serialNo >= pageUrls.length) {
           log.download('Xlecx page $serialNo is out of range (gallery has ${pageUrls.length} pages)');
