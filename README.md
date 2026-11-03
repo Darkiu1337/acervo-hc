@@ -1,10 +1,10 @@
-# JHenTai
+# Acervo H&C
 
-Leitor de mangá para **E-Hentai / ExHentai** feito em Flutter, para Android, iOS, Windows, macOS e Linux.
+Leitor de mangá para **E-Hentai / ExHentai** feito em Flutter, para Android, iOS, Windows, macOS e Linux. O nome é o programa: **H**entai **&** **C**omics no mesmo acervo.
 
-Este fork mantém o cliente original intacto e concentra as mudanças no que importa para quem lê: leitor com zoom contínuo e upscale 2×, visualizador externo de imagens, uma segunda fonte de galerias (**8muses**), a lista de **já lidos** e a tradução completa para **português do Brasil**.
+Este app nasceu como fork do JHenTai e hoje tem identidade própria. O cliente original segue intacto; as mudanças estão no que importa para quem lê: leitor com zoom contínuo e upscale 2×, visualizador externo de imagens, uma segunda fonte de galerias (**8muses**), a lista de **já lidos** e a tradução completa para **português do Brasil**.
 
-## Mudanças do fork
+## O que este app acrescenta
 
 | Área | O que foi adicionado |
 | --- | --- |
@@ -70,6 +70,8 @@ Lista manual que tira das listas de navegação as obras já terminadas, para el
 2. Extraia e execute `acervo-hc.exe`.
 
 Builds de desenvolvimento saem do workflow **Build Windows (reader)**, na aba Actions, no artefato `AcervoHC-Windows-reader`.
+
+O identificador do app é `app.acervo.hc`: ele instala em paralelo ao JHenTai, com dados próprios — configurações e downloads antigos não são importados.
 
 O identificador do app é `app.acervo.hc`: ele instala em paralelo ao JHenTai, com dados próprios — configurações e downloads antigos não são importados.
 
