@@ -7,6 +7,7 @@ on:
       - reader-features
       - reader-external
       - eightmuses
+      - xlecx
       - anime4k-restore
   workflow_dispatch:
 
