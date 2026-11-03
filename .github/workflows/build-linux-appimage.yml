@@ -1,0 +1,128 @@
+name: Build Linux (AppImage)
+
+on:
+  push:
+    branches:
+      - master
+      - reader-features
+      - reader-external
+      - eightmuses
+    paths:
+      - 'lib/**'
+      - 'assets/**'
+      - 'linux/**'
+      - 'packages/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - '.github/workflows/build-linux-appimage.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    env:
+      FLUTTER_VERSION: 3.44.8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'master'
+          cache: true
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            clang cmake ninja-build pkg-config file wget zsync xvfb \
+            libgtk-3-dev liblzma-dev libstdc++-12-dev \
+            libsecret-1-dev libjsoncpp-dev libfuse2 \
+            libwebkit2gtk-4.1-dev
+          # GTK4 / WebKit 6 are only needed if the embedder moved on; keep them optional.
+          sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev || true
+
+      - name: Flutter pub get
+        run: |
+          git config --global core.longpaths true
+          flutter pub get
+
+      - name: Build Linux release
+        run: flutter build linux --release -t lib/src/main.dart
+
+      - name: Assemble AppDir
+        run: |
+          set -euo pipefail
+          VERSION="$(grep -m1 '^version:' pubspec.yaml | sed 's/^version:[[:space:]]*//' | tr -d '\r')"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+          BUNDLE="build/linux/x64/release/bundle"
+          APPDIR="$PWD/build/linux/AppDir"
+          test -x "$BUNDLE/jhentai"
+          rm -rf "$APPDIR"
+          mkdir -p "$APPDIR/usr/bin" \
+                   "$APPDIR/usr/share/applications" \
+                   "$APPDIR/usr/share/icons/hicolor/512x512/apps"
+
+          # Flutter's RPATH is $ORIGIN/lib, so jhentai + lib/ + data/ stay together.
+          cp -a "$BUNDLE/." "$APPDIR/usr/bin/"
+
+          cp linux/assets/top.jtmonster.jhentai.desktop "$APPDIR/usr/share/applications/"
+          cp linux/assets/top.jtmonster.jhentai.desktop "$APPDIR/"
+
+          cp assets/icon/JHenTai_512.png "$APPDIR/top.jtmonster.jhentai.png"
+          cp assets/icon/JHenTai_512.png \
+             "$APPDIR/usr/share/icons/hicolor/512x512/apps/top.jtmonster.jhentai.png"
+
+          cat > "$APPDIR/AppRun" <<'APPRUN'
+          #!/bin/sh
+          HERE="$(dirname "$(readlink -f "$0")")"
+          export LD_LIBRARY_PATH="$HERE/usr/bin/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          exec "$HERE/usr/bin/jhentai" "$@"
+          APPRUN
+          chmod 0755 "$APPDIR/AppRun"
+
+          # Report anything the CI image has but a user distro might not.
+          echo "--- bundled libs ---"
+          ls -1 "$APPDIR/usr/bin/lib" || true
+          echo "--- unresolved deps (informational) ---"
+          ldd "$APPDIR/usr/bin/jhentai" | grep -i 'not found' || echo "none"
+
+      - name: Build AppImage
+        run: |
+          set -euo pipefail
+          wget -q -O appimagetool \
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool
+
+          OUT="build/linux/JHenTai_${VERSION}_Linux_x64.AppImage"
+          APPIMAGE_EXTRACT_AND_RUN=1 ARCH=x86_64 VERSION="$VERSION" \
+            ./appimagetool --no-appstream --comp zstd \
+            build/linux/AppDir "$OUT"
+
+          ls -lh "$OUT"
+          file "$OUT"
+          echo "APPIMAGE=$OUT" >> "$GITHUB_ENV"
+
+      - name: Smoke test AppImage (headless)
+        continue-on-error: true
+        run: |
+          set +e
+          chmod +x "$APPIMAGE"
+          timeout 25 xvfb-run -a "$APPIMAGE" > smoke.log 2>&1
+          code=$?
+          set -e
+          echo "exit=$code"
+          tail -40 smoke.log || true
+          # 124 = still running when the timeout hit, which is the expected outcome.
+          [ "$code" = "124" ] && echo "AppImage stayed alive: OK"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: JHenTai-Linux-AppImage
+          path: build/linux/*.AppImage
+          if-no-files-found: error
+          retention-days: 30
