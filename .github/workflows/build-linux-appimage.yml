@@ -38,6 +38,7 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y \
             clang cmake ninja-build pkg-config file wget zsync xvfb \
+            xdotool x11-utils binutils \
             libgtk-3-dev liblzma-dev libstdc++-12-dev \
             libsecret-1-dev libjsoncpp-dev libfuse2 \
             libwebkit2gtk-4.1-dev
@@ -87,6 +88,13 @@ jobs:
           # Report anything the CI image has but a user distro might not.
           echo "--- bundled libs ---"
           ls -1 "$APPDIR/usr/bin/lib" || true
+          echo "--- external deps of the runner binary ---"
+          readelf -d "$APPDIR/usr/bin/jhentai" | grep NEEDED || true
+          echo "--- plugin deps that are not bundled ---"
+          for so in "$APPDIR"/usr/bin/lib/*.so; do
+            echo "== $(basename "$so")"
+            readelf -d "$so" | grep NEEDED | grep -v 'libapp.so' || true
+          done
           echo "--- unresolved deps (informational) ---"
           ldd "$APPDIR/usr/bin/jhentai" | grep -i 'not found' || echo "none"
 
@@ -111,13 +119,30 @@ jobs:
         run: |
           set +e
           chmod +x "$APPIMAGE"
-          timeout 25 xvfb-run -a "$APPIMAGE" > smoke.log 2>&1
-          code=$?
-          set -e
-          echo "exit=$code"
-          tail -40 smoke.log || true
-          # 124 = still running when the timeout hit, which is the expected outcome.
-          [ "$code" = "124" ] && echo "AppImage stayed alive: OK"
+          cat > smoke.sh <<'SMOKE'
+          #!/bin/bash
+          APP="$1"
+          "./$APP" > smoke.log 2>&1 &
+          pid=$!
+          found=0
+          for i in $(seq 1 40); do
+            sleep 1
+            if ! kill -0 "$pid" 2>/dev/null; then echo "process died after ${i}s"; break; fi
+            if xdotool search --pid "$pid" --onlyvisible 2>/dev/null | grep -q .; then
+              found=1; echo "window mapped after ${i}s"; break
+            fi
+          done
+          echo "--- windows on the X server ---"
+          xwininfo -root -children 2>/dev/null | head -20
+          kill "$pid" 2>/dev/null
+          wait "$pid" 2>/dev/null
+          echo "--- app output ---"
+          tail -40 smoke.log
+          echo "WINDOW_FOUND=$found"
+          SMOKE
+          chmod +x smoke.sh
+          timeout 90 xvfb-run -a --server-args="-screen 0 1400x900x24" ./smoke.sh "$APPIMAGE"
+          echo "smoke exit=$?"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
