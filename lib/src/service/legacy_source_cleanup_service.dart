@@ -5,6 +5,7 @@ import 'package:acervo_hc/src/service/jh_service.dart';
 import 'package:acervo_hc/src/service/log.dart';
 import 'package:acervo_hc/src/service/path_service.dart';
 import 'package:acervo_hc/src/service/storage_service.dart';
+import 'package:drift/drift.dart';
 
 LegacySourceCleanupService legacySourceCleanupService = LegacySourceCleanupService();
 
@@ -82,7 +83,7 @@ class LegacySourceCleanupService with JHLifeCircleBeanErrorCatch implements JHLi
   }
 
   Future<void> _purgeDatabase() async {
-    final String marker = '%$_galleryUrlMarker%';
+    const String marker = '%$_galleryUrlMarker%';
 
     await appDb.transaction(() async {
       /// Collect the gids first: the derived rows are only reachable through
