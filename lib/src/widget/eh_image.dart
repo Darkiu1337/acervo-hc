@@ -20,6 +20,7 @@ import 'dart:ui' as ui;
 
 import '../service/gallery_download/download_path_resolver.dart';
 import '../service/gallery_download/gallery_download_service.dart';
+import '../service/xlecx_session_service.dart';
 import 'upscaled_image.dart';
 
 typedef LoadingProgressWidgetBuilder = Widget Function(double);
@@ -209,15 +210,27 @@ class _EHImageState extends State<EHImage> {
     );
   }
 
+  /// Xlecx session cookie, sent along with the images of that host so the
+  /// pages of galleries restricted to registered users also render.
+  Map<String, String>? _imageHeaders(String url) {
+    if (!url.contains('xlecx.one')) {
+      return null;
+    }
+
+    final String? cookie = xlecxSessionService.cookie;
+    return cookie == null ? null : <String, String>{'Cookie': cookie};
+  }
+
   Widget buildNetworkImage(BuildContext context) {
     final String url = _replaceEXUrl(widget.galleryImage.url);
     final bool useGate = widget.animateOnlyWhenVisible && !widget.disableAnimation;
+    final Map<String, String>? headers = _imageHeaders(url);
 
     return ExtendedImage(
       image: ExtendedResizeImage.resizeIfNeeded(
         provider: useGate
-            ? _GateExtendedNetworkImageProvider(url, cache: true, printError: kDebugMode, gate: _gate)
-            : ExtendedNetworkImageProvider(url, cache: true, printError: kDebugMode),
+            ? _GateExtendedNetworkImageProvider(url, cache: true, printError: kDebugMode, headers: headers, gate: _gate)
+            : ExtendedNetworkImageProvider(url, cache: true, printError: kDebugMode, headers: headers),
         maxBytes: widget.maxBytes,
       ),
       fit: widget.fit,
@@ -566,7 +579,7 @@ class _GateExtendedFileImageProvider extends ExtendedFileImageProvider {
 }
 
 class _GateExtendedNetworkImageProvider extends network_image_io.ExtendedNetworkImageProvider {
-  _GateExtendedNetworkImageProvider(super.url, {super.cache, super.printError, required this.gate});
+  _GateExtendedNetworkImageProvider(super.url, {super.cache, super.printError, super.headers, required this.gate});
 
   final EHImageAnimationGate gate;
 

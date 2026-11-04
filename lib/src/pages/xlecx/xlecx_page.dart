@@ -7,11 +7,13 @@ import 'package:acervo_hc/src/pages/xlecx/xlecx_logic.dart';
 import 'package:acervo_hc/src/routes/routes.dart';
 import 'package:acervo_hc/src/service/already_read_service.dart';
 import 'package:acervo_hc/src/service/local_favorite_service.dart';
+import 'package:acervo_hc/src/service/xlecx_session_service.dart';
 import 'package:acervo_hc/src/utils/convert_util.dart';
 import 'package:acervo_hc/src/utils/route_util.dart';
 import 'package:acervo_hc/src/utils/toast_util.dart';
 import 'package:acervo_hc/src/widget/eh_context_menu.dart';
 import 'package:acervo_hc/src/widget/loading_state_indicator.dart';
+import 'package:acervo_hc/src/widget/xlecx_account_dialog.dart';
 import 'package:acervo_hc/src/widget/xlecx_card.dart';
 import 'package:acervo_hc/src/widget/xlecx_filter_sheet.dart';
 import 'package:acervo_hc/src/widget/xlecx_mark.dart';
@@ -41,6 +43,24 @@ class XlecxPage extends StatelessWidget {
             Text('xlecx'.tr),
           ],
         ),
+        actions: [
+          GetBuilder<XlecxLogic>(
+            id: logic.searchBarId,
+            builder: (_) => IconButton(
+              tooltip: 'xlecxAccount'.tr,
+              icon: Icon(xlecxSessionService.hasCookie ? Icons.account_circle : Icons.account_circle_outlined),
+              onPressed: () async {
+                final bool saved = await showXlecxAccountDialog(context);
+                if (!saved) {
+                  return;
+                }
+
+                logic.update([logic.searchBarId]);
+                await logic.refresh();
+              },
+            ),
+          ),
+        ],
       ),
       body: Column(
         children: [

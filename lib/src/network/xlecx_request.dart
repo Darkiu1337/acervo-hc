@@ -4,6 +4,7 @@ import 'package:acervo_hc/src/model/gallery_url.dart';
 import 'package:acervo_hc/src/model/xlecx_detail.dart';
 import 'package:acervo_hc/src/model/xlecx_search.dart';
 import 'package:acervo_hc/src/setting/network_setting.dart';
+import 'package:acervo_hc/src/service/xlecx_session_service.dart';
 import 'package:acervo_hc/src/utils/xlecx_parser.dart';
 
 /// One page of a Xlecx listing.
@@ -80,7 +81,20 @@ class XlecxRequest {
           'Upgrade-Insecure-Requests': '1',
         },
       ),
-    );
+    )..interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (RequestOptions options, RequestInterceptorHandler handler) {
+            /// The user's session (when configured) unlocks the posts the site
+            /// restricts to registered users. Read on every request so saving
+            /// or clearing the cookie takes effect immediately.
+            final String? cookie = xlecxSessionService.cookie;
+            if (cookie != null) {
+              options.headers['Cookie'] = cookie;
+            }
+            handler.next(options);
+          },
+        ),
+      );
   }
 
   /// A `/f/` listing: category, tags, artist/parody and sort. The site applies
@@ -145,6 +159,26 @@ class XlecxRequest {
     );
 
     return XlecxParser.parseTags(_checkedHtml(response));
+  }
+
+  /// Post the site currently restricts to registered users, used as a probe
+  /// when the user pastes a session cookie.
+  static const int restrictedProbeId = 64869;
+
+  /// True when the configured cookie opens a guest-forbidden post, false when
+  /// the site still refuses it, null when the probe itself is unusable (post
+  /// removed, network error) and the session state is unknown.
+  Future<bool?> verifySession() async {
+    if (!xlecxSessionService.hasCookie) {
+      return false;
+    }
+
+    try {
+      await requestDetail(GalleryUrl.xlecxGalleryUrl(restrictedProbeId));
+      return true;
+    } on DioException catch (e) {
+      return errorMarkerOf(e) == restrictedErrorMarker ? false : null;
+    }
   }
 
   Future<XlecxDetail> requestDetail(GalleryUrl galleryUrl) async {

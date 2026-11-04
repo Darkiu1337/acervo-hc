@@ -26,6 +26,7 @@ import 'package:acervo_hc/src/utils/toast_util.dart';
 import 'package:acervo_hc/src/utils/xlecx_parser.dart';
 import 'package:acervo_hc/src/widget/eh_image.dart';
 import 'package:acervo_hc/src/widget/loading_state_indicator.dart';
+import 'package:acervo_hc/src/widget/xlecx_account_dialog.dart';
 import 'package:acervo_hc/src/widget/xlecx_mark.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -351,10 +352,28 @@ class _XlecxDetailsPageState extends State<XlecxDetailsPage> {
               Text(_errorText, textAlign: TextAlign.center),
               const SizedBox(height: 12),
               if (isPermanent)
-                FilledButton.icon(
-                  onPressed: _openInBrowser,
-                  icon: const Icon(Icons.open_in_browser),
-                  label: Text('openInBrowser'.tr),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: _openInBrowser,
+                      icon: const Icon(Icons.open_in_browser),
+                      label: Text('openInBrowser'.tr),
+                    ),
+                    if (errorMarker == XlecxRequest.restrictedErrorMarker)
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          final bool saved = await showXlecxAccountDialog(context);
+                          if (saved) {
+                            await _load();
+                          }
+                        },
+                        icon: const Icon(Icons.account_circle_outlined),
+                        label: Text('xlecxAccountSetup'.tr),
+                      ),
+                  ],
                 )
               else
                 TextButton.icon(
