@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:convert';
 
 import 'package:acervo_hc/src/model/gallery.dart';
 import 'package:acervo_hc/src/model/gallery_image.dart';
@@ -59,6 +60,7 @@ class XlecxParser {
   /// `MY TITLE | Today, 17:10 | Manga / Anime Parody / Furry`
   static final RegExp _descriptionRegExp = RegExp(r'data-description=(["\x27])([\s\S]*?)\1');
   static final RegExp _descriptionDateRegExp = RegExp(r'\|\s*([^|]*?,\s*\d{1,2}:\d{2})\s*\|');
+  static final RegExp _ldJsonRegExp = RegExp(r'<script type="application/ld\+json">([\s\S]*?)</script>');
 
   /// Gallery cards of a listing/search page, in page order. Video posts are
   /// dropped: they have no images and the reader cannot open them.
@@ -127,6 +129,13 @@ class XlecxParser {
       _collectInlineImages(html, pageUrls, thumbUrls, seenPages);
     }
 
+    /// Posts whose body was imported without any gallery (the site itself shows
+    /// an empty "Full size" tab) still carry the page list in the JSON-LD
+    /// `Book` payload.
+    if (pageUrls.isEmpty) {
+      _collectJsonLdImages(html, pageUrls, thumbUrls, seenPages);
+    }
+
     if (pageUrls.isEmpty) {
       return null;
     }
@@ -186,23 +195,113 @@ class XlecxParser {
     }
   }
 
-  /// Content of a tab (`#content-1` / `#content-2`), bounded by the next tab or
-  /// the end of the article.
+  /// Content of a tab (`#content-1` / `#content-2`).
+  ///
+  /// The tab holds either bare `<img>` tags or a single `imagegall23` wrapper,
+  /// so stopping at the first `</div>` after its opening tag keeps comments and
+  /// the "Related" cards out of the page list.
   static String _tabContent(String html, String id) {
     final int start = html.indexOf('id="$id"');
     if (start < 0) {
       return '';
     }
 
-    int end = html.indexOf('</article>', start);
-    if (id == 'content-1') {
-      final int nextTab = html.indexOf('id="content-2"', start);
-      if (nextTab > start && (end < 0 || nextTab < end)) {
-        end = nextTab;
+    final int content = html.indexOf('>', start);
+    if (content < 0) {
+      return '';
+    }
+
+    final int end = html.indexOf('</div>', content);
+    if (end < 0) {
+      return '';
+    }
+
+    return html.substring(content + 1, end);
+  }
+
+  /// Posts imported without a gallery in the body: the page list only exists in
+  /// the JSON-LD `Book` payload (`"image":[...]`), which may also carry a
+  /// duplicate upload of the cover.
+  static void _collectJsonLdImages(
+    String html,
+    List<String> pageUrls,
+    List<String> thumbUrls,
+    Set<String> seenPages,
+  ) {
+    for (final Match match in _ldJsonRegExp.allMatches(html)) {
+      dynamic decoded;
+      try {
+        decoded = jsonDecode(match.group(1) ?? '');
+      } catch (_) {
+        continue;
+      }
+
+      final List<String> urls = _findImageUrls(decoded);
+      if (urls.isEmpty) {
+        continue;
+      }
+
+      final Set<String> logicalNames = <String>{};
+      for (final String raw in urls) {
+        final String value = raw.trim().replaceFirst(RegExp(r'^http://'), 'https://');
+        if (!value.contains('/uploads/posts/')) {
+          continue;
+        }
+
+        final String full = _upgradeThumbnail(absoluteUrl(value));
+
+        /// `1577834279_page-1.jpg` and `1577834295_page-1.jpg` are the same
+        /// page uploaded twice; the numeric prefix is just the upload time.
+        if (!logicalNames.add(_logicalName(full)) || !seenPages.add(full)) {
+          continue;
+        }
+
+        pageUrls.add(encodeUrl(full));
+        thumbUrls.add(encodeUrl(full));
+      }
+
+      if (pageUrls.isNotEmpty) {
+        return;
+      }
+    }
+  }
+
+  static List<String> _findImageUrls(dynamic node) {
+    if (node is List) {
+      for (final dynamic item in node) {
+        final List<String> found = _findImageUrls(item);
+        if (found.isNotEmpty) {
+          return found;
+        }
+      }
+      return const <String>[];
+    }
+
+    if (node is Map) {
+      final dynamic image = node['image'];
+      if (image is String && image.isNotEmpty) {
+        return <String>[image];
+      }
+      if (image is List) {
+        final List<String> urls = image.whereType<String>().toList();
+        if (urls.isNotEmpty) {
+          return urls;
+        }
+      }
+
+      final dynamic graph = node['@graph'];
+      if (graph != null) {
+        return _findImageUrls(graph);
       }
     }
 
-    return html.substring(start, end < 0 ? html.length : end);
+    return const <String>[];
+  }
+
+  static String _logicalName(String url) {
+    final int slash = url.lastIndexOf('/');
+    final String name = slash < 0 ? url : url.substring(slash + 1);
+    return name.replaceFirst(RegExp(r'^\d+_'), '').toLowerCase();
   }
 
   static String? _attribute(String attrs, String name) {
