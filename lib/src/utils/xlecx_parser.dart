@@ -124,6 +124,10 @@ class XlecxParser {
     }
 
     if (pageUrls.isEmpty) {
+      _collectInlineImages(html, pageUrls, thumbUrls, seenPages);
+    }
+
+    if (pageUrls.isEmpty) {
       return null;
     }
 
@@ -143,6 +147,77 @@ class XlecxParser {
       categories: _parseCategories(description),
       publishTime: _parsePublishTime(description) ?? nowString(),
     );
+  }
+
+  /// Some older posts carry no anchors: the page list is a run of bare `<img>`
+  /// tags inside the "Thumb"/"Full size" tabs (first one with `src`, the rest
+  /// lazy `data-src`), already pointing at the full size file.
+  static void _collectInlineImages(
+    String html,
+    List<String> pageUrls,
+    List<String> thumbUrls,
+    Set<String> seenPages,
+  ) {
+    for (final String id in <String>['content-1', 'content-2']) {
+      final String section = _tabContent(html, id);
+      if (section.isEmpty) {
+        continue;
+      }
+
+      for (final Match match in RegExp(r'<img([^>]*)>', caseSensitive: false).allMatches(section)) {
+        final String attrs = match.group(1) ?? '';
+        final String? raw = _attribute(attrs, 'data-src') ?? _attribute(attrs, 'src');
+        if (raw == null || !raw.contains('/uploads/posts/')) {
+          continue;
+        }
+
+        final String full = _upgradeThumbnail(absoluteUrl(raw.trim()));
+        if (!seenPages.add(full)) {
+          continue;
+        }
+
+        pageUrls.add(encodeUrl(full));
+        thumbUrls.add(encodeUrl(full));
+      }
+
+      if (pageUrls.isNotEmpty) {
+        return;
+      }
+    }
+  }
+
+  /// Content of a tab (`#content-1` / `#content-2`), bounded by the next tab or
+  /// the end of the article.
+  static String _tabContent(String html, String id) {
+    final int start = html.indexOf('id="$id"');
+    if (start < 0) {
+      return '';
+    }
+
+    int end = html.indexOf('</article>', start);
+    if (id == 'content-1') {
+      final int nextTab = html.indexOf('id="content-2"', start);
+      if (nextTab > start && (end < 0 || nextTab < end)) {
+        end = nextTab;
+      }
+    }
+
+    return html.substring(start, end < 0 ? html.length : end);
+  }
+
+  static String? _attribute(String attrs, String name) {
+    final Match? match = RegExp(name + r'\s*=\s*(["\x27])(.*?)\1', caseSensitive: false).firstMatch(attrs);
+    return match?.group(2);
+  }
+
+  /// `/uploads/posts/2026-11/thumbs/001.jpg` -> `/uploads/posts/2026-11/001.jpg`.
+  static String _upgradeThumbnail(String url) {
+    const String marker = '/thumbs/';
+    final int index = url.indexOf(marker);
+    if (index < 0) {
+      return url;
+    }
+    return url.replaceRange(index, index + marker.length, '/');
   }
 
   /// The `/tags/` directory (one page, ~1000 tags) sorted by gallery count.

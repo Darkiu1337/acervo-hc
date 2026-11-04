@@ -161,23 +161,31 @@ class XlecxRequest {
     return XlecxParser.parseTags(_checkedHtml(response));
   }
 
-  /// Post the site currently restricts to registered users, used as a probe
-  /// when the user pastes a session cookie.
-  static const int restrictedProbeId = 64869;
-
-  /// True when the configured cookie opens a guest-forbidden post, false when
-  /// the site still refuses it, null when the probe itself is unusable (post
-  /// removed, network error) and the session state is unknown.
+  /// True when the configured cookies are accepted by the site, false when it
+  /// still treats the client as a guest, null when the check itself failed
+  /// (network, Cloudflare).
+  ///
+  /// The logged-in header carries `header__login-btn--logged`; the guest one
+  /// only has the plain `js-show-login` button. Checking the header avoids
+  /// depending on any specific post.
   Future<bool?> verifySession() async {
     if (!xlecxSessionService.hasCookie) {
       return false;
     }
 
     try {
-      await requestDetail(GalleryUrl.xlecxGalleryUrl(restrictedProbeId));
-      return true;
-    } on DioException catch (e) {
-      return errorMarkerOf(e) == restrictedErrorMarker ? false : null;
+      final Response<String> response = await dio.get<String>('$baseUrl/', options: _htmlOptions);
+      final String html = _checkedHtml(response);
+
+      if (html.contains('header__login-btn--logged')) {
+        return true;
+      }
+      if (html.contains('js-show-login')) {
+        return false;
+      }
+      return null;
+    } on DioException {
+      return null;
     }
   }
 
