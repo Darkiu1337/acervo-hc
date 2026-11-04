@@ -52,9 +52,15 @@ class XlecxRequest {
   /// Non-5xx statuses are accepted so the body can be inspected: the site
   /// answers 403 both for its Cloudflare challenge and for posts that only
   /// registered users may see, and the message tells them apart.
+  ///
+  /// Redirects are followed by hand because the site sends raw non-ASCII bytes
+  /// in `Location` (post slugs carry `’`, as in
+  /// `/64748-my-son’s-hyperspermia-2.html`), which Dio cannot resolve and
+  /// reports as a redirect loop.
   static Options get _htmlOptions => Options(
         responseType: ResponseType.plain,
         validateStatus: (int? status) => status != null && status < 500,
+        followRedirects: false,
       );
 
   Dio? _dio;
@@ -120,14 +126,13 @@ class XlecxRequest {
     final String keyword = config.keyword.trim();
 
     final Response<String> response = page <= 1
-        ? await dio.get<String>(
+        ? await _get(
             '$baseUrl/index.php',
             queryParameters: <String, dynamic>{
               'do': 'search',
               'subaction': 'search',
               'story': keyword,
             },
-            options: _htmlOptions,
           )
         : await dio.post<String>(
             '$baseUrl/index.php',
@@ -153,10 +158,7 @@ class XlecxRequest {
 
   /// The `/tags/` directory (one page, ~1000 tags).
   Future<List<XlecxTag>> requestTags() async {
-    final Response<String> response = await dio.get<String>(
-      '$baseUrl/tags/',
-      options: _htmlOptions,
-    );
+    final Response<String> response = await _get('$baseUrl/tags/');
 
     return XlecxParser.parseTags(_checkedHtml(response));
   }
@@ -174,7 +176,7 @@ class XlecxRequest {
     }
 
     try {
-      final Response<String> response = await dio.get<String>('$baseUrl/', options: _htmlOptions);
+      final Response<String> response = await _get('$baseUrl/');
       final String html = _checkedHtml(response);
 
       if (html.contains('header__login-btn--logged')) {
@@ -190,10 +192,7 @@ class XlecxRequest {
   }
 
   Future<XlecxDetail> requestDetail(GalleryUrl galleryUrl) async {
-    final Response<String> response = await dio.get<String>(
-      galleryUrl.url,
-      options: _htmlOptions,
-    );
+    final Response<String> response = await _get(galleryUrl.url);
 
     final int id = galleryUrl.externalId!;
     final XlecxDetail? detail = XlecxParser.parseDetail(_checkedHtml(response), id);
@@ -245,16 +244,44 @@ class XlecxRequest {
   }
 
   Future<XlecxPage> _requestGalleryPage(String path) async {
-    final Response<String> response = await dio.get<String>(
-      '$baseUrl$path',
-      options: _htmlOptions,
-    );
+    final Response<String> response = await _get('$baseUrl$path');
 
     final String html = _checkedHtml(response);
     return XlecxPage(
       galleries: XlecxParser.parseGalleryList(html),
       hasMore: XlecxParser.parseHasNextPage(html),
     );
+  }
+
+  /// GET with manual redirect handling (see [_htmlOptions]).
+  Future<Response<String>> _get(String url, {Map<String, dynamic>? queryParameters, int hop = 0}) async {
+    final Response<String> response = await dio.get<String>(
+      url,
+      queryParameters: queryParameters,
+      options: _htmlOptions,
+    );
+
+    final int? status = response.statusCode;
+    final String? location = response.headers.value(Headers.locationHeader);
+    if (status != null && status >= 300 && status < 400 && location != null && location.isNotEmpty) {
+      if (hop >= 4) {
+        throw _refused(response, notFoundErrorMarker, 'Too many redirects for $url');
+      }
+
+      return _get(_resolveUrl(url, location), hop: hop + 1);
+    }
+
+    return response;
+  }
+
+  /// Resolves a `Location` header, percent-encoding whatever the server sent
+  /// raw (curly quotes, spaces) so the next request is a valid URI.
+  static String _resolveUrl(String base, String location) {
+    try {
+      return Uri.parse(base).resolve(location).toString();
+    } catch (_) {
+      return Uri.parse(base).resolve(Uri.encodeFull(location)).toString();
+    }
   }
 
   /// Turns a refused page into a marker the UI (and the download engine) can
