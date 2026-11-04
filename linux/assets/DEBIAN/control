@@ -6,6 +6,6 @@ Priority: optional
 Architecture: amd64
 Essential: no
 Installed-Size: 34648
-Description: Leitor de manga para E-Hentai/ExHentai com fonte 8muses e leitor aprimorado.
+Description: Leitor de manga para E-Hentai/ExHentai com fonte Xlecx e leitor aprimorado.
 Homepage: https://github.com/Darkiu1337/acervo-hc
 Depends: libwebkit2gtk-4.1-0

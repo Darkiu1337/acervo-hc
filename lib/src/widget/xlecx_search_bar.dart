@@ -4,8 +4,7 @@ import 'package:acervo_hc/src/model/xlecx_search.dart';
 import 'package:acervo_hc/src/pages/xlecx/xlecx_logic.dart';
 
 /// Inline search bar of the Xlecx page: keyword field, filter button and the
-/// active filter chips. Mirrors the 8muses bar, with the site's five listings
-/// as chips instead of three.
+/// active filter chips, with the site's five listings as chips.
 class XlecxSearchBar extends StatelessWidget {
   final XlecxLogic logic;
   final VoidCallback onOpenFilters;

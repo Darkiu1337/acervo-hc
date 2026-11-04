@@ -16,9 +16,9 @@ import 'package:acervo_hc/src/widget/loading_state_indicator.dart';
 /// and the category/tag/artist/parody filters.
 ///
 /// Everything the site can filter by travels in the request path, so the tab
-/// never filters pages locally (unlike the 8muses tab, whose cards carry the
-/// genres). A keyword search is the only mode where the site ignores the other
-/// filters, which is why the filter sheet disables them in that mode.
+/// never filters pages locally. A keyword search is the only mode where the
+/// site ignores the other filters, which is why the filter sheet disables them
+/// in that mode.
 class XlecxLogic extends GetxController {
   final String bodyId = 'xlecxBodyId';
   final String searchBarId = 'xlecxSearchBarId';
@@ -92,8 +92,7 @@ class XlecxLogic extends GetxController {
 
   Future<void> onRefresh() => refresh();
 
-  /// Switches the listing preset (the site's sort keys) and drops the filters,
-  /// like the 8muses listing tabs do.
+  /// Switches the listing preset (the site's sort keys) and drops the filters.
   Future<void> changeListing(XlecxSort sort) async {
     if (state.config.sort == sort && !state.config.hasMediaFilters && !state.config.hasKeyword) {
       return;

@@ -63,7 +63,7 @@ class FavoritePage extends BasePage {
     );
   }
 
-  /// Switches between the online E-H favorites and the local (8muses) list.
+  /// Switches between the online E-H favorites and the local (Xlecx) list.
   Widget _buildModeSwitcher(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 2),

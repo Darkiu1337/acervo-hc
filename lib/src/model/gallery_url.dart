@@ -8,14 +8,13 @@ class GalleryUrl {
   /// Which site this url belongs to.
   final GallerySource source;
 
-  /// Acervo H&C-wide id: the E-Hentai gid, or [eightMusesGid] for external ones.
+  /// Acervo H&C-wide id: the E-Hentai gid, or [xlecxGid] for the external one.
   final int gid;
 
   /// E-Hentai gallery token, or the external id as string.
   final String token;
 
-  /// External gallery id (only set for [GallerySource.eightMuses] and
-  /// [GallerySource.xlecx]).
+  /// External gallery id (only set for [GallerySource.xlecx]).
   final int? externalId;
 
   const GalleryUrl({
@@ -27,7 +26,6 @@ class GalleryUrl {
   }) : assert(source != GallerySource.eh || token.length == 10);
 
   static final RegExp _ehRegExp = RegExp(r'https://e([-x])hentai\.org/g/(\d+)/([a-z0-9]{10})');
-  static final RegExp _eightMusesRegExp = RegExp(r'https?://(?:www\.)?8muses\.io/g/(\d+)');
 
   /// Xlecx uses `/<id>-<slug>.html`, and a slug-less url redirects to the
   /// canonical one, so only the id is required here.
@@ -41,11 +39,6 @@ class GalleryUrl {
         gid: int.parse(match.group(2)!),
         token: match.group(3)!,
       );
-    }
-
-    match = _eightMusesRegExp.firstMatch(url);
-    if (match != null) {
-      return eightMusesGalleryUrl(int.parse(match.group(1)!));
     }
 
     match = _xlecxRegExp.firstMatch(url);
@@ -62,17 +55,6 @@ class GalleryUrl {
       throw InternalException(message: 'Parse gallery url failed, url:$url');
     }
     return galleryUrl;
-  }
-
-  /// Build the url of an external 8muses gallery.
-  static GalleryUrl eightMusesGalleryUrl(int externalId) {
-    return GalleryUrl(
-      isEH: false,
-      source: GallerySource.eightMuses,
-      gid: eightMusesGid(externalId),
-      token: externalId.toString(),
-      externalId: externalId,
-    );
   }
 
   /// Build the url of an external Xlecx gallery.
@@ -92,9 +74,6 @@ class GalleryUrl {
   }
 
   String get url {
-    if (source == GallerySource.eightMuses) {
-      return 'https://8muses.io/g/$externalId';
-    }
     if (source == GallerySource.xlecx) {
       return 'https://xlecx.one/$externalId-x.html';
     }

@@ -21,6 +21,7 @@ import 'package:acervo_hc/src/service/gallery_download/gallery_download_service.
 import 'package:acervo_hc/src/service/history_service.dart';
 import 'package:acervo_hc/src/service/isolate_service.dart';
 import 'package:acervo_hc/src/service/jh_service.dart';
+import 'package:acervo_hc/src/service/legacy_source_cleanup_service.dart';
 import 'package:acervo_hc/src/service/local_block_rule_service.dart';
 import 'package:acervo_hc/src/service/local_config_service.dart';
 import 'package:acervo_hc/src/service/local_gallery_service.dart';
@@ -62,6 +63,7 @@ List<JHLifeCircleBean> lifeCircleBeans = [
   ehRequest,
   jhRequest,
   archiveBotRequest,
+  legacySourceCleanupService,
   appUpdateService,
   galleryDownloadService,
   archiveDownloadService,

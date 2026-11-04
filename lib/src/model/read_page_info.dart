@@ -32,7 +32,7 @@ class ReadPageInfo {
   /// used for archive&local
   List<GalleryImage>? images;
 
-  /// Pre-resolved thumbnails of an external source (8muses). When set together
+  /// Pre-resolved thumbnails of the external source (Xlecx). When set together
   /// with [images] in [ReadMode.online], the reader never parses E-H pages.
   List<GalleryThumbnail>? thumbnails;
 

@@ -192,10 +192,6 @@ class SettingPreferencePage extends StatelessWidget {
             value: TabBarIconNameEnum.watched,
           ),
           DropdownMenuItem(
-            child: Text(TabBarIconNameEnum.eightMuses.name.tr),
-            value: TabBarIconNameEnum.eightMuses,
-          ),
-          DropdownMenuItem(
             child: Text(TabBarIconNameEnum.xlecx.name.tr),
             value: TabBarIconNameEnum.xlecx,
           ),

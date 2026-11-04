@@ -27,7 +27,6 @@ import '../setting/advanced_setting.dart';
 import '../utils/route_util.dart';
 import '../utils/screen_size_util.dart';
 import '../utils/snack_util.dart';
-import '../utils/eight_muses_parser.dart';
 import '../utils/xlecx_parser.dart';
 
 const int left = 1;
@@ -228,19 +227,9 @@ class _HomePageState extends State<HomePage> with LoginRequiredMixin, WindowList
 
   /// Opens a parsed gallery url on the right source.
   ///
-  /// External galleries don't need an E-H login and have their own, lighter
+  /// The external gallery doesn't need an E-H login and has its own, lighter
   /// detail page; everything else keeps the E-H flow.
   void _openGalleryUrl(GalleryUrl galleryUrl) {
-    if (galleryUrl.source == GallerySource.eightMuses) {
-      toRoute(
-        Routes.eightMusesDetails,
-        arguments: EightMusesParser.galleryFromUrl(galleryUrl),
-        offAllBefore: false,
-        preventDuplicates: false,
-      );
-      return;
-    }
-
     if (galleryUrl.source == GallerySource.xlecx) {
       toRoute(
         Routes.xlecxDetails,

@@ -11,11 +11,11 @@ AlreadyReadService alreadyReadService = AlreadyReadService();
 ///
 /// The list has two roles:
 ///  1. it hides the gallery from the listing pages (home, search, popular,
-///     watched and the 8muses source), so already seen works do not come back;
+///     watched and the Xlecx source), so already seen works do not come back;
 ///  2. it is the source of the "Already read" page in the sidebar, where they
 ///     can be inspected and removed.
 ///
-/// Works for both sources (E-H and 8muses) because a `GalleryHistoryModel`
+/// Works for both sources (E-H and Xlecx) because a `GalleryHistoryModel`
 /// already carries a [GalleryUrl] that knows its source. Stored in GetStorage
 /// as a JSON array (same rationale as the local favorites: no Drift schema
 /// change and no `build_runner` codegen), newest first.

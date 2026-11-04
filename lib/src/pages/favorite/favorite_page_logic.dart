@@ -62,7 +62,7 @@ class FavoritePageLogic extends BasePageLogic {
     await super.onInit();
 
     /// Keep the local list in sync when a gallery is favorited/unfavorited from
-    /// another page (e.g. the 8muses details page on desktop).
+    /// another page (e.g. the Xlecx details page on desktop).
     _favoritesWorker = ever(localFavoriteService.favorites, (_) {
       if (state.localMode) {
         _loadLocalFavorites(scrollToTop: false);

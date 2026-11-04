@@ -76,7 +76,7 @@ class ReadPageState with ScrollStatusListerState {
     if (readPageInfo.mode == ReadMode.online) {
       _images = List.generate(readPageInfo.pageCount, (_) => null);
 
-      /// External sources (eg. 8muses) resolve the whole image and thumbnail
+      /// The external source (eg. Xlecx) resolves the whole image and thumbnail
       /// lists up front. Filling both here keeps the online builders from ever
       /// trying to parse E-H pages.
       final List<GalleryImage>? providedImages = readPageInfo.images;

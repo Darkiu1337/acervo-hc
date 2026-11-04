@@ -7,7 +7,7 @@ import 'package:acervo_hc/src/service/storage_service.dart';
 
 LocalFavoriteService localFavoriteService = LocalFavoriteService();
 
-/// Local (offline) favorites of the external 8muses source.
+/// Local (offline) favorites of the external Xlecx source.
 ///
 /// Deliberately separate from the E-H favorites ([FavoriteSetting]): those are
 /// 10 online slots that require login, while this is a local bookmark list that

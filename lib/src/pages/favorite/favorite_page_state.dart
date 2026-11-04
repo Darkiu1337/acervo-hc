@@ -10,7 +10,7 @@ class FavoritePageState extends BasePageState {
   @override
   SearchConfig searchConfig = SearchConfig(searchType: SearchType.favorite);
 
-  /// `true` shows the local (8muses) favorites instead of the online E-H ones.
+  /// `true` shows the local (Xlecx) favorites instead of the online E-H ones.
   ///
   /// The page opens in local mode when there is no E-H login, so the list is
   /// usable without an account.

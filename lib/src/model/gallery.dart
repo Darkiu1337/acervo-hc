@@ -32,7 +32,7 @@ class Gallery {
   bool isExpunged;
   LinkedHashMap<String, List<GalleryTag>> tags;
 
-  /// Raw genres of an external source (8muses). Empty for E-H galleries.
+  /// Raw genres of an external source (Xlecx). Empty for E-H galleries.
   ///
   /// Used by the external search page to filter by tag locally, because the
   /// site's search results do not carry genres (listing/tag pages do).

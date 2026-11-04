@@ -32,7 +32,7 @@ class AlreadyReadPageLogic extends OldBasePageLogic {
     await super.onInit();
 
     /// Keep the list in sync when a gallery is marked/unmarked from another
-    /// page (details or an 8muses card menu). Deferred to a microtask so the
+    /// page (details or a Xlecx card menu). Deferred to a microtask so the
     /// reload observes the list after the mutation completes.
     _alreadyReadWorker = ever(alreadyReadService.galleries, (_) {
       if (!isClosed) {

@@ -55,7 +55,7 @@ class PreferenceSetting with JHLifeCircleBeanWithConfigStorage implements JHLife
     enableSwipeBackGesture.value = map['enableSwipeBackGesture'] ?? enableSwipeBackGesture.value;
     enableTagZHTranslation.value = map['enableTagZHTranslation'] ?? enableTagZHTranslation.value;
     enableTagZHSearchOrderOptimization.value = map['enableTagZHSearchOrderOptimization'] ?? enableTagZHSearchOrderOptimization.value;
-    defaultTab.value = TabBarIconNameEnum.values[map['defaultTab'] ?? TabBarIconNameEnum.home.index];
+    defaultTab.value = _decodeDefaultTab(map['defaultTab']);
     preloadGalleryCover.value = map['preloadGalleryCover'] ?? preloadGalleryCover.value;
     enableLeftMenuDrawerGesture.value = map['enableLeftMenuDrawerGesture'] ?? enableLeftMenuDrawerGesture.value;
     enableQuickSearchDrawerGesture.value = map['enableQuickSearchDrawerGesture'] ?? enableQuickSearchDrawerGesture.value;
@@ -86,7 +86,7 @@ class PreferenceSetting with JHLifeCircleBeanWithConfigStorage implements JHLife
       'showR18GImageDirectly': showR18GImageDirectly.value,
       'enableTagZHTranslation': enableTagZHTranslation.value,
       'enableTagZHSearchOrderOptimization': enableTagZHSearchOrderOptimization.value,
-      'defaultTab': defaultTab.value.index,
+      'defaultTab': defaultTab.value.name,
       'preloadGalleryCover': preloadGalleryCover.value,
       'enableSwipeBackGesture': enableSwipeBackGesture.value,
       'enableLeftMenuDrawerGesture': enableLeftMenuDrawerGesture.value,
@@ -285,3 +285,41 @@ class PreferenceSetting with JHLifeCircleBeanWithConfigStorage implements JHLife
 enum Scroll2TopButtonModeEnum { scrollUp, scrollDown, never, always }
 
 enum SearchBehaviour { inheritAll, inheritPartially, none }
+
+/// [TabBarIconNameEnum] order used by installs that stored the default tab as
+/// an index (`preferenceSetting` before the switch to names). A value was
+/// removed since then, so a raw index can no longer be trusted: it is
+/// translated to a name first, and names that no longer exist fall back to
+/// [TabBarIconNameEnum.home].
+const List<String> _legacyDefaultTabNames = <String>[
+  'home',
+  'search',
+  'popular',
+  'ranklist',
+  'watched',
+  'favorite',
+  'history',
+  'download',
+  'eightMuses',
+  'setting',
+  'alreadyRead',
+  'xlecx',
+];
+
+TabBarIconNameEnum _decodeDefaultTab(dynamic stored) {
+  String? name;
+  if (stored is String) {
+    name = stored;
+  } else if (stored is int && stored >= 0 && stored < _legacyDefaultTabNames.length) {
+    name = _legacyDefaultTabNames[stored];
+  }
+  if (name == null) {
+    return TabBarIconNameEnum.home;
+  }
+  for (final TabBarIconNameEnum value in TabBarIconNameEnum.values) {
+    if (value.name == name) {
+      return value;
+    }
+  }
+  return TabBarIconNameEnum.home;
+}

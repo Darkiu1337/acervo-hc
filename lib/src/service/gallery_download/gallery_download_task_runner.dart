@@ -115,16 +115,6 @@ class _GalleryDownloadTaskRunner {
 
       GalleryDownloadInfo galleryDownloadInfo = _service.galleryDownloadInfos[gallery.gid]!;
 
-      /// External sources (8muses) expose the final page url up front, so there
-      /// is no E-H detail page to parse. `imageHrefs` holds [GalleryThumbnail]s
-      /// on this code path only as url carriers.
-      final int? externalId = eightMusesExternalId(gallery.gid);
-      if (externalId != null) {
-        final String pageUrl = EightMusesParser.pageUrl(externalId, serialNo + 1);
-        galleryDownloadInfo.imageHrefs[serialNo] = GalleryThumbnail(href: pageUrl, isLarge: true, thumbUrl: pageUrl);
-        return _service._submitImageTask(gallery, serialNo, () => parseImageUrlTask(serialNo));
-      }
-
       /// Xlecx has no deterministic page url, but the post lists every page, so
       /// the whole list is resolved once and cached by the request layer.
       if (sourceOfGid(gallery.gid) == GallerySource.xlecx) {
@@ -366,13 +356,6 @@ class _GalleryDownloadTaskRunner {
         response = await retry(
           () => switch (source) {
             GallerySource.eh => ehRequest.download(
-                url: downloadUrl,
-                path: path,
-                receiveTimeout: 3 * 60 * 1000,
-                cancelToken: galleryDownloadInfo.cancelToken,
-                onReceiveProgress: (int count, int total) => galleryDownloadInfo.speedComputer.updateProgress(count, total, serialNo),
-              ),
-            GallerySource.eightMuses => eightMusesRequest.download(
                 url: downloadUrl,
                 path: path,
                 receiveTimeout: 3 * 60 * 1000,

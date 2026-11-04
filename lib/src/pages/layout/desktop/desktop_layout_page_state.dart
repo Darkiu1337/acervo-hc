@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:acervo_hc/src/extension/list_extension.dart';
 import 'package:acervo_hc/src/pages/download/download_base_page.dart';
 import 'package:acervo_hc/src/pages/already_read/already_read_page.dart';
-import 'package:acervo_hc/src/pages/eight_muses/eight_muses_page.dart';
 import 'package:acervo_hc/src/pages/xlecx/xlecx_page.dart';
 import 'package:acervo_hc/src/pages/gallery/simple/gallery_page_logic.dart';
 import 'package:acervo_hc/src/pages/history/history_page.dart';
@@ -13,7 +12,6 @@ import 'package:acervo_hc/src/pages/setting/setting_page.dart';
 import 'package:acervo_hc/src/pages/watched/watched_page.dart';
 import 'package:acervo_hc/src/routes/routes.dart';
 import 'package:acervo_hc/src/setting/preference_setting.dart';
-import 'package:acervo_hc/src/widget/eight_muses_mark.dart';
 import 'package:acervo_hc/src/widget/xlecx_mark.dart';
 
 import '../../../mixin/double_tap_to_refresh_state_mixin.dart';
@@ -112,14 +110,6 @@ class DesktopLayoutPageState with DoubleTapToRefreshStateMixin {
         selectedIcon: const Icon(Icons.download),
         unselectedIcon: const Icon(Icons.download_outlined),
         page: () => const DownloadPage(),
-        shouldRender: false,
-      ),
-      TabBarIcon(
-        name: TabBarIconNameEnum.eightMuses,
-        routeName: Routes.eightMuses,
-        selectedIcon: const EightMusesMark(size: 22),
-        unselectedIcon: const Opacity(opacity: 0.65, child: EightMusesMark(size: 22)),
-        page: () => const EightMusesPage(),
         shouldRender: false,
       ),
       TabBarIcon(

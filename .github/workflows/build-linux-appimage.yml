@@ -6,7 +6,6 @@ on:
       - master
       - reader-features
       - reader-external
-      - eightmuses
       - xlecx
     paths:
       - 'lib/**'
