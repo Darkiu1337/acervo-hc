@@ -144,7 +144,7 @@ class XlecxRequest {
             },
             options: Options(
               responseType: ResponseType.plain,
-              contentType: Headers.formUrlEncodedContentType,
+              contentType: 'application/x-www-form-urlencoded',
               validateStatus: (int? status) => status != null && status < 500,
             ),
           );
@@ -262,7 +262,7 @@ class XlecxRequest {
     );
 
     final int? status = response.statusCode;
-    final String? location = response.headers.value(Headers.locationHeader);
+    final String? location = response.headers.value('location');
     if (status != null && status >= 300 && status < 400 && location != null && location.isNotEmpty) {
       if (hop >= 4) {
         throw _refused(response, notFoundErrorMarker, 'Too many redirects for $url');
