@@ -4,11 +4,21 @@ on:
   push:
     branches:
       - master
-      - reader-features
-      - reader-external
-      - xlecx
-      - anime4k-restore
+    paths:
+      - 'lib/**'
+      - 'assets/**'
+      - 'windows/**'
+      - 'packages/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - '.github/workflows/build-windows-reader.yml'
+  # Builds any branch on demand without waiting for a merge.
   workflow_dispatch:
+
+# A newer push to master makes the previous build obsolete.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:

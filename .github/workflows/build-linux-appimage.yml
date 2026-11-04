@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - master
-      - reader-features
-      - reader-external
-      - xlecx
     paths:
       - 'lib/**'
       - 'assets/**'
@@ -15,7 +12,13 @@ on:
       - 'pubspec.yaml'
       - 'pubspec.lock'
       - '.github/workflows/build-linux-appimage.yml'
+  # Builds any branch on demand without waiting for a merge.
   workflow_dispatch:
+
+# A newer push to master makes the previous build obsolete.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
