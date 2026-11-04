@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:acervo_hc/src/model/gallery.dart';
 import 'package:acervo_hc/src/model/gallery_url.dart';
@@ -264,23 +266,41 @@ class XlecxRequest {
     final int? status = response.statusCode;
     final String? location = response.headers.value('location');
     if (status != null && status >= 300 && status < 400 && location != null && location.isNotEmpty) {
-      if (hop >= 4) {
+      final String next = _resolveUrl(url, location);
+      if (next == url || hop >= 4) {
         throw _refused(response, notFoundErrorMarker, 'Too many redirects for $url');
       }
 
-      return _get(_resolveUrl(url, location), hop: hop + 1);
+      return _get(next, hop: hop + 1);
     }
 
     return response;
   }
 
-  /// Resolves a `Location` header, percent-encoding whatever the server sent
-  /// raw (curly quotes, spaces) so the next request is a valid URI.
+  /// Resolves a `Location` header.
+  ///
+  /// Dart decodes header values as latin1, so a raw UTF-8 slug arrives as
+  /// mojibake (`â\u0080\u0099` instead of `’`). It is repaired back to UTF-8
+  /// before the URI is built, otherwise the request would be double-encoded and
+  /// the site would answer with another redirect.
   static String _resolveUrl(String base, String location) {
+    final String decoded = _repairHeaderEncoding(location);
     try {
-      return Uri.parse(base).resolve(location).toString();
+      return Uri.parse(base).resolve(decoded).toString();
     } catch (_) {
-      return Uri.parse(base).resolve(Uri.encodeFull(location)).toString();
+      return Uri.parse(base).resolve(Uri.encodeFull(decoded)).toString();
+    }
+  }
+
+  static String _repairHeaderEncoding(String value) {
+    if (!value.contains(RegExp(r'[\u0080-\u00FF]'))) {
+      return value;
+    }
+
+    try {
+      return utf8.decode(latin1.encode(value));
+    } catch (_) {
+      return value;
     }
   }
 
