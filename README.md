@@ -59,7 +59,7 @@ Terceira fonte, para os quadrinhos de `xlecx.one` (um site DataLife Engine com m
 - **Filtro por tag** — as 1.049 tags do diretório do site, com contagem, inclusão e exclusão, cruzadas no servidor (a URL `/f/n.m.tags=a,b/` aplica todas com AND).
 - **Filtro por artista, paródia e grupo** — os chips da página de detalhes viram filtro na aba, como no 8muses.
 - **Detalhes completos** — capa, artista, grupo, páginas, categorias, paródias e tags clicáveis, com prévia das páginas e leitura/download direto.
-- **Conta do site (cookie de sessão)** — algumas galerias são restritas a usuários registrados. O ícone de conta na aba permite colar o cookie de sessão copiado do navegador e verificar o acesso na hora. O cookie fica só no dispositivo e vale enquanto o site não expirar a sessão.
+- **Conta do site (cookies)** — algumas galerias são restritas a usuários registrados. O ícone de conta na aba abre um campo por cookie (`PHPSESSID`, `dle_user_id`, `dle_password`, como no login do E-Hentai), com verificação de acesso na hora. Os cookies ficam só no dispositivo e valem enquanto o site não expirar a sessão.
 - **Mesmo leitor e mesmo downloader do E-H** — as URLs das páginas saem prontas do post do site, então zoom, upscale 2×, progresso de leitura, histórico e visualizador externo funcionam igual.
 - Área de transferência, `-g <url>` e o compartilhamento abrem a página de detalhes do Xlecx diretamente.
 
