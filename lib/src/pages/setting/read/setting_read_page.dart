@@ -272,6 +272,12 @@ class SettingReadPage extends StatelessWidget {
     final int denoise = denoiseValues.contains(readSetting.neuralUpscaleDenoise.value)
         ? readSetting.neuralUpscaleDenoise.value
         : 0;
+    final int maxScale = readSetting.neuralUpscaleModel.value.maxScale;
+    final List<NeuralUpscaleScale> scaleValues = NeuralUpscaleScale.values
+        .where((NeuralUpscaleScale scale) => scale == NeuralUpscaleScale.auto || scale.numeric <= maxScale)
+        .toList();
+    final NeuralUpscaleScale scale =
+        scaleValues.contains(readSetting.neuralUpscaleScale.value) ? readSetting.neuralUpscaleScale.value : NeuralUpscaleScale.auto;
 
     return Column(
       children: [
@@ -343,7 +349,23 @@ class SettingReadPage extends StatelessWidget {
           ),
         ),
         ListTile(
+          title: Text('neuralUpscaleScale'.tr),
+          subtitle: Text('neuralUpscaleScaleHint'.tr),
+          trailing: DropdownButton<NeuralUpscaleScale>(
+            value: scale,
+            onChanged: (NeuralUpscaleScale? value) {
+              if (value != null) {
+                readSetting.saveNeuralUpscaleScale(value);
+              }
+            },
+            items: scaleValues
+                .map((NeuralUpscaleScale scale) => DropdownMenuItem<NeuralUpscaleScale>(value: scale, child: Text(scale.label)))
+                .toList(),
+          ),
+        ),
+        ListTile(
           title: Text('neuralUpscaleDenoise'.tr),
+          subtitle: Text('neuralUpscaleDenoiseHint'.tr),
           trailing: DropdownButton<int>(
             value: denoise,
             onChanged: (int? value) {

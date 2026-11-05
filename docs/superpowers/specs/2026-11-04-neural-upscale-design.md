@@ -179,9 +179,9 @@ agrada mais. Por isso o padrão é SE e o Pro é opção.
 2. **Denoise padrão:** `0` (conservative) para scans limpos; opção `1` para
    JPEG ruim; `-1` (no-denoise) para preservar grain. “Automático” por
    enquanto = `0`; ajuste manual disponível.
-3. **Escala:** 2× para fontes com largura ≥ 900 px; 3× para fontes menores que
-   900 px (desde que a saída não passe de 4096 px). 4× não. O manifesto do
-   modelo precisa incluir os arquivos `up3x-*`, não só `up2x-*`.
+3. **Escala:** automática (2×/3×) ou manual (2×/3×/4×). O app usa a maior
+   escala que couber em 6144 px por eixo; 4× só é oferecido no SE (o pacote Pro
+   só tem 2×/3×). O manifesto precisa incluir `up2x-*`, `up3x-*` e `up4x-*`.
 4. **Saída do cache:** PNG. JPEG perde fidelidade; WebP é lento no binário.
 5. **Integração:** processo externo, um por vez, em fila com prioridade para a
    página visível. Pré-carga padrão: 2 páginas à frente.
@@ -190,7 +190,7 @@ agrada mais. Por isso o padrão é SE e o Pro é opção.
 7. **Fallback:** enquanto o neural não fica pronto, o shader 2× atual roda
    normalmente. Quando o neural chega, ele substitui; CAS não roda por cima.
 8. **Quando pular:** imagem animada (`frameCount > 1`), largura ≥ 1800 px,
-   saída > 4096 px, modelo indisponível, `useSuperResolution` ligado, ou modo
+   saída > 6144 px, modelo indisponível, `useSuperResolution` ligado, ou modo
    neural desligado.
 9. **Plataforma:** Windows x64 e Linux x64 na fase 1. O serviço/cache é
    independente de plataforma; só o runner escolhe o binário e o zip do modelo
@@ -344,8 +344,9 @@ Em `read_setting.dart` (sem novo bean de config):
 
 - `enableNeuralUpscale` (bool, padrão `false` até o usuário baixar o modelo).
 - `neuralUpscaleModel` (`se` | `pro`, padrão `se`).
-- `neuralUpscaleDenoise` (`auto` | `none` | `0` | `1` | `2` | `3`, padrão
-  `auto` = `0`).
+- `neuralUpscaleScale` (`auto` | `2` | `3` | `4`, padrão `auto`; 4× só no SE).
+- `neuralUpscaleDenoise` (`none` = `-1` | `0` | `1` | `2` | `3`, padrão `0`;
+  no Pro só `-1`, `0` e `3`).
 - `neuralUpscalePreload` (0–3, padrão 2).
 - `neuralUpscaleSkipWidth` (padrão 1800).
 - Reutilizar `superResolutionSetting.modelDirectoryPath` e `gpuId`? Não: o
@@ -357,9 +358,10 @@ UI em Configurações → Leitura:
 - Switch “Melhoria neural (beta)”.
 - Status do modelo + botão “Baixar modelo (~46 MB)” com progresso.
 - Dropdown de modelo (SE recomendado / Pro).
-- Dropdown de denoise (Automático / Desligado / 1 / 2 / 3).
+- Dropdown de escala (Auto / 2× / 3× / 4×; 4× some no Pro).
+- Dropdown de denoise (Desligado / 0 / 1 / 2 / 3; no Pro só Desligado/0/3).
 - Dropdown de pré-carga (0/1/2/3).
-- GPU (nome + índice).
+- GPU (nome + índice; compartilhada com o lote antigo).
 - Texto de ajuda curto com o custo (~1–4 s na primeira vez por página; depois
   é cache) e o aviso de que não recupera informação inexistente.
 - O switch antigo “Melhorar imagens no zoom (upscale 2×)” continua; a ajuda
@@ -405,7 +407,7 @@ sha1('<sourceKey>|<model>|<denoise>|<scale>|<width>x<height>|v1')
 - Pausar em bateria (opcional; `battery_plus` já é dependência) — decisão do
   builder.
 - Não processar se a página já está em cache de memória.
-- Não processar se a saída passaria de 4096 px em qualquer eixo.
+- Não processar se a saída passaria de 6144 px em qualquer eixo.
 - Se o processo falhar 2× na sessão, desligar o neural até reiniciar e mostrar
   um aviso; o shader continua.
 
@@ -423,8 +425,8 @@ sha1('<sourceKey>|<model>|<denoise>|<scale>|<width>x<height>|v1')
 
 ## 9. Testes e validação
 
-- Unitários: chave estável, evicção LRU, regra de 2×/3×, pulos (animação,
-  largura, 4096), prioridade da fila.
+- Unitários: chave estável, evicção LRU, regra de 2×/3×/4×, pulos (animação,
+  largura, 6144), prioridade da fila.
 - Widget: fallback enquanto processa; troca quando chega; cancelamento por
   geração; cache hit não dispara processo.
 - Manual, com galerias reais:
@@ -461,7 +463,8 @@ sha1('<sourceKey>|<model>|<denoise>|<scale>|<width>x<height>|v1')
 
 1. **Latência:** binário externo na fase 1; worker persistente só se o custo
    incomodar.
-2. **Modelo:** SE como padrão; Pro como opção “mais nítido”.
+2. **Modelo:** SE como padrão; Pro como opção “mais nítido”. Escala manual
+   2×/3×/4×, com 4× só no SE; o app cai para a maior escala que couber.
 3. **Distribuição:** baixar no primeiro uso na fase 1; embutir binário +
    modelos depois da validação, no Windows e no AppImage Linux.
 4. **Cache em disco:** 2 GB, LRU.

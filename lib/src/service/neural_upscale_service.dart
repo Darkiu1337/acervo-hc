@@ -129,8 +129,12 @@ class NeuralUpscaleService {
   Future<ui.Image?> upscale(NeuralRequest request) async {
     await init();
 
-    final int scale =
-        neuralScaleFor(request.source.width, request.source.height);
+    final int scale = neuralScaleFor(
+      request.source.width,
+      request.source.height,
+      readSetting.neuralUpscaleScale.value,
+      readSetting.neuralUpscaleModel.value.maxScale,
+    );
     final String key = neuralCacheKey(
       sourceKey: request.cacheKey,
       model: readSetting.neuralUpscaleModel.value,
@@ -167,6 +171,9 @@ class NeuralUpscaleService {
 
   bool _shouldProcess(NeuralRequest request, int scale) {
     if (!readSetting.enableNeuralUpscale.value) {
+      return false;
+    }
+    if (scale < 2) {
       return false;
     }
     if (request.frameCount > 1) {
@@ -277,8 +284,12 @@ class NeuralUpscaleService {
       return null;
     }
 
-    final int scale =
-        neuralScaleFor(job.request.source.width, job.request.source.height);
+    final int scale = neuralScaleFor(
+      job.request.source.width,
+      job.request.source.height,
+      readSetting.neuralUpscaleScale.value,
+      readSetting.neuralUpscaleModel.value.maxScale,
+    );
     final Directory tmpDir = Directory(p.join(_cacheDir.path, 'tmp'));
     if (!tmpDir.existsSync()) {
       tmpDir.createSync(recursive: true);

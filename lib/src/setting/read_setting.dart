@@ -35,6 +35,10 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
   /// Model family used by the neural upscaler.
   Rx<NeuralUpscaleModel> neuralUpscaleModel = NeuralUpscaleModel.se.obs;
 
+  /// Requested output scale (Auto/2x/3x/4x); the service falls back to the
+  /// largest scale that fits the texture guard.
+  Rx<NeuralUpscaleScale> neuralUpscaleScale = NeuralUpscaleScale.auto.obs;
+
   /// `-1` disables denoise; `0` is conservative; `1..3` are stronger denoise.
   RxInt neuralUpscaleDenoise = 0.obs;
 
@@ -175,6 +179,10 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
     final int neuralModelIndex = (map['neuralUpscaleModel'] as num?)?.toInt() ?? 0;
     neuralUpscaleModel.value = NeuralUpscaleModel.values[
         neuralModelIndex >= 0 && neuralModelIndex < NeuralUpscaleModel.values.length ? neuralModelIndex : 0];
+    final int neuralScaleIndex = (map['neuralUpscaleScale'] as num?)?.toInt() ?? 0;
+    neuralUpscaleScale.value = NeuralUpscaleScale.values[
+        neuralScaleIndex >= 0 && neuralScaleIndex < NeuralUpscaleScale.values.length ? neuralScaleIndex : 0];
+    _normalizeNeuralScale();
     neuralUpscaleDenoise.value = ((map['neuralUpscaleDenoise'] as num?)?.toInt() ?? 0).clamp(-1, 3).toInt();
     neuralUpscalePreload.value = ((map['neuralUpscalePreload'] as num?)?.toInt() ?? 2).clamp(0, 3).toInt();
     _normalizeNeuralDenoise();
@@ -231,6 +239,7 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
       'enableUpscale': enableUpscale.value,
       'enableNeuralUpscale': enableNeuralUpscale.value,
       'neuralUpscaleModel': neuralUpscaleModel.value.index,
+      'neuralUpscaleScale': neuralUpscaleScale.value.index,
       'neuralUpscaleDenoise': neuralUpscaleDenoise.value,
       'neuralUpscalePreload': neuralUpscalePreload.value,
       'alignToTopWhenTurnPage': alignToTopWhenTurnPage.value,
@@ -466,6 +475,13 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
     log.debug('saveNeuralUpscaleModel:${value.name}');
     neuralUpscaleModel.value = value;
     _normalizeNeuralDenoise();
+    _normalizeNeuralScale();
+    await saveBeanConfig();
+  }
+
+  Future<void> saveNeuralUpscaleScale(NeuralUpscaleScale value) async {
+    log.debug('saveNeuralUpscaleScale:${value.name}');
+    neuralUpscaleScale.value = value;
     await saveBeanConfig();
   }
 
@@ -487,6 +503,14 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
     if (neuralUpscaleModel.value == NeuralUpscaleModel.pro &&
         (neuralUpscaleDenoise.value == 1 || neuralUpscaleDenoise.value == 2)) {
       neuralUpscaleDenoise.value = 0;
+    }
+  }
+
+  /// Pro only ships 2x/3x weights.
+  void _normalizeNeuralScale() {
+    if (neuralUpscaleModel.value == NeuralUpscaleModel.pro &&
+        neuralUpscaleScale.value == NeuralUpscaleScale.x4) {
+      neuralUpscaleScale.value = NeuralUpscaleScale.x3;
     }
   }
 

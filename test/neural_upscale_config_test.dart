@@ -16,7 +16,24 @@ void main() {
 
     test('falls back to 2x when 3x would exceed the budget', () {
       expect(neuralScaleFor(1200, 1400), 2);
-      expect(neuralScaleFor(700, 2000), 2);
+      expect(neuralScaleFor(700, 2200), 2);
+      expect(neuralScaleFor(800, 2100), 2);
+    });
+
+    test('honours the manual 2x/3x/4x preference', () {
+      expect(neuralScaleFor(1280, 1800, NeuralUpscaleScale.x3), 3);
+      expect(neuralScaleFor(1280, 1800, NeuralUpscaleScale.x4), 3);
+      expect(neuralScaleFor(800, 1200, NeuralUpscaleScale.x4), 4);
+      expect(neuralScaleFor(2000, 3000, NeuralUpscaleScale.x4), 2);
+    });
+
+    test('Pro caps the scale at 3x', () {
+      expect(neuralScaleFor(800, 1200, NeuralUpscaleScale.x4, 3), 3);
+      expect(neuralScaleFor(1280, 1800, NeuralUpscaleScale.x4, 3), 3);
+    });
+
+    test('returns 1 when even 2x does not fit, so the caller skips', () {
+      expect(neuralScaleFor(4000, 4000, NeuralUpscaleScale.x2), 1);
     });
   });
 
