@@ -18,6 +18,10 @@ class DesktopLayoutPageLogic extends GetxController with DoubleTapToRefreshLogic
 
   final ResizableController resizableController = ResizableController();
 
+  /// Hover state of the left tab bar, kept out of the shared [tabBarId] rebuild
+  /// so sweeping the mouse along the bar repaints one item instead of twelve.
+  final ValueNotifier<int?> hoveringTabIndexNotifier = ValueNotifier<int?>(null);
+
   @override
   void onInit() {
     super.onInit();
@@ -32,11 +36,12 @@ class DesktopLayoutPageLogic extends GetxController with DoubleTapToRefreshLogic
     super.onClose();
 
     resizableController.dispose();
+    hoveringTabIndexNotifier.dispose();
   }
 
   void updateHoveringTabIndex(int? index) {
     state.hoveringTabIndex = index;
-    update([tabBarId]);
+    hoveringTabIndexNotifier.value = index;
   }
 
   /// tap another bar -> change index

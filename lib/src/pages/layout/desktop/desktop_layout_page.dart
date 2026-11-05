@@ -76,17 +76,20 @@ class DesktopLayoutPage extends StatelessWidget {
           SizedBox(
             height: UIConfig.desktopLeftTabBarTextHeight,
             child: Center(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
-                child: state.hoveringTabIndex != index
-                    ? null
-                    : Text(
-                        state.icons[index].name.name.tr,
-                        style: const TextStyle(fontSize: 12),
-                        maxLines: 2,
-                        overflow: TextOverflow.visible,
-                      ),
+              child: ValueListenableBuilder<int?>(
+                valueListenable: logic.hoveringTabIndexNotifier,
+                builder: (_, hoveringTabIndex, __) => AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
+                  child: hoveringTabIndex != index
+                      ? null
+                      : Text(
+                          state.icons[index].name.name.tr,
+                          style: const TextStyle(fontSize: 12),
+                          maxLines: 2,
+                          overflow: TextOverflow.visible,
+                        ),
+                ),
               ),
             ),
           ),
