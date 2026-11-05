@@ -145,6 +145,8 @@ class _EHImageState extends State<EHImage> {
   // after the image scrolls back into view.
   late final EHImageAnimationGate _gate = EHImageAnimationGateRegistry.gateFor(_imageKey);
 
+  Timer? _visibilityTimer;
+
   String get _imageKey => widget.galleryImage.path ?? widget.galleryImage.url;
 
   /// Stable identity for derived textures. The E-H image hash survives URL
@@ -170,18 +172,25 @@ class _EHImageState extends State<EHImage> {
     return lowerPath.endsWith('.webp') || lowerPath.endsWith('.gif');
   }
 
-  /// Re-checks visibility after every frame while frames are being produced.
+  /// Re-checks visibility a few times per second while the widget is mounted.
   /// Off-screen animated images are paused (and frozen on their static frame),
-  /// which stops the expensive multi-frame decoding of cached-out images.
+  /// which stops the expensive multi-frame decoding of cached-out images. A
+  /// timer instead of a post-frame callback keeps idle pages from scheduling a
+  /// frame just to re-check the same rect every vsync.
   void _startVisibilityCheck() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    _visibilityTimer?.cancel();
+    _visibilityTimer = Timer.periodic(const Duration(milliseconds: 300), (_) {
       if (!mounted) {
         return;
       }
-      final bool visible = _isVisible();
-      _gate.setPaused(!visible);
-      _startVisibilityCheck();
+      _gate.setPaused(!_isVisible());
     });
+  }
+
+  @override
+  void dispose() {
+    _visibilityTimer?.cancel();
+    super.dispose();
   }
 
   bool _isVisible() {

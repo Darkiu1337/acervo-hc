@@ -151,6 +151,7 @@ abstract class BasePage<L extends BasePageLogic, S extends BasePageState> extend
           init: logic,
           builder: (_) => LoadingStateIndicator(
             loadingState: state.loadingState,
+            idleWidgetBuilder: () => const SizedBox.shrink(),
             errorTapCallback: () {
               log.info('LoadMoreIndicator errorTapCallback => loadMore');
               logic.loadMore();
