@@ -370,6 +370,7 @@ class _EHImageState extends State<EHImage> {
             }
 
             return FadeIn(
+              duration: const Duration(milliseconds: 150),
               child: Center(
                 child: Container(
                   decoration: BoxDecoration(boxShadow: widget.shadows, borderRadius: widget.borderRadius),

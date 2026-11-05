@@ -43,7 +43,7 @@ class EHGalleryWaterFlowCard extends StatelessWidget {
       onTap: () => handleTapCard(gallery),
       onLongPressStart: handleLongPressCard == null ? null : (details) => handleLongPressCard!(gallery, details.globalPosition),
       onSecondaryTapDown: handleSecondaryTapCard == null ? null : (details) => handleSecondaryTapCard!(gallery, details.globalPosition),
-      child: FadeIn(child: _buildCard(context)),
+      child: FadeIn(duration: const Duration(milliseconds: 100), child: _buildCard(context)),
     );
   }
 
@@ -242,28 +242,67 @@ class WaterFallFlowCardTagWaterFlow extends StatelessWidget {
 
     return LayoutBuilder(builder: (_, constraints) {
       int computeRows = _computeRows(mergedList, constraints.maxWidth);
-      return SizedBox(
+      return _WaterFallFlowCardTagWaterFlow(
+        mergedList: mergedList,
+        crossAxisCount: computeRows,
         height: UIConfig.waterFallFlowCardTagsMaxHeight * computeRows,
-        child: WaterfallFlow.builder(
-          scrollDirection: Axis.horizontal,
-          shrinkWrap: true,
-
-          /// disable keepScrollOffset because we used [PageStorageKey], which leads to a conflict with this WaterfallFlow
-          controller: ScrollController(keepScrollOffset: false),
-          gridDelegate: SliverWaterfallFlowDelegateWithFixedCrossAxisCount(
-            crossAxisCount: computeRows,
-            mainAxisSpacing: 4,
-            crossAxisSpacing: 4,
-          ),
-          itemCount: mergedList.length,
-          itemBuilder: (_, int index) => WaterFallFlowTag(galleryTag: mergedList[index]),
-        ).enableMouseDrag(withScrollBar: false),
+        shrinkWrap: true,
       );
     });
   }
 
   int _computeRows(List<GalleryTag> mergedList, double maxWidth) {
     return min((mergedList.length / (maxWidth / 32)).ceil(), 3);
+  }
+}
+
+/// Owns the [ScrollController] of the nested tag flow, so a card rebuild no
+/// longer allocates (and leaks) a controller or re-creates the flow's layout.
+class _WaterFallFlowCardTagWaterFlow extends StatefulWidget {
+  final List<GalleryTag> mergedList;
+  final int crossAxisCount;
+  final double height;
+  final bool shrinkWrap;
+
+  const _WaterFallFlowCardTagWaterFlow({
+    Key? key,
+    required this.mergedList,
+    required this.crossAxisCount,
+    required this.height,
+    required this.shrinkWrap,
+  }) : super(key: key);
+
+  @override
+  State<_WaterFallFlowCardTagWaterFlow> createState() => _WaterFallFlowCardTagWaterFlowState();
+}
+
+class _WaterFallFlowCardTagWaterFlowState extends State<_WaterFallFlowCardTagWaterFlow> {
+  /// disable keepScrollOffset because we used [PageStorageKey], which leads to a conflict with this WaterfallFlow
+  final ScrollController _controller = ScrollController(keepScrollOffset: false);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: widget.height,
+      child: WaterfallFlow.builder(
+        scrollDirection: Axis.horizontal,
+        shrinkWrap: widget.shrinkWrap,
+        controller: _controller,
+        gridDelegate: SliverWaterfallFlowDelegateWithFixedCrossAxisCount(
+          crossAxisCount: widget.crossAxisCount,
+          mainAxisSpacing: 4,
+          crossAxisSpacing: 4,
+        ),
+        itemCount: widget.mergedList.length,
+        itemBuilder: (_, int index) => WaterFallFlowTag(galleryTag: widget.mergedList[index]),
+      ).enableMouseDrag(withScrollBar: false),
+    );
   }
 }
 
