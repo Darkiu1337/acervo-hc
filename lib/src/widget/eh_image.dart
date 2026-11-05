@@ -68,8 +68,8 @@ class EHImage extends StatefulWidget {
   /// above stays as the immediate fallback until the neural texture is ready.
   final bool enableNeuralUpscale;
 
-  /// Visible pages get queue priority over prefetched neighbours.
-  final bool neuralPriority;
+  /// Page index inside the gallery, used to schedule the neural queue.
+  final int neuralIndex;
 
   const EHImage({
     Key? key,
@@ -90,7 +90,7 @@ class EHImage extends StatefulWidget {
     this.animateOnlyWhenVisible = false,
     this.enableUpscale = false,
     this.enableNeuralUpscale = false,
-    this.neuralPriority = true,
+    this.neuralIndex = 0,
     this.loadingProgressWidgetBuilder,
     this.failedWidgetBuilder,
     this.downloadingWidgetBuilder,
@@ -118,7 +118,7 @@ class EHImage extends StatefulWidget {
     this.animateOnlyWhenVisible = false,
     this.enableUpscale = false,
     this.enableNeuralUpscale = false,
-    this.neuralPriority = true,
+    this.neuralIndex = 0,
     this.loadingProgressWidgetBuilder,
     this.failedWidgetBuilder,
     this.downloadingWidgetBuilder,
@@ -415,7 +415,7 @@ class _EHImageState extends State<EHImage> {
         source: image,
         cacheKey: cacheKey,
         frameCount: EHImageFrameCountRegistry.frameCountFor(cacheKey),
-        priority: widget.neuralPriority,
+        index: widget.neuralIndex,
         useShaderFallback: widget.enableUpscale,
         width: fittedSizes.destination.width == 0 ? null : fittedSizes.destination.width,
         height: fittedSizes.destination.height == 0 ? null : fittedSizes.destination.height,

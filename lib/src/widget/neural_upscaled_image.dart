@@ -9,11 +9,18 @@ import 'upscaled_image.dart';
 /// Shows [source] immediately and swaps it for the realcugan texture once the
 /// neural pass finishes. While the neural result is pending, the caller may
 /// keep the existing 2x shader as a fallback.
+///
+/// The widget follows [NeuralUpscaleService.focusIndex]: the visible page and
+/// its neighbours are queued, and a page that comes back into range asks again
+/// after the service dropped it.
 class NeuralUpscaledImage extends StatefulWidget {
   final ui.Image source;
   final String cacheKey;
+
+  /// Absolute page index inside the gallery.
+  final int index;
+
   final int frameCount;
-  final bool priority;
   final bool useShaderFallback;
   final double? width;
   final double? height;
@@ -24,9 +31,9 @@ class NeuralUpscaledImage extends StatefulWidget {
     Key? key,
     required this.source,
     required this.cacheKey,
+    this.index = 0,
     this.frameCount = 1,
-    this.priority = false,
-    this.useShaderFallback = true,
+    this.useShaderFallback = false,
     this.width,
     this.height,
     this.fit = BoxFit.contain,
@@ -41,10 +48,15 @@ class _NeuralUpscaledImageState extends State<NeuralUpscaledImage> {
   /// Cached by [NeuralUpscaleService]; this state never disposes it.
   ui.Image? _neural;
   int _generation = 0;
+  bool _requesting = false;
+  bool _inWindow = false;
 
   @override
   void initState() {
     super.initState();
+    neuralUpscaleService.focusIndex.addListener(_onFocusChanged);
+    neuralUpscaleService.windowRevision.addListener(_onFocusChanged);
+    _inWindow = neuralUpscaleService.inWindow(widget.index);
     _start();
   }
 
@@ -52,57 +64,91 @@ class _NeuralUpscaledImageState extends State<NeuralUpscaledImage> {
   void didUpdateWidget(NeuralUpscaledImage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.cacheKey != widget.cacheKey ||
-        oldWidget.source != widget.source) {
+        oldWidget.source != widget.source ||
+        oldWidget.index != widget.index) {
       _neural = null;
+      _inWindow = neuralUpscaleService.inWindow(widget.index);
       _start();
     }
   }
 
   @override
   void dispose() {
+    neuralUpscaleService.focusIndex.removeListener(_onFocusChanged);
+    neuralUpscaleService.windowRevision.removeListener(_onFocusChanged);
     _generation++;
     super.dispose();
   }
 
+  /// Entering the window after the service dropped the page: ask again.
+  void _onFocusChanged() {
+    if (!mounted) {
+      return;
+    }
+    final bool inWindow = neuralUpscaleService.inWindow(widget.index);
+    if (inWindow == _inWindow) {
+      return;
+    }
+    setState(() => _inWindow = inWindow);
+    if (inWindow && _neural == null && !_requesting) {
+      _start();
+    }
+  }
+
   Future<void> _start() async {
     final int generation = ++_generation;
-    final String key = widget.cacheKey;
 
-    _neural = neuralUpscaleService.cached(key);
+    /// A revisited page usually hits the memory cache: show it on this frame.
+    _neural = neuralUpscaleService.cachedFor(
+      sourceKey: widget.cacheKey,
+      width: widget.source.width,
+      height: widget.source.height,
+    );
     if (_neural != null) {
       return;
     }
 
-    await neuralUpscaleService.init();
-    if (!mounted || generation != _generation || !neuralModelManager.isReady) {
+    if (!neuralUpscaleService.inWindow(widget.index)) {
       return;
     }
 
-    /// The image cache may dispose the decoded image while the process runs.
-    final ui.Image source;
+    _requesting = true;
     try {
-      source = widget.source.clone();
-    } catch (_) {
-      return;
-    }
-
-    try {
-      final ui.Image? result = await neuralUpscaleService.upscale(
-        NeuralRequest(
-          source: source,
-          cacheKey: key,
-          priority: widget.priority,
-          frameCount: widget.frameCount,
-        ),
-      );
-      if (!mounted || generation != _generation) {
+      await neuralUpscaleService.init();
+      if (!mounted || generation != _generation || !neuralModelManager.isReady) {
         return;
       }
-      if (result != null) {
-        setState(() => _neural = result);
+
+      /// The image cache may dispose the decoded image while the process runs.
+      final ui.Image source;
+      try {
+        source = widget.source.clone();
+      } catch (_) {
+        return;
+      }
+
+      try {
+        final ui.Image? result = await neuralUpscaleService.upscale(
+          NeuralRequest(
+            source: source,
+            cacheKey: widget.cacheKey,
+            index: widget.index,
+            frameCount: widget.frameCount,
+          ),
+        );
+        if (!mounted || generation != _generation) {
+          return;
+        }
+        if (result != null) {
+          setState(() => _neural = result);
+        }
+      } finally {
+        source.dispose();
       }
     } finally {
-      source.dispose();
+      if (generation == _generation) {
+        _requesting = false;
+      }
     }
   }
 
@@ -120,7 +166,8 @@ class _NeuralUpscaledImageState extends State<NeuralUpscaledImage> {
       );
     }
 
-    if (widget.useShaderFallback) {
+    /// Only the pages close to the visible one pay for the shader texture.
+    if (widget.useShaderFallback && _inWindow) {
       return UpscaledImage(
         source: widget.source,
         cacheKey: widget.cacheKey,

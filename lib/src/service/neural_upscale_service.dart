@@ -4,12 +4,14 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:acervo_hc/src/model/neural_pixels.dart';
 import 'package:acervo_hc/src/model/neural_upscale_config.dart';
 import 'package:acervo_hc/src/service/log.dart';
 import 'package:acervo_hc/src/service/neural_model_manager.dart';
+import 'package:acervo_hc/src/service/neural_queue.dart';
 import 'package:acervo_hc/src/service/path_service.dart';
 import 'package:acervo_hc/src/setting/read_setting.dart';
 
@@ -22,8 +24,9 @@ class NeuralRequest {
   /// Stable source identity: image hash, local path or URL.
   final String cacheKey;
 
-  /// Visible page requests jump ahead of prefetched neighbours.
-  final bool priority;
+  /// Absolute page index. The service keeps the queue sorted around the page
+  /// the reader is showing, so the visible page always runs first.
+  final int index;
 
   /// Decoded frame count. Multi-frame images (GIF/animated WebP) are skipped.
   final int frameCount;
@@ -34,10 +37,16 @@ class NeuralRequest {
   const NeuralRequest({
     required this.source,
     required this.cacheKey,
-    this.priority = false,
+    this.index = 0,
     this.frameCount = 1,
     this.sourcePath,
   });
+}
+
+/// The job was interrupted on purpose (focus moved away or the session was
+/// closed); it is requeued instead of being reported as a failure.
+class _NeuralAborted implements Exception {
+  const _NeuralAborted();
 }
 
 class _NeuralJob {
@@ -45,6 +54,10 @@ class _NeuralJob {
   final String key;
   final int generation;
   final Completer<ui.Image?> completer = Completer<ui.Image?>();
+
+  /// Starts when the page asks for the neural pass, so the log reports the
+  /// time the user actually waited (queue included).
+  final Stopwatch queued = Stopwatch()..start();
 
   _NeuralJob(this.request, this.key, this.generation);
 }
@@ -60,6 +73,11 @@ class NeuralUpscaleService {
   static const int _diskCacheBytes = 4 * 1024 * 1024 * 1024;
   static const int _maxOutputDimension = neuralMaxOutputDimension;
 
+  /// Quiet time after a page change before pruning the queue and interrupting
+  /// a job that fell outside the window. Without it, fast page turns would
+  /// restart the GPU process on every frame.
+  static const int _settleDelayMs = 250;
+
   /// Sources at or above this width already look fine with the shader.
   static const int _skipSourceWidth = 1800;
 
@@ -67,9 +85,24 @@ class NeuralUpscaleService {
   final List<String> _lru = <String>[];
   int _memoryBytes = 0;
 
-  final Map<String, Future<ui.Image?>> _pending = <String, Future<ui.Image?>>{};
+  /// Every job that is queued or running, by computed cache key. Used to
+  /// deduplicate requests and to keep the widget attached to the waiting job.
+  final Map<String, _NeuralJob> _queued = <String, _NeuralJob>{};
   final List<_NeuralJob> _jobs = <_NeuralJob>[];
+  final NeuralQueue _queue = NeuralQueue();
+
+  /// Index of the page the reader is showing. Widgets listen to it to know
+  /// whether they are inside the preload window.
+  final ValueNotifier<int> focusIndex = ValueNotifier<int>(0);
+
+  /// Bumped when the configured window changes, so mounted pages re-check
+  /// whether they are inside it.
+  final ValueNotifier<int> windowRevision = ValueNotifier<int>(0);
+
   bool _running = false;
+  _NeuralJob? _runningJob;
+  bool _abortRequested = false;
+  Timer? _settleTimer;
   int _generation = 0;
   int _writesSincePrune = 0;
   Process? _process;
@@ -104,6 +137,45 @@ class NeuralUpscaleService {
     return image;
   }
 
+  /// Synchronous cache lookup for a decoded page, using the same key the
+  /// request would compute. Lets a revisited page swap to the neural texture
+  /// on its first frame instead of waiting for a queue round trip.
+  ui.Image? cachedFor({
+    required String sourceKey,
+    required int width,
+    required int height,
+  }) {
+    final int scale = _scaleFor(width, height);
+    if (scale < 2) {
+      return null;
+    }
+    return cached(_keyFor(
+      sourceKey: sourceKey,
+      width: width,
+      height: height,
+      scale: scale,
+    ));
+  }
+
+  /// Whether [index] is inside the preload window around the visible page.
+  bool inWindow(int index) {
+    _syncQueue();
+    return _queue.contains(index);
+  }
+
+  /// Tells the service which page is on screen. Called by the reader on every
+  /// page change and on jumps.
+  void setFocus(int index) {
+    _syncQueue();
+    if (_queue.focus == index) {
+      return;
+    }
+    _queue.setFocus(index);
+    focusIndex.value = index;
+    _settleTimer?.cancel();
+    _settleTimer = Timer(const Duration(milliseconds: _settleDelayMs), _settle);
+  }
+
   void clearMemoryCache() {
     _memory.clear();
     _lru.clear();
@@ -113,6 +185,9 @@ class NeuralUpscaleService {
   /// Cancels queued work and kills the current process. The disk cache stays.
   void cancelSession() {
     _generation++;
+    _abortRequested = true;
+    _settleTimer?.cancel();
+    _settleTimer = null;
     try {
       _process?.kill();
     } catch (_) {}
@@ -121,9 +196,11 @@ class NeuralUpscaleService {
     final List<_NeuralJob> jobs = List<_NeuralJob>.from(_jobs);
     _jobs.clear();
     for (final _NeuralJob job in jobs) {
-      if (!job.completer.isCompleted) {
-        job.completer.complete(null);
-      }
+      _finish(job, null);
+    }
+    final _NeuralJob? running = _runningJob;
+    if (running != null) {
+      _finish(running, null);
     }
   }
 
@@ -146,19 +223,12 @@ class NeuralUpscaleService {
   Future<ui.Image?> upscale(NeuralRequest request) async {
     await init();
 
-    final int scale = neuralScaleFor(
-      request.source.width,
-      request.source.height,
-      readSetting.neuralUpscaleScale.value,
-      readSetting.neuralUpscaleModel.value.maxScale,
-    );
-    final String key = neuralCacheKey(
+    final int scale = _scaleFor(request.source.width, request.source.height);
+    final String key = _keyFor(
       sourceKey: request.cacheKey,
-      model: readSetting.neuralUpscaleModel.value,
-      denoise: _denoise,
-      scale: scale,
       width: request.source.width,
       height: request.source.height,
+      scale: scale,
     );
     final ui.Image? hit = cached(key);
     if (hit != null) {
@@ -169,21 +239,117 @@ class NeuralUpscaleService {
       return null;
     }
 
-    final Future<ui.Image?>? pending = _pending[key];
-    if (pending != null) {
-      return pending;
+    final _NeuralJob? existing = _queued[key];
+    if (existing != null) {
+      return existing.completer.future;
+    }
+
+    /// Outside the window the GPU would only waste time. The widget asks again
+    /// when the page comes back into range.
+    if (!inWindow(request.index)) {
+      return null;
     }
 
     final _NeuralJob job = _NeuralJob(request, key, _generation);
-    final Future<ui.Image?> future = job.completer.future;
-    _pending[key] = future;
-    if (request.priority) {
-      _jobs.insert(0, job);
-    } else {
-      _jobs.add(job);
-    }
+    _queued[key] = job;
+    _jobs.add(job);
     unawaited(_pump());
-    return future.whenComplete(() => _pending.remove(key));
+    return job.completer.future;
+  }
+
+  int _scaleFor(int width, int height) => neuralScaleFor(
+        width,
+        height,
+        readSetting.neuralUpscaleScale.value,
+        readSetting.neuralUpscaleModel.value.maxScale,
+      );
+
+  String _keyFor({
+    required String sourceKey,
+    required int width,
+    required int height,
+    required int scale,
+  }) =>
+      neuralCacheKey(
+        sourceKey: sourceKey,
+        model: readSetting.neuralUpscaleModel.value,
+        denoise: _denoise,
+        scale: scale,
+        width: width,
+        height: height,
+      );
+
+  void _syncQueue() {
+    _queue.setAhead(readSetting.neuralUpscalePreload.value);
+  }
+
+  /// Drops the pages that left the window and interrupts the running job when
+  /// it is blocking the visible page or when it is no longer worth finishing.
+  /// Reapplies the configured window after the user changes it while reading.
+  void refreshWindow() {
+    _settleTimer?.cancel();
+    _settleTimer = null;
+    windowRevision.value++;
+    _settle();
+  }
+
+  void _settle() {
+    _pruneQueue();
+    final _NeuralJob? running = _runningJob;
+    if (running == null) {
+      return;
+    }
+    final bool focusPending =
+        _jobs.any((_NeuralJob job) => job.request.index == _queue.focus);
+    if (focusPending && running.request.index != _queue.focus) {
+      _abortCurrent();
+      return;
+    }
+    if (!inWindow(running.request.index)) {
+      _abortCurrent();
+    }
+  }
+
+  void _abortCurrent() {
+    _abortRequested = true;
+    try {
+      _process?.kill();
+    } catch (_) {}
+  }
+
+  void _pruneQueue() {
+    _syncQueue();
+    if (_jobs.isEmpty) {
+      return;
+    }
+    final List<int> indexes =
+        _jobs.map((_NeuralJob job) => job.request.index).toList();
+    final List<int> stale = _queue.stale(indexes);
+    for (int i = stale.length - 1; i >= 0; i--) {
+      final _NeuralJob job = _jobs.removeAt(stale[i]);
+      _finish(job, null);
+    }
+  }
+
+  _NeuralJob? _takeNext() {
+    if (_jobs.isEmpty) {
+      return null;
+    }
+    _syncQueue();
+    final int position = _queue.pick(
+      _jobs.map((_NeuralJob job) => job.request.index).toList(),
+    );
+    if (position < 0) {
+      return null;
+    }
+    return _jobs.removeAt(position);
+  }
+
+  void _finish(_NeuralJob job, ui.Image? image) {
+    _queued.remove(job.key);
+    if (!job.completer.isCompleted) {
+      job.completer.complete(image);
+    }
   }
 
   bool _shouldProcess(NeuralRequest request, int scale) {
@@ -230,24 +396,40 @@ class NeuralUpscaleService {
     }
     _running = true;
     try {
-      while (_jobs.isNotEmpty) {
-        final _NeuralJob job = _jobs.removeAt(0);
+      while (true) {
+        _pruneQueue();
+        final _NeuralJob? job = _takeNext();
+        if (job == null) {
+          break;
+        }
         if (job.generation != _generation) {
-          if (!job.completer.isCompleted) {
-            job.completer.complete(null);
-          }
+          _finish(job, null);
           continue;
         }
+
+        _runningJob = job;
+        _abortRequested = false;
         try {
           final ui.Image? image = await _run(job);
-          if (!job.completer.isCompleted) {
-            job.completer.complete(image);
+          log.info(
+            'Neural upscale: page ${job.request.index} ready '
+            '(queue=${_jobs.length}, waited=${job.queued.elapsedMilliseconds}ms)',
+          );
+          _finish(job, image);
+        } on _NeuralAborted {
+          /// The page left the window while it was running. Keep the job
+          /// queued so the widget keeps waiting instead of falling back
+          /// forever; the pump picks the visible page next.
+          if (job.generation == _generation) {
+            _jobs.add(job);
+          } else {
+            _finish(job, null);
           }
         } catch (e, s) {
           log.error('Neural upscale failed: $e\n$s');
-          if (!job.completer.isCompleted) {
-            job.completer.complete(null);
-          }
+          _finish(job, null);
+        } finally {
+          _runningJob = null;
         }
       }
     } finally {
@@ -260,8 +442,14 @@ class NeuralUpscaleService {
     if (memoryHit != null) {
       return memoryHit;
     }
+    if (_abortRequested) {
+      throw const _NeuralAborted();
+    }
 
     final bool grayscale = await _isGrayscaleSource(job.request.source);
+    if (_abortRequested) {
+      throw const _NeuralAborted();
+    }
 
     final File output = File(p.join(_cacheDir.path, '${job.key}.png'));
     if (output.existsSync() && output.lengthSync() > 0) {
@@ -294,11 +482,9 @@ class NeuralUpscaleService {
       return null;
     }
 
-    final int scale = neuralScaleFor(
+    final int scale = _scaleFor(
       job.request.source.width,
       job.request.source.height,
-      readSetting.neuralUpscaleScale.value,
-      readSetting.neuralUpscaleModel.value.maxScale,
     );
     final Directory tmpDir = Directory(p.join(_cacheDir.path, 'tmp'));
     if (!tmpDir.existsSync()) {
@@ -319,6 +505,14 @@ class NeuralUpscaleService {
           flush: true);
 
       final bool ok = await _runProcess(input, output, paths, modelDir, scale);
+      if (_abortRequested) {
+        try {
+          if (output.existsSync()) {
+            output.deleteSync();
+          }
+        } catch (_) {}
+        throw const _NeuralAborted();
+      }
       if (!ok) {
         return null;
       }
@@ -389,6 +583,11 @@ class NeuralUpscaleService {
         runInShell: false,
       );
       _process = process;
+      if (_abortRequested) {
+        try {
+          process.kill();
+        } catch (_) {}
+      }
 
       final Future<String> stderrFuture =
           process.stderr.transform(utf8.decoder).join();
@@ -401,7 +600,11 @@ class NeuralUpscaleService {
       stopwatch.stop();
 
       if (exitCode != 0) {
-        log.error('Neural upscale process exited with $exitCode: $stderr');
+        if (_abortRequested) {
+          log.info('Neural upscale: interrupted (focus moved)');
+        } else {
+          log.error('Neural upscale process exited with $exitCode: $stderr');
+        }
         return false;
       }
       if (!output.existsSync() || output.lengthSync() == 0) {

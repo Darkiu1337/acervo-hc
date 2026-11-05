@@ -42,6 +42,7 @@ import '../../../../exception/eh_image_exception.dart';
 import '../../../../model/gallery_image.dart';
 import '../../../../model/read_page_info.dart';
 import '../../../../service/log.dart';
+import '../../../../service/neural_upscale_service.dart';
 import '../../../../setting/read_setting.dart';
 import '../../../../utils/route_util.dart';
 import '../../../../utils/screen_size_util.dart';
@@ -61,15 +62,32 @@ abstract class BaseLayoutLogic extends GetxController with GetTickerProviderStat
   Worker? showScrollBarListener;
   Worker? upscaleListener;
   Worker? neuralUpscaleListener;
+  Worker? neuralPreloadListener;
   Worker? zoomStepListener;
 
   @override
   void onInit() {
+    /// Open at the right page: the neural queue starts around it instead of
+    /// waiting for the first scroll notification. Deferred to the first frame
+    /// so the focus notifier never fires while the layout is being built.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!isClosed) {
+        neuralUpscaleService.setFocus(
+          readPageState.readPageInfo.currentImageIndex,
+        );
+      }
+    });
     doubleTapGestureSwitcherListener = ever(readSetting.enableDoubleTapToScaleUp, (value) => updateSafely([pageId]));
     tapDragGestureSwitcherListener = ever(readSetting.enableTapDragToScaleUp, (value) => updateSafely([pageId]));
     showScrollBarListener = ever(readSetting.showScrollBar, (value) => updateSafely([pageId]));
     upscaleListener = ever(readSetting.enableUpscale, (value) => updateSafely([pageId]));
-    neuralUpscaleListener = ever(readSetting.enableNeuralUpscale, (value) => updateSafely([pageId]));
+    neuralUpscaleListener = ever(readSetting.enableNeuralUpscale, (value) {
+      if (value == false) {
+        neuralUpscaleService.cancelSession();
+      }
+      updateSafely([pageId]);
+    });
+    neuralPreloadListener = ever(readSetting.neuralUpscalePreload, (value) => neuralUpscaleService.refreshWindow());
     zoomStepListener = ever(readSetting.zoomStepPercent, (value) => updateSafely([pageId]));
     super.onInit();
   }
@@ -83,6 +101,7 @@ abstract class BaseLayoutLogic extends GetxController with GetTickerProviderStat
     showScrollBarListener?.dispose();
     upscaleListener?.dispose();
     neuralUpscaleListener?.dispose();
+    neuralPreloadListener?.dispose();
     zoomStepListener?.dispose();
     super.onClose();
   }

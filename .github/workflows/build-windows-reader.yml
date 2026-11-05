@@ -48,6 +48,10 @@ jobs:
         continue-on-error: true
         run: flutter analyze --no-fatal-infos
 
+      - name: Test
+        continue-on-error: true
+        run: flutter test
+
       - name: Build Windows
         run: flutter build windows -t lib/src/main.dart --release
 

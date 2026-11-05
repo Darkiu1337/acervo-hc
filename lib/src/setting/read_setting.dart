@@ -25,8 +25,9 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
   RxBool enableDoubleTapToScaleUp = false.obs;
   RxBool enableTapDragToScaleUp = false.obs;
 
-  /// Build a 2x bicubic + CAS copy of each page. This is the standalone
-  /// sharpening path; it is not used while the neural upscaler is enabled.
+  /// Build a 2x bicubic + CAS copy of each page. Standalone it is the final
+  /// sharpening path; with the neural upscaler on it becomes the immediate
+  /// fallback shown until the neural texture is ready.
   RxBool enableUpscale = false.obs;
 
   /// Run the neural upscaler (Real-CUGAN) on the visible page. Beta, off until
@@ -46,7 +47,8 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
   /// `-1` disables denoise; `0` is conservative; `1..3` are stronger denoise.
   RxInt neuralUpscaleDenoise = 0.obs;
 
-  /// How many pages ahead of the visible one are pre-enhanced.
+  /// How many pages ahead of the visible one are pre-enhanced. The two pages
+  /// behind stay in the queue too; revisiting them is usually a cache hit.
   RxInt neuralUpscalePreload = 3.obs;
 
   /// Align a zoomed page to its top edge when the reader turns the page.
@@ -188,12 +190,9 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
         neuralScaleIndex >= 0 && neuralScaleIndex < NeuralUpscaleScale.values.length ? neuralScaleIndex : 0];
     _normalizeNeuralScale();
     neuralUpscaleDenoise.value = ((map['neuralUpscaleDenoise'] as num?)?.toInt() ?? 0).clamp(-1, 3).toInt();
-    neuralUpscalePreload.value = ((map['neuralUpscalePreload'] as num?)?.toInt() ?? 3).clamp(0, 3).toInt();
+    neuralUpscalePreload.value = ((map['neuralUpscalePreload'] as num?)?.toInt() ?? 3).clamp(0, 8).toInt();
     neuralUpscaleGpuId.value = ((map['neuralUpscaleGpuId'] as num?)?.toInt() ?? 0).clamp(-1, 15).toInt();
     _normalizeNeuralDenoise();
-    if (enableNeuralUpscale.isTrue) {
-      enableUpscale.value = false;
-    }
     alignToTopWhenTurnPage.value = map['alignToTopWhenTurnPage'] ?? alignToTopWhenTurnPage.value;
     zoomStepPercent.value = (map['zoomStepPercent'] as num?)?.toInt() ?? zoomStepPercent.value;
     enableBottomMenu.value = map['enableBottomMenu'] ?? enableBottomMenu.value;
@@ -477,9 +476,6 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
   Future<void> saveEnableNeuralUpscale(bool value) async {
     log.debug('saveEnableNeuralUpscale:$value');
     enableNeuralUpscale.value = value;
-    if (value) {
-      enableUpscale.value = false;
-    }
     await saveBeanConfig();
   }
 
@@ -511,7 +507,7 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
 
   Future<void> saveNeuralUpscalePreload(int value) async {
     log.debug('saveNeuralUpscalePreload:$value');
-    neuralUpscalePreload.value = value.clamp(0, 3).toInt();
+    neuralUpscalePreload.value = value.clamp(0, 8).toInt();
     await saveBeanConfig();
   }
 

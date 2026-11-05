@@ -841,6 +841,7 @@ class ReadPageLogic extends GetxController with WidgetsBindingObserver, GalleryI
   }
 
   void jump2ImageIndex(int pageIndex) {
+    neuralUpscaleService.setFocus(pageIndex);
     layoutLogic.jump2ImageIndex(pageIndex);
   }
 
@@ -908,6 +909,7 @@ class ReadPageLogic extends GetxController with WidgetsBindingObserver, GalleryI
 
   void recordReadProgress(int index) {
     state.readPageInfo.currentImageIndex = index;
+    neuralUpscaleService.setFocus(index);
     update([sliderId, pageNoId, thumbnailNoId]);
   }
 

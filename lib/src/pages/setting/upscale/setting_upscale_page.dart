@@ -155,6 +155,7 @@ class SettingUpscalePage extends StatelessWidget {
             ),
             ListTile(
               title: Text('neuralUpscalePreload'.tr),
+              subtitle: Text('neuralUpscalePreloadHint'.tr),
               trailing: DropdownButton<int>(
                 value: readSetting.neuralUpscalePreload.value,
                 onChanged: (int? value) {
@@ -162,7 +163,7 @@ class SettingUpscalePage extends StatelessWidget {
                     readSetting.saveNeuralUpscalePreload(value);
                   }
                 },
-                items: <int>[0, 1, 2, 3]
+                items: <int>[0, 1, 2, 3, 4, 5, 6, 7, 8]
                     .map((int value) => DropdownMenuItem<int>(
                         value: value, child: Text('$value')))
                     .toList(),
@@ -173,12 +174,8 @@ class SettingUpscalePage extends StatelessWidget {
             SwitchListTile(
               title: Text('enableUpscale'.tr),
               subtitle: Text('enableUpscaleHint'.tr),
-              value: readSetting.enableNeuralUpscale.isTrue
-                  ? false
-                  : readSetting.enableUpscale.value,
-              onChanged: readSetting.enableNeuralUpscale.isTrue
-                  ? null
-                  : (bool value) => readSetting.saveEnableUpscale(value),
+              value: readSetting.enableUpscale.value,
+              onChanged: (bool value) => readSetting.saveEnableUpscale(value),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),

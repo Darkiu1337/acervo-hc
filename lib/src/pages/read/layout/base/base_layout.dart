@@ -162,16 +162,9 @@ abstract class BaseLayout extends StatelessWidget {
     );
   }
 
-  /// Keeps the neural queue limited to the visible page and its configured
-  /// preload window. The reader mounts a few pages around the current one, so
-  /// without this every cached page would enter the GPU queue.
-  bool _shouldNeuralUpscale(int index) {
-    if (!readSetting.enableNeuralUpscale.isTrue) {
-      return false;
-    }
-    final int distance = (index - readPageState.readPageInfo.currentImageIndex).abs();
-    return distance <= readSetting.neuralUpscalePreload.value;
-  }
+  /// Whether the neural upscaler wraps each page. The queue itself decides
+  /// which pages run: the visible one and its neighbours.
+  bool get _neuralEnabled => readSetting.enableNeuralUpscale.isTrue;
 
   Widget _buildOnlineImage(BuildContext context, int index) {
     return GestureDetector(
@@ -186,9 +179,9 @@ abstract class BaseLayout extends StatelessWidget {
         failedWidgetBuilder: (ExtendedImageState state) => _placeholderOf(index, _failedWidgetBuilder(index, state)),
         completedWidgetBuilder: (state) => completedWidgetBuilderCallBack(index, state),
         animateOnlyWhenVisible: true,
-        enableUpscale: readSetting.enableUpscale.isTrue && !readSetting.enableNeuralUpscale.isTrue,
-        enableNeuralUpscale: _shouldNeuralUpscale(index),
-        neuralPriority: index == readPageState.readPageInfo.currentImageIndex,
+        enableUpscale: readSetting.enableUpscale.isTrue,
+        enableNeuralUpscale: _neuralEnabled,
+        neuralIndex: index,
         maxBytes: readSetting.enableMaxImageKilobyte.isTrue ? readSetting.maxImageKilobyte.toInt() * 1024 : null,
       ),
     );
@@ -314,9 +307,9 @@ abstract class BaseLayout extends StatelessWidget {
         containerWidth: logic.readPageState.imageContainerSizes[index]?.width ?? logic.getPlaceHolderSize(index).width,
         containerHeight: logic.readPageState.imageContainerSizes[index]?.height ?? logic.getPlaceHolderSize(index).height,
         clearMemoryCacheWhenDispose: true,
-        enableUpscale: readSetting.enableUpscale.isTrue && !readSetting.enableNeuralUpscale.isTrue,
-        enableNeuralUpscale: _shouldNeuralUpscale(index),
-        neuralPriority: index == readPageState.readPageInfo.currentImageIndex,
+        enableUpscale: readSetting.enableUpscale.isTrue,
+        enableNeuralUpscale: _neuralEnabled,
+        neuralIndex: index,
         downloadingWidgetBuilder: () => _placeholderOf(index, _downloadingWidgetBuilder(index)),
         pausedWidgetBuilder: () => _placeholderOf(index, _pausedWidgetBuilder(index)),
         loadingWidgetBuilder: () => _placeholderOf(index, _loadingWidgetBuilder(context, index)),
