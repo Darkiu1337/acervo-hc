@@ -21,6 +21,7 @@ import 'dart:ui' as ui;
 import '../service/gallery_download/download_path_resolver.dart';
 import '../service/gallery_download/gallery_download_service.dart';
 import '../service/xlecx_session_service.dart';
+import 'neural_upscaled_image.dart';
 import 'upscaled_image.dart';
 
 typedef LoadingProgressWidgetBuilder = Widget Function(double);
@@ -63,6 +64,13 @@ class EHImage extends StatefulWidget {
   /// being displayed, so zoomed pages stay crisp.
   final bool enableUpscale;
 
+  /// Whether the image should be handed to the neural upscaler. The shader
+  /// above stays as the immediate fallback until the neural texture is ready.
+  final bool enableNeuralUpscale;
+
+  /// Visible pages get queue priority over prefetched neighbours.
+  final bool neuralPriority;
+
   const EHImage({
     Key? key,
     required this.galleryImage,
@@ -81,6 +89,8 @@ class EHImage extends StatefulWidget {
     this.disableAnimation = false,
     this.animateOnlyWhenVisible = false,
     this.enableUpscale = false,
+    this.enableNeuralUpscale = false,
+    this.neuralPriority = true,
     this.loadingProgressWidgetBuilder,
     this.failedWidgetBuilder,
     this.downloadingWidgetBuilder,
@@ -107,6 +117,8 @@ class EHImage extends StatefulWidget {
     this.disableAnimation = false,
     this.animateOnlyWhenVisible = false,
     this.enableUpscale = false,
+    this.enableNeuralUpscale = false,
+    this.neuralPriority = true,
     this.loadingProgressWidgetBuilder,
     this.failedWidgetBuilder,
     this.downloadingWidgetBuilder,
@@ -128,6 +140,10 @@ class _EHImageState extends State<EHImage> {
   late final EHImageAnimationGate _gate = EHImageAnimationGateRegistry.gateFor(_imageKey);
 
   String get _imageKey => widget.galleryImage.path ?? widget.galleryImage.url;
+
+  /// Stable identity for derived textures. The E-H image hash survives URL
+  /// token changes, so a page cached in one session is still a hit later.
+  String get _neuralKey => widget.galleryImage.imageHash ?? widget.galleryImage.path ?? widget.galleryImage.url;
 
   @override
   void initState() {
@@ -229,7 +245,14 @@ class _EHImageState extends State<EHImage> {
     return ExtendedImage(
       image: ExtendedResizeImage.resizeIfNeeded(
         provider: useGate
-            ? _GateExtendedNetworkImageProvider(url, cache: true, printError: kDebugMode, headers: headers, gate: _gate)
+            ? _GateExtendedNetworkImageProvider(
+                url,
+                cache: true,
+                printError: kDebugMode,
+                headers: headers,
+                gate: _gate,
+                frameCountKey: _neuralKey,
+              )
             : ExtendedNetworkImageProvider(url, cache: true, printError: kDebugMode, headers: headers),
         maxBytes: widget.maxBytes,
       ),
@@ -255,7 +278,7 @@ class _EHImageState extends State<EHImage> {
             state.returnLoadStateChangedWidget = true;
 
             Widget child = widget.completedWidgetBuilder?.call(state) ?? _buildExtendedRawImage(state);
-            child = _maybeWrapWithUpscale(child, state);
+            child = _maybeWrapWithEnhanced(child, state);
 
             if (widget.borderRadius != BorderRadius.zero) {
               child = ClipRRect(child: child, borderRadius: widget.borderRadius);
@@ -295,7 +318,7 @@ class _EHImageState extends State<EHImage> {
     if (widget.disableAnimation && isAnimatedFile) {
       provider = _SingleFrameExtendedFileImageProvider(file);
     } else if (widget.animateOnlyWhenVisible && !widget.disableAnimation && isAnimatedFile) {
-      provider = _GateExtendedFileImageProvider(file, _gate);
+      provider = _GateExtendedFileImageProvider(file, _gate, _neuralKey);
     } else {
       provider = ExtendedFileImageProvider(file);
     }
@@ -323,7 +346,7 @@ class _EHImageState extends State<EHImage> {
             state.returnLoadStateChangedWidget = true;
 
             Widget child = widget.completedWidgetBuilder?.call(state) ?? _buildExtendedRawImage(state);
-            child = _maybeWrapWithUpscale(child, state);
+            child = _maybeWrapWithEnhanced(child, state);
 
             child = ClipRRect(child: child, borderRadius: widget.borderRadius);
 
@@ -368,8 +391,8 @@ class _EHImageState extends State<EHImage> {
     return newUri.toString();
   }
 
-  Widget _maybeWrapWithUpscale(Widget child, ExtendedImageState state) {
-    if (!widget.enableUpscale || state.extendedImageInfo == null) {
+  Widget _maybeWrapWithEnhanced(Widget child, ExtendedImageState state) {
+    if (state.extendedImageInfo == null) {
       return child;
     }
 
@@ -380,15 +403,34 @@ class _EHImageState extends State<EHImage> {
       return child;
     }
 
+    final String cacheKey = _neuralKey;
     final FittedSizes fittedSizes = applyBoxFit(
       widget.fit,
       Size(image.width.toDouble(), image.height.toDouble()),
       Size(widget.containerWidth ?? double.infinity, widget.containerHeight ?? double.infinity),
     );
 
+    if (widget.enableNeuralUpscale) {
+      return NeuralUpscaledImage(
+        source: image,
+        cacheKey: cacheKey,
+        frameCount: EHImageFrameCountRegistry.frameCountFor(cacheKey),
+        priority: widget.neuralPriority,
+        useShaderFallback: widget.enableUpscale,
+        width: fittedSizes.destination.width == 0 ? null : fittedSizes.destination.width,
+        height: fittedSizes.destination.height == 0 ? null : fittedSizes.destination.height,
+        fit: widget.fit,
+        scale: state.extendedImageInfo?.scale ?? 1.0,
+      );
+    }
+
+    if (!widget.enableUpscale) {
+      return child;
+    }
+
     return UpscaledImage(
       source: image,
-      cacheKey: widget.galleryImage.path ?? widget.galleryImage.url,
+      cacheKey: cacheKey,
       width: fittedSizes.destination.width == 0 ? null : fittedSizes.destination.width,
       height: fittedSizes.destination.height == 0 ? null : fittedSizes.destination.height,
       fit: widget.fit,
@@ -483,6 +525,22 @@ class EHImageAnimationGateRegistry {
   }
 }
 
+/// Frame counts recorded while the codec is created. The neural upscaler has
+/// to skip animations, and neither [GalleryImage] nor the existing
+/// `_canBeAnimated` heuristic can tell a static online page from an animated
+/// one. The codec does know, so the gate providers record it here.
+class EHImageFrameCountRegistry {
+  static final Map<String, int> _frameCounts = <String, int>{};
+
+  static void record(String key, int frameCount) {
+    _frameCounts[key] = frameCount;
+  }
+
+  static int frameCountFor(String key) => _frameCounts[key] ?? 1;
+
+  static void clear() => _frameCounts.clear();
+}
+
 class _SingleFrameCodec implements ui.Codec {
   final ui.Codec _inner;
 
@@ -567,25 +625,36 @@ class _PausableCodec implements ui.Codec {
 
 class _GateExtendedFileImageProvider extends ExtendedFileImageProvider {
   // ignore: prefer_const_constructors_in_immutables
-  _GateExtendedFileImageProvider(super.file, this.gate);
+  _GateExtendedFileImageProvider(super.file, this.gate, this.frameCountKey);
 
   final EHImageAnimationGate gate;
+  final String frameCountKey;
 
   @override
   Future<ui.Codec> instantiateImageCodec(Uint8List data, ImageDecoderCallback decode) async {
     final ui.Codec codec = await super.instantiateImageCodec(data, decode);
+    EHImageFrameCountRegistry.record(frameCountKey, codec.frameCount);
     return codec.frameCount > 1 ? _PausableCodec(codec, gate) : codec;
   }
 }
 
 class _GateExtendedNetworkImageProvider extends network_image_io.ExtendedNetworkImageProvider {
-  _GateExtendedNetworkImageProvider(super.url, {super.cache, super.printError, super.headers, required this.gate});
+  _GateExtendedNetworkImageProvider(
+    super.url, {
+    super.cache,
+    super.printError,
+    super.headers,
+    required this.gate,
+    required this.frameCountKey,
+  });
 
   final EHImageAnimationGate gate;
+  final String frameCountKey;
 
   @override
   Future<ui.Codec> instantiateImageCodec(Uint8List data, ImageDecoderCallback decode) async {
     final ui.Codec codec = await super.instantiateImageCodec(data, decode);
+    EHImageFrameCountRegistry.record(frameCountKey, codec.frameCount);
     return codec.frameCount > 1 ? _PausableCodec(codec, gate) : codec;
   }
 }

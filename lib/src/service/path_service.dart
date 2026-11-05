@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:get/get.dart';
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import 'jh_service.dart';
@@ -17,6 +18,10 @@ class PathService with JHLifeCircleBeanErrorCatch implements JHLifeCircleBean {
   /// visible on windows
   Directory? appSupportDir;
 
+  /// App cache. Not roaming and safe to evict; used for large derived data
+  /// such as the neural upscale textures.
+  Directory? cacheDir;
+
   /// visible on android
   Directory? externalStorageDir;
 
@@ -31,6 +36,7 @@ class PathService with JHLifeCircleBeanErrorCatch implements JHLifeCircleBean {
       getTemporaryDirectory().then((value) => tempDir = value),
       getApplicationDocumentsDirectory().then((value) => appDocDir = value).catchError((error) => null),
       getApplicationSupportDirectory().then((value) => appSupportDir = value).catchError((error) => null),
+      getApplicationCacheDirectory().then((value) => cacheDir = value).catchError((error) => null),
       getExternalStorageDirectory().then((value) => externalStorageDir = value).catchError((error) => null),
       getDownloadsDirectory().then((value) => systemDownloadDir = value).catchError((error) => null),
     ]);
@@ -50,5 +56,15 @@ class PathService with JHLifeCircleBeanErrorCatch implements JHLifeCircleBean {
       return appSupportDir!;
     }
     return appDocDir ?? appSupportDir ?? systemDownloadDir!;
+  }
+
+  /// Cache directory for derived data. Falls back to a `cache` folder under
+  /// the support directory when the platform has no dedicated cache path.
+  Directory getCacheDir() {
+    final Directory base = cacheDir ?? Directory(p.join((appSupportDir ?? tempDir).path, 'cache'));
+    if (!base.existsSync()) {
+      base.createSync(recursive: true);
+    }
+    return base;
   }
 }

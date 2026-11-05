@@ -5,6 +5,8 @@ import 'package:acervo_hc/src/config/ui_config.dart';
 import 'package:acervo_hc/src/extension/widget_extension.dart';
 import 'package:acervo_hc/src/pages/setting/keyboard_shortcuts/setting_keyboard_shortcuts_page.dart';
 import 'package:acervo_hc/src/pages/setting/read/tap_zone/setting_tap_zone_page.dart';
+import 'package:acervo_hc/src/model/neural_upscale_config.dart';
+import 'package:acervo_hc/src/service/neural_model_manager.dart';
 import 'package:acervo_hc/src/setting/preference_setting.dart';
 import 'package:acervo_hc/src/setting/read_setting.dart';
 import 'package:acervo_hc/src/setting/style_setting.dart';
@@ -51,6 +53,7 @@ class SettingReadPage extends StatelessWidget {
                   _buildEnableDoubleTapToScaleUp().center(),
                   _buildEnableTapDragToScaleUp().center(),
                   _buildEnableUpscale().center(),
+                  if (GetPlatform.isWindows || GetPlatform.isLinux) _buildNeuralUpscale().center(),
                   _buildAlignToTopWhenTurnPage().center(),
                   _buildZoomStepPercent().center(),
                   _buildEnableBottomMenu().center(),
@@ -259,6 +262,118 @@ class SettingReadPage extends StatelessWidget {
       onChanged: (bool value) {
         readSetting.saveEnableUpscale(value);
       },
+    );
+  }
+
+  Widget _buildNeuralUpscale() {
+    neuralModelManager.init();
+    final bool proModel = readSetting.neuralUpscaleModel.value == NeuralUpscaleModel.pro;
+    final List<int> denoiseValues = proModel ? <int>[-1, 0, 3] : <int>[-1, 0, 1, 2, 3];
+    final int denoise = denoiseValues.contains(readSetting.neuralUpscaleDenoise.value)
+        ? readSetting.neuralUpscaleDenoise.value
+        : 0;
+
+    return Column(
+      children: [
+        SwitchListTile(
+          title: Text('enableNeuralUpscale'.tr),
+          subtitle: Text('enableNeuralUpscaleHint'.tr),
+          value: readSetting.enableNeuralUpscale.value,
+          onChanged: (bool value) async {
+            if (value) {
+              final bool ready = await neuralModelManager.ensureReady();
+              if (!ready) {
+                toast('neuralUpscaleDownloadFailed'.tr);
+                return;
+              }
+            }
+            readSetting.saveEnableNeuralUpscale(value);
+          },
+        ),
+        ValueListenableBuilder<NeuralModelStatus>(
+          valueListenable: neuralModelManager.status,
+          builder: (BuildContext context, NeuralModelStatus status, Widget? child) {
+            if (status == NeuralModelStatus.ready) {
+              return ListTile(
+                leading: const Icon(Icons.check_circle, color: Colors.green),
+                title: Text('neuralUpscaleModelReady'.tr),
+                subtitle: Text('neuralUpscaleModelReadyHint'.tr),
+              );
+            }
+            if (status == NeuralModelStatus.downloading) {
+              return ValueListenableBuilder<double>(
+                valueListenable: neuralModelManager.downloadProgress,
+                builder: (BuildContext context, double progress, Widget? child) {
+                  return ListTile(
+                    leading: const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)),
+                    title: Text('neuralUpscaleDownloading'.tr),
+                    subtitle: LinearProgressIndicator(value: progress),
+                  );
+                },
+              );
+            }
+            return ListTile(
+              leading: const Icon(Icons.download),
+              title: Text('neuralUpscaleDownloadModel'.tr),
+              subtitle: Text('neuralUpscaleDownloadModelHint'.tr),
+              trailing: TextButton(
+                onPressed: () async {
+                  final bool ok = await neuralModelManager.ensureReady();
+                  if (!ok) {
+                    toast('neuralUpscaleDownloadFailed'.tr);
+                  }
+                },
+                child: Text('download'.tr),
+              ),
+            );
+          },
+        ),
+        ListTile(
+          title: Text('neuralUpscaleModel'.tr),
+          trailing: DropdownButton<NeuralUpscaleModel>(
+            value: readSetting.neuralUpscaleModel.value,
+            onChanged: (NeuralUpscaleModel? value) {
+              if (value != null) {
+                readSetting.saveNeuralUpscaleModel(value);
+              }
+            },
+            items: NeuralUpscaleModel.values
+                .map((NeuralUpscaleModel model) => DropdownMenuItem<NeuralUpscaleModel>(value: model, child: Text(model.label)))
+                .toList(),
+          ),
+        ),
+        ListTile(
+          title: Text('neuralUpscaleDenoise'.tr),
+          trailing: DropdownButton<int>(
+            value: denoise,
+            onChanged: (int? value) {
+              if (value != null) {
+                readSetting.saveNeuralUpscaleDenoise(value);
+              }
+            },
+            items: denoiseValues
+                .map((int value) => DropdownMenuItem<int>(
+                      value: value,
+                      child: Text(value == -1 ? 'neuralUpscaleDenoiseNone'.tr : '$value'),
+                    ))
+                .toList(),
+          ),
+        ),
+        ListTile(
+          title: Text('neuralUpscalePreload'.tr),
+          trailing: DropdownButton<int>(
+            value: readSetting.neuralUpscalePreload.value,
+            onChanged: (int? value) {
+              if (value != null) {
+                readSetting.saveNeuralUpscalePreload(value);
+              }
+            },
+            items: <int>[0, 1, 2, 3]
+                .map((int value) => DropdownMenuItem<int>(value: value, child: Text('$value')))
+                .toList(),
+          ),
+        ),
+      ],
     );
   }
 

@@ -41,6 +41,7 @@ import '../../service/local_config_service.dart';
 import '../../service/log.dart';
 import '../../service/gallery_download/gallery_images_retainer.dart';
 import '../../service/read_progress_service.dart';
+import '../../service/neural_upscale_service.dart';
 import '../../service/upscale_service.dart';
 import '../../setting/preference_setting.dart';
 import '../../setting/read_setting.dart';
@@ -335,6 +336,12 @@ class ReadPageLogic extends GetxController with WidgetsBindingObserver, GalleryI
 
     /// Release the 2x upscaled textures of this reading session.
     upscaleService.clearCache();
+
+    /// Stop the neural queue and forget the per-session frame counts. The
+    /// neural disk cache is deliberately kept for the next reading session.
+    neuralUpscaleService.cancelSession();
+    neuralUpscaleService.clearMemoryCache();
+    EHImageFrameCountRegistry.clear();
 
     /// Remove external-viewer folders left behind by previous sessions when
     /// no viewer is still showing them.

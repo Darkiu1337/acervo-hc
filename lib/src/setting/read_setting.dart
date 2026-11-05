@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:get/get.dart';
 import 'package:acervo_hc/src/enum/config_enum.dart';
+import 'package:acervo_hc/src/model/neural_upscale_config.dart';
 import 'package:acervo_hc/src/model/tap_zone_config.dart';
 import 'package:acervo_hc/src/service/log.dart';
 
@@ -26,6 +27,19 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
 
   /// Build a 2x bicubic + CAS copy of each page so zoomed images stay crisp.
   RxBool enableUpscale = true.obs;
+
+  /// Run the neural upscaler (Real-CUGAN) on the visible page. Beta, off until
+  /// the user downloads the model.
+  RxBool enableNeuralUpscale = false.obs;
+
+  /// Model family used by the neural upscaler.
+  Rx<NeuralUpscaleModel> neuralUpscaleModel = NeuralUpscaleModel.se.obs;
+
+  /// `-1` disables denoise; `0` is conservative; `1..3` are stronger denoise.
+  RxInt neuralUpscaleDenoise = 0.obs;
+
+  /// How many pages ahead of the visible one are pre-enhanced.
+  RxInt neuralUpscalePreload = 2.obs;
 
   /// Align a zoomed page to its top edge when the reader turns the page.
   RxBool alignToTopWhenTurnPage = true.obs;
@@ -157,6 +171,13 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
     enableDoubleTapToScaleUp.value = map['enableDoubleTapToScaleUp'] ?? enableDoubleTapToScaleUp.value;
     enableTapDragToScaleUp.value = map['enableTapDragToScaleUp'] ?? enableTapDragToScaleUp.value;
     enableUpscale.value = map['enableUpscale'] ?? enableUpscale.value;
+    enableNeuralUpscale.value = map['enableNeuralUpscale'] ?? enableNeuralUpscale.value;
+    final int neuralModelIndex = (map['neuralUpscaleModel'] as num?)?.toInt() ?? 0;
+    neuralUpscaleModel.value = NeuralUpscaleModel.values[
+        neuralModelIndex >= 0 && neuralModelIndex < NeuralUpscaleModel.values.length ? neuralModelIndex : 0];
+    neuralUpscaleDenoise.value = ((map['neuralUpscaleDenoise'] as num?)?.toInt() ?? 0).clamp(-1, 3).toInt();
+    neuralUpscalePreload.value = ((map['neuralUpscalePreload'] as num?)?.toInt() ?? 2).clamp(0, 3).toInt();
+    _normalizeNeuralDenoise();
     alignToTopWhenTurnPage.value = map['alignToTopWhenTurnPage'] ?? alignToTopWhenTurnPage.value;
     zoomStepPercent.value = (map['zoomStepPercent'] as num?)?.toInt() ?? zoomStepPercent.value;
     enableBottomMenu.value = map['enableBottomMenu'] ?? enableBottomMenu.value;
@@ -208,6 +229,10 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
       'enableDoubleTapToScaleUp': enableDoubleTapToScaleUp.value,
       'enableTapDragToScaleUp': enableTapDragToScaleUp.value,
       'enableUpscale': enableUpscale.value,
+      'enableNeuralUpscale': enableNeuralUpscale.value,
+      'neuralUpscaleModel': neuralUpscaleModel.value.index,
+      'neuralUpscaleDenoise': neuralUpscaleDenoise.value,
+      'neuralUpscalePreload': neuralUpscalePreload.value,
       'alignToTopWhenTurnPage': alignToTopWhenTurnPage.value,
       'zoomStepPercent': zoomStepPercent.value,
       'enableBottomMenu': enableBottomMenu.value,
@@ -429,6 +454,40 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
     log.debug('saveEnableUpscale:$value');
     enableUpscale.value = value;
     await saveBeanConfig();
+  }
+
+  Future<void> saveEnableNeuralUpscale(bool value) async {
+    log.debug('saveEnableNeuralUpscale:$value');
+    enableNeuralUpscale.value = value;
+    await saveBeanConfig();
+  }
+
+  Future<void> saveNeuralUpscaleModel(NeuralUpscaleModel value) async {
+    log.debug('saveNeuralUpscaleModel:${value.name}');
+    neuralUpscaleModel.value = value;
+    _normalizeNeuralDenoise();
+    await saveBeanConfig();
+  }
+
+  Future<void> saveNeuralUpscaleDenoise(int value) async {
+    log.debug('saveNeuralUpscaleDenoise:$value');
+    neuralUpscaleDenoise.value = value.clamp(-1, 3).toInt();
+    await saveBeanConfig();
+  }
+
+  Future<void> saveNeuralUpscalePreload(int value) async {
+    log.debug('saveNeuralUpscalePreload:$value');
+    neuralUpscalePreload.value = value.clamp(0, 3).toInt();
+    await saveBeanConfig();
+  }
+
+  /// The Pro package only ships conservative, denoise-3 and no-denoise
+  /// weights; 1 and 2 would make the binary look for files that do not exist.
+  void _normalizeNeuralDenoise() {
+    if (neuralUpscaleModel.value == NeuralUpscaleModel.pro &&
+        (neuralUpscaleDenoise.value == 1 || neuralUpscaleDenoise.value == 2)) {
+      neuralUpscaleDenoise.value = 0;
+    }
   }
 
   Future<void> saveAlignToTopWhenTurnPage(bool value) async {

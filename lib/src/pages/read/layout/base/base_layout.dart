@@ -164,6 +164,17 @@ abstract class BaseLayout extends StatelessWidget {
     );
   }
 
+  /// Keeps the neural queue limited to the visible page and its configured
+  /// preload window. The reader mounts a few pages around the current one, so
+  /// without this every cached page would enter the GPU queue.
+  bool _shouldNeuralUpscale(int index) {
+    if (!readSetting.enableNeuralUpscale.isTrue || readPageState.useSuperResolution) {
+      return false;
+    }
+    final int distance = (index - readPageState.readPageInfo.currentImageIndex).abs();
+    return distance <= readSetting.neuralUpscalePreload.value;
+  }
+
   Widget _buildOnlineImage(BuildContext context, int index) {
     return GestureDetector(
       onLongPressStart: (details) => logic.showOnlineImageContextMenu(index, context, position: details.globalPosition),
@@ -178,6 +189,8 @@ abstract class BaseLayout extends StatelessWidget {
         completedWidgetBuilder: (state) => completedWidgetBuilderCallBack(index, state),
         animateOnlyWhenVisible: true,
         enableUpscale: readSetting.enableUpscale.isTrue && !readPageState.useSuperResolution,
+        enableNeuralUpscale: _shouldNeuralUpscale(index),
+        neuralPriority: index == readPageState.readPageInfo.currentImageIndex,
         maxBytes: readSetting.enableMaxImageKilobyte.isTrue ? readSetting.maxImageKilobyte.toInt() * 1024 : null,
       ),
     );
@@ -341,6 +354,8 @@ abstract class BaseLayout extends StatelessWidget {
         containerHeight: logic.readPageState.imageContainerSizes[index]?.height ?? logic.getPlaceHolderSize(index).height,
         clearMemoryCacheWhenDispose: true,
         enableUpscale: readSetting.enableUpscale.isTrue && !readPageState.useSuperResolution,
+        enableNeuralUpscale: _shouldNeuralUpscale(index),
+        neuralPriority: index == readPageState.readPageInfo.currentImageIndex,
         downloadingWidgetBuilder: () => _placeholderOf(index, _downloadingWidgetBuilder(index)),
         pausedWidgetBuilder: () => _placeholderOf(index, _pausedWidgetBuilder(index)),
         loadingWidgetBuilder: () => _placeholderOf(index, _loadingWidgetBuilder(context, index)),
