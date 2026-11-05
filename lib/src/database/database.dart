@@ -454,9 +454,16 @@ LazyDatabase _openConnection() {
       await applyWorkaroundToOpenSqlite3OnOldAndroidVersions();
     }
 
-    sqlite3.tempDirectory = pathService.tempDir.path;
-
-    return NativeDatabase(file);
+    // Run drift in its own isolate: queries (tag translation lookups, config
+    // reads on navigation) no longer execute on the UI isolate. The temp dir
+    // has to be set inside that isolate, via [setup].
+    final String tempDirPath = pathService.tempDir.path;
+    return NativeDatabase.createInBackground(
+      file,
+      setup: (db) {
+        sqlite3.tempDirectory = tempDirPath;
+      },
+    );
   });
 }
 

@@ -175,17 +175,16 @@ class TagTranslationService with JHLifeCircleBeanErrorCatch implements JHLifeCir
       return;
     }
 
-    List<Future> futures = [];
+    final Map<String, TagData> translations = await _translationsFor(tags.values.expand((galleryTags) => galleryTags).map((tag) => tag.tagData.key));
 
-    tags.forEach((namespace, tags) {
-      for (GalleryTag tag in tags) {
-        futures.add(
-          getTagTranslation(namespace, tag.tagData.key).then((TagData? value) => tag.tagData = value ?? tag.tagData),
-        );
+    tags.forEach((namespace, galleryTags) {
+      for (GalleryTag tag in galleryTags) {
+        final TagData? value = translations[_translationLookupKey(namespace, tag.tagData.key)];
+        if (value != null) {
+          tag.tagData = value;
+        }
       }
     });
-
-    await Future.wait(futures);
   }
 
   Future<List<TagData>> translateTagDatasIfNeeded(List<TagData> tags) async {
@@ -193,10 +192,22 @@ class TagTranslationService with JHLifeCircleBeanErrorCatch implements JHLifeCir
       return [];
     }
 
-    List<Future<TagData>> futures = tags.map((tag) => getTagTranslation(tag.namespace, tag.key).then((value) => value ?? tag)).toList();
-    List<TagData> translatedTagDatas = await Future.wait(futures);
-    return translatedTagDatas.toList();
+    final Map<String, TagData> translations = await _translationsFor(tags.map((tag) => tag.key));
+    return tags.map((tag) => translations[_translationLookupKey(tag.namespace, tag.key)] ?? tag).toList();
   }
+
+  /// One query for every requested key; the result is keyed by
+  /// `namespace::key`, the same pair [getTagTranslation] matches on.
+  Future<Map<String, TagData>> _translationsFor(Iterable<String> keys) async {
+    final List<TagData> tagDatas = await TagDao.selectTagsByKeys(keys);
+    final Map<String, TagData> translations = {};
+    for (final TagData tagData in tagDatas) {
+      translations[_translationLookupKey(tagData.namespace, tagData.key)] = tagData;
+    }
+    return translations;
+  }
+
+  String _translationLookupKey(String namespace, String key) => '$namespace::$key';
 
   Future<TagData?> getTagTranslation(String namespace, String key) async {
     List<TagData> list = await TagDao.selectTagByNamespaceAndKey(namespace, key);

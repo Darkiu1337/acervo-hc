@@ -10,6 +10,16 @@ class TagDao {
     return (appDb.select(appDb.tag)..where((tag) => tag.key.equals(key))).get();
   }
 
+  /// All tag rows whose key is in [keys], in one query. Callers key the result
+  /// by `namespace::key` since a key can exist under several namespaces.
+  static Future<List<TagData>> selectTagsByKeys(Iterable<String> keys) {
+    final List<String> keyList = keys.toSet().toList();
+    if (keyList.isEmpty) {
+      return Future.value(const <TagData>[]);
+    }
+    return (appDb.select(appDb.tag)..where((tag) => tag.key.isIn(keyList))).get();
+  }
+
   static Future<List<TagData>> selectAllTags() {
     return (appDb.select(appDb.tag)).get();
   }

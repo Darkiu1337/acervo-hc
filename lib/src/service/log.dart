@@ -140,11 +140,21 @@ class LogService with JHLifeCircleBeanErrorCatch implements JHLifeCircleBean {
     }
   }
 
+  /// Built once: [DateFormat] construction is not free and [_initLogger] runs
+  /// on hot paths (cache hits, download progress).
+  static final DateFormat _fileNameDateFormat = DateFormat('yyyy-MM-dd_HH-mm-ss');
+
   Future<void> _initLogger() async {
+    // Already initialized: re-running this per log call meant recreating the
+    // file output and the date formatter on the main thread.
+    if (_verboseFileLogger != null) {
+      return;
+    }
+
     _consoleLogger ??= Logger(printer: devPrinter);
 
     await _initLogDir();
-    String fileName = DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.now());
+    String fileName = _fileNameDateFormat.format(DateTime.now());
 
     _verboseFileLogger ??= Logger(
       printer: HybridPrinter(prodPrinterWithBox, trace: prodPrinterWithoutBox, debug: prodPrinterWithoutBox, info: prodPrinterWithoutBox),
