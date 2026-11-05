@@ -37,6 +37,9 @@ import '../../widget/loading_state_indicator.dart';
 import 'layout/horizontal_double_column/horizontal_double_column_layout.dart';
 import 'layout/vertical_list/vertical_list_layout.dart';
 
+/// Built once: [_buildCurrentTime] runs on every status-bar tick.
+final DateFormat _currentTimeFormat = DateFormat('HH:mm');
+
 class ReadPage extends StatefulWidget {
   const ReadPage({super.key});
 
@@ -291,7 +294,7 @@ class _ReadPageState extends State<ReadPage> with ScrollStatusListener, WindowLi
   Widget _buildCurrentTime() {
     return GetBuilder<ReadPageLogic>(
       id: logic.currentTimeId,
-      builder: (_) => Text(DateFormat('HH:mm').format(DateTime.now())),
+      builder: (_) => Text(_currentTimeFormat.format(DateTime.now())),
     );
   }
 

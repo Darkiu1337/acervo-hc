@@ -87,6 +87,10 @@ class ReadPageLogic extends GetxController with WidgetsBindingObserver, GalleryI
   late Timer refreshCurrentTimeAndBatteryLevelTimer;
   late Timer flushReadProgressTimer;
 
+  /// Last index passed to [recordReadProgress], so repeated scroll ticks for
+  /// the same page don't rebuild the slider, page number and thumbnails.
+  int? _lastRecordedIndex;
+
   late Worker toggleTurnPageByVolumeKeyLister;
   late Worker toggleCurrentImmersiveModeLister;
   late Worker toggleDeviceOrientationLister;
@@ -213,15 +217,21 @@ class ReadPageLogic extends GetxController with WidgetsBindingObserver, GalleryI
     }
 
     /// refresh current time and battery level info
+    int statusTick = 0;
     refreshCurrentTimeAndBatteryLevelTimer = Timer.periodic(
       const Duration(seconds: 1),
       (_) {
-        if (!GetPlatform.isDesktop) {
+        if (readSetting.showStatusInfo.isFalse) {
+          return;
+        }
+        // The clock needs a tick per second, the battery level does not.
+        if (!GetPlatform.isDesktop && statusTick % 30 == 0) {
           state.battery.batteryLevel.then((value) {
             state.batteryLevel = value;
             update([batteryId]);
           });
         }
+        statusTick++;
         update([currentTimeId]);
       },
     );
@@ -916,6 +926,10 @@ class ReadPageLogic extends GetxController with WidgetsBindingObserver, GalleryI
   }
 
   void recordReadProgress(int index) {
+    if (_lastRecordedIndex == index) {
+      return;
+    }
+    _lastRecordedIndex = index;
     state.readPageInfo.currentImageIndex = index;
     neuralUpscaleService.setFocus(index);
     update([sliderId, pageNoId, thumbnailNoId]);

@@ -22,6 +22,11 @@ class HorizontalPageLayoutLogic extends BaseLayoutLogic {
   /// before being zoomed.
   double _desiredScale = 1.0;
 
+  /// Zoom level [ _syncNeighborZoom] was last run at, so a pinch that fires
+  /// dozens of scale events per second rebuilds the neighbour pages only when
+  /// the scale actually moved (2%).
+  double _lastNeighborZoomSync = 1.0;
+
   /// Page whose top alignment still has to be applied once its real content
   /// size is known.
   int? _pendingTopAlignPage;
@@ -332,7 +337,10 @@ class HorizontalPageLayoutLogic extends BaseLayoutLogic {
         return;
       }
       _desiredScale = scale;
-      _syncNeighborZoom();
+      if ((scale - _lastNeighborZoomSync).abs() >= 0.02) {
+        _lastNeighborZoomSync = scale;
+        _syncNeighborZoom();
+      }
     });
   }
 
