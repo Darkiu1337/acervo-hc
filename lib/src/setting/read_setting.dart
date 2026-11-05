@@ -25,8 +25,9 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
   RxBool enableDoubleTapToScaleUp = false.obs;
   RxBool enableTapDragToScaleUp = false.obs;
 
-  /// Build a 2x bicubic + CAS copy of each page so zoomed images stay crisp.
-  RxBool enableUpscale = true.obs;
+  /// Build a 2x bicubic + CAS copy of each page. This is the standalone
+  /// sharpening path; it is not used while the neural upscaler is enabled.
+  RxBool enableUpscale = false.obs;
 
   /// Run the neural upscaler (Real-CUGAN) on the visible page. Beta, off until
   /// the user downloads the model.
@@ -190,6 +191,9 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
     neuralUpscalePreload.value = ((map['neuralUpscalePreload'] as num?)?.toInt() ?? 2).clamp(0, 3).toInt();
     neuralUpscaleGpuId.value = ((map['neuralUpscaleGpuId'] as num?)?.toInt() ?? 0).clamp(-1, 15).toInt();
     _normalizeNeuralDenoise();
+    if (enableNeuralUpscale.isTrue) {
+      enableUpscale.value = false;
+    }
     alignToTopWhenTurnPage.value = map['alignToTopWhenTurnPage'] ?? alignToTopWhenTurnPage.value;
     zoomStepPercent.value = (map['zoomStepPercent'] as num?)?.toInt() ?? zoomStepPercent.value;
     enableBottomMenu.value = map['enableBottomMenu'] ?? enableBottomMenu.value;
@@ -473,6 +477,9 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
   Future<void> saveEnableNeuralUpscale(bool value) async {
     log.debug('saveEnableNeuralUpscale:$value');
     enableNeuralUpscale.value = value;
+    if (value) {
+      enableUpscale.value = false;
+    }
     await saveBeanConfig();
   }
 

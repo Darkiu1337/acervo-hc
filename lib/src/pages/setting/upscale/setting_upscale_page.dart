@@ -169,6 +169,17 @@ class SettingUpscalePage extends StatelessWidget {
               ),
             ),
             _buildGpu(),
+            const Divider(),
+            SwitchListTile(
+              title: Text('enableUpscale'.tr),
+              subtitle: Text('enableUpscaleHint'.tr),
+              value: readSetting.enableNeuralUpscale.isTrue
+                  ? false
+                  : readSetting.enableUpscale.value,
+              onChanged: readSetting.enableNeuralUpscale.isTrue
+                  ? null
+                  : (bool value) => readSetting.saveEnableUpscale(value),
+            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               child: Text(

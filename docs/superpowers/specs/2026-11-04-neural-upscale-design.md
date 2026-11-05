@@ -187,8 +187,10 @@ agrada mais. Por isso o padrão é SE e o Pro é opção.
    página visível. Pré-carga padrão: 2 páginas à frente.
 6. **Cache:** disco + memória. Disco em pasta de cache do app, orçamento padrão
    de 2 GB com LRU; memória com teto de 192 MB, igual ao shader.
-7. **Fallback:** enquanto o neural não fica pronto, o shader 2× atual roda
-   normalmente. Quando o neural chega, ele substitui; CAS não roda por cima.
+7. **Nitidez 2×:** agora é uma opção separada, desligada por padrão e só ativa
+   com o neural desligado. Com o neural ativo, a página fica na resolução
+   original até ele ficar pronto; o shader não roda e o CAS não é aplicado por
+   cima do resultado neural.
 8. **Quando pular:** imagem animada (`frameCount > 1`), largura ≥ 1800 px,
    saída > 6144 px, modelo indisponível, `useSuperResolution` ligado, ou modo
    neural desligado.
@@ -364,8 +366,8 @@ UI em Configurações → Upscale (entrada própria; a seção saiu de Leitura):
 - GPU (nome + índice; compartilhada com o lote antigo).
 - Texto de ajuda curto com o custo (~1–4 s na primeira vez por página; depois
   é cache) e o aviso de que não recupera informação inexistente.
-- O switch antigo “Melhorar imagens no zoom (upscale 2×)” continua; a ajuda
-  explica que ele é o fallback enquanto o neural processa.
+- No fim da mesma página, “Nitidez (2×)”: desligada por padrão e indisponível
+  quando o neural está ativo. Só vale com o neural desligado.
 
 ### 7.7 Integração com o leitor
 
@@ -487,3 +489,6 @@ sha1('<sourceKey>|<model>|<denoise>|<scale>|<width>x<height>|v1')
   (`models-pro` não tem up4x). O app cai para a maior escala que couber.
 - O cache de disco continua em 2 GB (FIFO por data de gravação; a memória é
   LRU por acesso). O modelo fica em `neural_models`, separado do cache.
+- A nitidez 2× saiu de Leitura, foi para Upscale como “Nitidez (2×)”, ficou
+  desligada por padrão e não roda com o neural ativo. Sem ela, a primeira
+  exibição de cada página mostra a imagem original até o neural terminar.

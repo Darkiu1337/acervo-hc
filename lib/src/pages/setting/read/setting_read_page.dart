@@ -50,7 +50,6 @@ class SettingReadPage extends StatelessWidget {
                   _buildEnablePageTurnAnime().center(),
                   _buildEnableDoubleTapToScaleUp().center(),
                   _buildEnableTapDragToScaleUp().center(),
-                  _buildEnableUpscale().center(),
                   _buildAlignToTopWhenTurnPage().center(),
                   _buildZoomStepPercent().center(),
                   _buildEnableBottomMenu().center(),
@@ -248,17 +247,6 @@ class SettingReadPage extends StatelessWidget {
       title: Text('enableTapDragToScaleUp'.tr),
       value: readSetting.enableTapDragToScaleUp.value,
       onChanged: readSetting.saveEnableTapDragToScaleUp,
-    );
-  }
-
-  Widget _buildEnableUpscale() {
-    return SwitchListTile(
-      title: Text('enableUpscale'.tr),
-      subtitle: Text('enableUpscaleHint'.tr),
-      value: readSetting.enableUpscale.value,
-      onChanged: (bool value) {
-        readSetting.saveEnableUpscale(value);
-      },
     );
   }
 
