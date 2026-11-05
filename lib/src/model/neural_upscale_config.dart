@@ -90,6 +90,6 @@ String neuralCacheKey({
   required int height,
 }) {
   final String raw =
-      '$sourceKey|${model.name}|$denoise|$scale|${width}x$height|v1';
+      '$sourceKey|${model.name}|$denoise|$scale|${width}x$height|v2';
   return sha1.convert(utf8.encode(raw)).toString();
 }

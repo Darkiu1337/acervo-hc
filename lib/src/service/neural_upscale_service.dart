@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 
 import 'package:path/path.dart' as p;
 
+import 'package:acervo_hc/src/model/neural_pixels.dart';
 import 'package:acervo_hc/src/model/neural_upscale_config.dart';
 import 'package:acervo_hc/src/service/log.dart';
 import 'package:acervo_hc/src/service/neural_model_manager.dart';
@@ -242,12 +243,20 @@ class NeuralUpscaleService {
       return memoryHit;
     }
 
+    final bool grayscale = await _isGrayscaleSource(job.request.source);
+
     final File output = File(p.join(_cacheDir.path, '${job.key}.png'));
     if (output.existsSync() && output.lengthSync() > 0) {
       final ui.Image? decoded = await _decode(output);
       if (decoded != null) {
-        _memoryPut(job.key, decoded);
-        return decoded;
+        final ui.Image normalized = grayscale
+            ? (await _desaturate(decoded, output)) ?? decoded
+            : decoded;
+        if (normalized != decoded) {
+          decoded.dispose();
+        }
+        _memoryPut(job.key, normalized);
+        return normalized;
       }
       // A partial/corrupt file from an interrupted run: drop it so the next
       // request retries the process.
@@ -296,8 +305,15 @@ class NeuralUpscaleService {
         return null;
       }
 
-      final ui.Image? decoded = await _decode(output);
+      ui.Image? decoded = await _decode(output);
       if (decoded != null) {
+        if (grayscale) {
+          final ui.Image? gray = await _desaturate(decoded, output);
+          if (gray != null && gray != decoded) {
+            decoded.dispose();
+            decoded = gray;
+          }
+        }
         _memoryPut(job.key, decoded);
         if (++_writesSincePrune >= 8) {
           _writesSincePrune = 0;
@@ -402,6 +418,65 @@ class NeuralUpscaleService {
       log.error('Neural upscale: cannot decode ${file.path}: $e\n$s');
       return null;
     }
+  }
+
+  Future<bool> _isGrayscaleSource(ui.Image source) async {
+    try {
+      final ByteData? data =
+          await source.toByteData(format: ui.ImageByteFormat.rawRgba);
+      if (data == null) {
+        return false;
+      }
+      return isGrayscaleRgba(
+        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+      );
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<ui.Image?> _desaturate(ui.Image image, File output) async {
+    try {
+      final ByteData? data =
+          await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      if (data == null) {
+        return null;
+      }
+      final Uint8List raw =
+          data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+      // Already neutral (e.g. a v2 cache hit): keep the decoded image and
+      // avoid rewriting the file.
+      if (isGrayscaleRgba(raw, saturatedDelta: 3, maxColoredRatio: 0.001)) {
+        return image;
+      }
+      final Uint8List rgba = desaturateRgba(raw);
+      final ui.Image gray =
+          await _imageFromPixels(rgba, image.width, image.height);
+      final ByteData? png =
+          await gray.toByteData(format: ui.ImageByteFormat.png);
+      if (png != null) {
+        await output.writeAsBytes(
+          png.buffer.asUint8List(png.offsetInBytes, png.lengthInBytes),
+          flush: true,
+        );
+      }
+      return gray;
+    } catch (e, s) {
+      log.warning('Neural upscale: desaturate failed: $e\n$s');
+      return null;
+    }
+  }
+
+  Future<ui.Image> _imageFromPixels(Uint8List rgba, int width, int height) {
+    final Completer<ui.Image> completer = Completer<ui.Image>();
+    ui.decodeImageFromPixels(
+      rgba,
+      width,
+      height,
+      ui.PixelFormat.rgba8888,
+      completer.complete,
+    );
+    return completer.future;
   }
 
   void _memoryPut(String key, ui.Image image) {

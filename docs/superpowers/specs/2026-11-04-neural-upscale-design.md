@@ -492,3 +492,7 @@ sha1('<sourceKey>|<model>|<denoise>|<scale>|<width>x<height>|v1')
 - A nitidez 2× saiu de Leitura, foi para Upscale como “Nitidez (2×)”, ficou
   desligada por padrão e não roda com o neural ativo. Sem ela, a primeira
   exibição de cada página mostra a imagem original até o neural terminar.
+- O CUGAN pode criar um tom magenta/roxo em páginas P&B (o no-denoise é o
+  pior). O serviço detecta fonte grayscale e força a saída para cinza; a chave
+  do cache subiu para `v2` para não reaproveitar os PNGs coloridos antigos.
+  Em páginas coloridas nada muda.

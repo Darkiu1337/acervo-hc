@@ -1,6 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'dart:typed_data';
+
 import 'package:acervo_hc/src/model/neural_gpu.dart';
+import 'package:acervo_hc/src/model/neural_pixels.dart';
 import 'package:acervo_hc/src/model/neural_upscale_config.dart';
 
 void main() {
@@ -35,6 +38,38 @@ void main() {
 
     test('returns 1 when even 2x does not fit, so the caller skips', () {
       expect(neuralScaleFor(4000, 4000, NeuralUpscaleScale.x2), 1);
+    });
+  });
+
+  group('neural pixels', () {
+    test('detects a neutral grayscale buffer', () {
+      final Uint8List rgba = Uint8List(4 * 100);
+      for (int i = 0; i < rgba.length; i += 4) {
+        rgba[i] = 128;
+        rgba[i + 1] = 128;
+        rgba[i + 2] = 128;
+        rgba[i + 3] = 255;
+      }
+      expect(isGrayscaleRgba(rgba), isTrue);
+    });
+
+    test('rejects a buffer with meaningful color', () {
+      final Uint8List rgba = Uint8List(4 * 100);
+      for (int i = 0; i < rgba.length; i += 4) {
+        rgba[i] = 220;
+        rgba[i + 1] = 20;
+        rgba[i + 2] = 20;
+        rgba[i + 3] = 255;
+      }
+      expect(isGrayscaleRgba(rgba), isFalse);
+    });
+
+    test('desaturation keeps alpha and equalizes RGB', () {
+      final Uint8List rgba = Uint8List.fromList(<int>[200, 100, 50, 77]);
+      final Uint8List gray = desaturateRgba(rgba);
+      expect(gray[0], gray[1]);
+      expect(gray[1], gray[2]);
+      expect(gray[3], 77);
     });
   });
 
