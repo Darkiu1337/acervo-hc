@@ -5,7 +5,6 @@ import 'package:acervo_hc/src/config/ui_config.dart';
 import 'package:acervo_hc/src/extension/widget_extension.dart';
 import 'package:acervo_hc/src/model/gallery_url.dart';
 import 'package:acervo_hc/src/pages/download/mixin/gallery/gallery_download_page_mixin.dart';
-import 'package:acervo_hc/src/service/super_resolution_service.dart' as srs;
 import 'package:acervo_hc/src/setting/preference_setting.dart';
 import 'package:acervo_hc/src/setting/style_setting.dart';
 import 'package:acervo_hc/src/widget/grouped_list.dart';
@@ -14,7 +13,6 @@ import '../../../../mixin/scroll_to_top_page_mixin.dart';
 import '../../../../model/gallery_image.dart';
 import '../../../../routes/routes.dart';
 import '../../../../service/gallery_download/gallery_download_service.dart';
-import '../../../../service/super_resolution_service.dart';
 import '../../../../setting/performance_setting.dart';
 import '../../../../utils/date_util.dart';
 import '../../../../utils/route_util.dart';
@@ -351,7 +349,6 @@ class GalleryListDownloadPage extends StatelessWidget with Scroll2TopPageMixin, 
         EHGalleryCategoryTag(category: gallery.category),
         const Expanded(child: SizedBox()),
         _buildIsOriginal(context, gallery),
-        _buildSuperResolutionLabel(context, gallery),
         _buildPriority(context, gallery),
         _buildButton(context, gallery),
       ],
@@ -375,41 +372,6 @@ class GalleryListDownloadPage extends StatelessWidget with Scroll2TopPageMixin, 
         'original'.tr,
         style: TextStyle(color: UIConfig.resumePauseButtonColor(context), fontWeight: FontWeight.bold, fontSize: 9),
       ),
-    );
-  }
-
-  Widget _buildSuperResolutionLabel(BuildContext context, GalleryDownloadInfo gallery) {
-    return GetBuilder<srs.SuperResolutionService>(
-      id: '${srs.SuperResolutionService.superResolutionId}::${gallery.gid}',
-      builder: (_) {
-        srs.SuperResolutionInfo? superResolutionInfo = superResolutionService.get(gallery.gid, srs.SuperResolutionType.gallery);
-
-        if (superResolutionInfo == null) {
-          return const SizedBox();
-        }
-
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 6),
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          decoration: BoxDecoration(
-            borderRadius: superResolutionInfo.status == srs.SuperResolutionStatus.success ? null : BorderRadius.circular(4),
-            border: Border.all(color: UIConfig.resumePauseButtonColor(context)),
-            shape: superResolutionInfo.status == srs.SuperResolutionStatus.success ? BoxShape.circle : BoxShape.rectangle,
-          ),
-          child: Text(
-            superResolutionInfo.status == srs.SuperResolutionStatus.paused
-                ? 'AI'
-                : superResolutionInfo.status == srs.SuperResolutionStatus.success
-                    ? 'AI'
-                    : 'AI(${superResolutionInfo.imageStatuses.fold<int>(0, (previousValue, element) => previousValue + (element == srs.SuperResolutionStatus.success ? 1 : 0))}/${superResolutionInfo.imageStatuses.length})',
-            style: TextStyle(
-              fontSize: 9,
-              color: UIConfig.resumePauseButtonColor(context),
-              decoration: superResolutionInfo.status == srs.SuperResolutionStatus.paused ? TextDecoration.lineThrough : null,
-            ),
-          ),
-        );
-      },
     );
   }
 

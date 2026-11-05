@@ -1,13 +1,14 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
+import 'package:acervo_hc/src/model/neural_gpu.dart';
 import 'package:acervo_hc/src/model/neural_upscale_config.dart';
 import 'package:acervo_hc/src/network/eh_request.dart';
 import 'package:acervo_hc/src/service/log.dart';
 import 'package:acervo_hc/src/service/path_service.dart';
-import 'package:acervo_hc/src/setting/super_resolution_setting.dart';
 import 'package:acervo_hc/src/utils/archive_util.dart';
 
 /// State of the managed Real-CUGAN install.
@@ -47,13 +48,20 @@ class NeuralModelManager {
   static const String _releaseBase =
       'https://github.com/nihui/realcugan-ncnn-vulkan/releases/download/$_version';
 
+  static const String _tinyPng =
+      'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACFSURBVHhe7dAhAQAADITA719681SAk0h2cmOwaQCDTQMYbBrAYNMABpsGMNg0gMGmAQw2DWCwaQCDTQMYbBrAYNMABpsGMNg0gMGmAQw2DWCwaQCDTQMYbBrAYNMABpsGMNg0gMGmAQw2DWCwaQCDTQMYbBrAYNMABpsGMNg0gMGmAQw2D0bQw7Koj1gSAAAAAElFTkSuQmCC';
+
   final ValueNotifier<NeuralModelStatus> status =
       ValueNotifier<NeuralModelStatus>(NeuralModelStatus.unknown);
   final ValueNotifier<double> downloadProgress = ValueNotifier<double>(0);
+  final ValueNotifier<List<NeuralGpu>> gpus =
+      ValueNotifier<List<NeuralGpu>>(const <NeuralGpu>[]);
 
   NeuralModelPaths? _paths;
   Future<void>? _initFuture;
   Future<bool>? _downloadFuture;
+  bool _gpusLoaded = false;
+  bool _gpusLoading = false;
 
   NeuralModelPaths? get paths => _paths;
 
@@ -85,8 +93,6 @@ class NeuralModelManager {
     try {
       final List<String> candidates = <String>[
         _managedRoot.path,
-        if (superResolutionSetting.modelDirectoryPath.value != null)
-          superResolutionSetting.modelDirectoryPath.value!,
         p.join(p.dirname(Platform.resolvedExecutable), 'neural_models'),
         p.join(pathService.getVisibleDir().path, 'neural_models'),
       ];
@@ -182,6 +188,8 @@ class NeuralModelManager {
 
       await _ensureExecutable(found.binaryPath);
       _paths = found;
+      _gpusLoaded = false;
+      gpus.value = const <NeuralGpu>[];
       downloadProgress.value = 1;
       status.value = NeuralModelStatus.ready;
       log.info('Neural upscaler downloaded: ${found.binaryPath}');
@@ -190,6 +198,87 @@ class NeuralModelManager {
       log.error('Neural upscaler download failed: $e\n$s');
       status.value = NeuralModelStatus.error;
       return false;
+    }
+  }
+
+  /// Asks the ncnn binary to print its Vulkan devices once (a 64x64 dummy
+  /// input is enough) and parses the `[index name]` lines. Cached for the app
+  /// session; call with [force] to refresh after a model/GPU-driver change.
+  Future<void> refreshGpus({bool force = false}) async {
+    final NeuralModelPaths? paths = _paths;
+    if (paths == null || _gpusLoading || (_gpusLoaded && !force)) {
+      return;
+    }
+    _gpusLoading = true;
+    final Directory temp = Directory(
+      p.join(pathService.getCacheDir().path, 'neural_gpu'),
+    );
+
+    try {
+      if (!temp.existsSync()) {
+        temp.createSync(recursive: true);
+      }
+      final File input = File(p.join(temp.path, 'tiny.png'));
+      final File output = File(p.join(temp.path, 'tiny_out.png'));
+      await input.writeAsBytes(base64Decode(_tinyPng), flush: true);
+
+      String modelDir = paths.modelsDir(NeuralUpscaleModel.se);
+      if (!Directory(modelDir).existsSync()) {
+        modelDir = paths.modelsDir(NeuralUpscaleModel.pro);
+      }
+      if (!Directory(modelDir).existsSync()) {
+        return;
+      }
+
+      final Process process = await Process.start(
+        paths.binaryPath,
+        <String>[
+          '-i',
+          input.path,
+          '-o',
+          output.path,
+          '-s',
+          '2',
+          '-n',
+          '0',
+          '-m',
+          modelDir,
+          '-v',
+        ],
+        workingDirectory: paths.executableDir,
+        runInShell: false,
+      );
+      final Future<String> stderrFuture =
+          process.stderr.transform(utf8.decoder).join();
+      final Future<void> stdoutFuture = process.stdout.drain<void>();
+      final int exitCode =
+          await process.exitCode.timeout(const Duration(seconds: 15));
+      final String stderr = await stderrFuture;
+      await stdoutFuture;
+
+      if (exitCode != 0) {
+        log.warning('Neural GPU enumeration exited with $exitCode');
+        return;
+      }
+
+      final List<NeuralGpu> list = parseNeuralGpus(stderr);
+      gpus.value = list;
+      _gpusLoaded = list.isNotEmpty;
+      log.info(
+        'Neural GPUs: ${list.map((NeuralGpu gpu) => '${gpu.index}=${gpu.name}').join(', ')}',
+      );
+    } catch (e, s) {
+      log.warning('Neural GPU enumeration failed: $e\n$s');
+    } finally {
+      _gpusLoading = false;
+      // Do not retry on every rebuild if the probe failed; the refresh button
+      // forces a new attempt.
+      _gpusLoaded = true;
+      try {
+        if (temp.existsSync()) {
+          temp.deleteSync(recursive: true);
+        }
+      } catch (_) {}
     }
   }
 

@@ -70,7 +70,6 @@ class _GalleryUpgradeMigrator {
 
       await _service._updateProgressAfterImageDownloaded(newGallery, serialNo);
 
-      await superResolutionService.copyImageInfo(oldGallery.toGalleryDownloadedData(), newGallery.toGalleryDownloadedData(), oldImageSerialNo, serialNo);
     }
 
     _service._saveGalleryMetadataInDisk(newGallery);
@@ -153,7 +152,6 @@ class _GalleryUpgradeMigrator {
     }
 
     await _copyImageInfo(oldImage, newGallery, newImageSerialNo);
-    await superResolutionService.copyImageInfo(oldGallery.toGalleryDownloadedData(), newGallery.toGalleryDownloadedData(), oldImageSerialNo, newImageSerialNo);
   }
 
   Future<void> _copyImageInfo(GalleryImage oldImage, GalleryDownloadInfo newGallery, int newImageSerialNo) async {

@@ -4,13 +4,11 @@ import 'package:extended_image/extended_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:acervo_hc/src/extension/get_logic_extension.dart';
-import 'package:acervo_hc/src/model/read_page_info.dart';
 import 'package:acervo_hc/src/setting/read_setting.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 import '../../../../config/ui_config.dart';
 import '../../../../service/gallery_download/gallery_download_service.dart';
-import '../../../../service/super_resolution_service.dart';
 import '../../../../service/log.dart';
 import '../../../../widget/eh_image.dart';
 import '../../../../widget/icon_text_button.dart';
@@ -168,7 +166,7 @@ abstract class BaseLayout extends StatelessWidget {
   /// preload window. The reader mounts a few pages around the current one, so
   /// without this every cached page would enter the GPU queue.
   bool _shouldNeuralUpscale(int index) {
-    if (!readSetting.enableNeuralUpscale.isTrue || readPageState.useSuperResolution) {
+    if (!readSetting.enableNeuralUpscale.isTrue) {
       return false;
     }
     final int distance = (index - readPageState.readPageInfo.currentImageIndex).abs();
@@ -188,7 +186,7 @@ abstract class BaseLayout extends StatelessWidget {
         failedWidgetBuilder: (ExtendedImageState state) => _placeholderOf(index, _failedWidgetBuilder(index, state)),
         completedWidgetBuilder: (state) => completedWidgetBuilderCallBack(index, state),
         animateOnlyWhenVisible: true,
-        enableUpscale: readSetting.enableUpscale.isTrue && !readPageState.useSuperResolution,
+        enableUpscale: readSetting.enableUpscale.isTrue,
         enableNeuralUpscale: _shouldNeuralUpscale(index),
         neuralPriority: index == readPageState.readPageInfo.currentImageIndex,
         maxBytes: readSetting.enableMaxImageKilobyte.isTrue ? readSetting.maxImageKilobyte.toInt() * 1024 : null,
@@ -262,45 +260,8 @@ abstract class BaseLayout extends StatelessWidget {
           return _placeholderOf(index, _buildWaitParsingUrlIndicator(context, index));
         }
 
-        /// step 3: check if we are using super resolution
-        if (logic.readPageState.useSuperResolution) {
-          return _buildLocalSuperResolutionImage(context, index);
-        }
-
-        /// step 4: wait for downloading or display it
+        /// step 3: wait for downloading or display it
         return _buildLocalImage(context, index);
-      },
-    );
-  }
-
-  Widget _buildLocalSuperResolutionImage(BuildContext context, int index) {
-    return GetBuilder<SuperResolutionService>(
-      id: '${SuperResolutionService.superResolutionImageId}::${readPageState.readPageInfo.gid!}::$index',
-      builder: (_) {
-        int gid = readPageState.readPageInfo.gid!;
-        SuperResolutionType type = readPageState.readPageInfo.mode == ReadMode.downloaded ? SuperResolutionType.gallery : SuperResolutionType.archive;
-        if (superResolutionService.get(gid, type)?.imageStatuses[index] != SuperResolutionStatus.success) {
-          return _buildLocalImage(context, index);
-        }
-
-        return GestureDetector(
-          onLongPressStart: (details) => logic.showLocalImageContextMenu(index, context, position: details.globalPosition),
-          onSecondaryTapDown: (details) => logic.showLocalImageContextMenu(index, context, position: details.globalPosition),
-          child: EHImage(
-            galleryImage: readPageState.images[index]!.copyWith(
-              path: superResolutionService.computeImageOutputRelativePath(readPageState.images[index]!.path!),
-            ),
-            containerWidth: logic.readPageState.imageContainerSizes[index]?.width ?? logic.getPlaceHolderSize(index).width,
-            containerHeight: logic.readPageState.imageContainerSizes[index]?.height ?? logic.getPlaceHolderSize(index).height,
-            clearMemoryCacheWhenDispose: true,
-            enableUpscale: readSetting.enableUpscale.isTrue && !readPageState.useSuperResolution,
-            loadingWidgetBuilder: () => _placeholderOf(index, _loadingWidgetBuilder(context, index)),
-            failedWidgetBuilder: (state) => _placeholderOf(index, _failedWidgetBuilderForLocalMode(index, state)),
-            completedWidgetBuilder: (state) => completedWidgetBuilderForLocalModeCallBack(index, state),
-            animateOnlyWhenVisible: true,
-            maxBytes: readSetting.enableMaxImageKilobyte.isTrue ? readSetting.maxImageKilobyte.toInt() * 1024 : null,
-          ),
-        );
       },
     );
   }
@@ -353,7 +314,7 @@ abstract class BaseLayout extends StatelessWidget {
         containerWidth: logic.readPageState.imageContainerSizes[index]?.width ?? logic.getPlaceHolderSize(index).width,
         containerHeight: logic.readPageState.imageContainerSizes[index]?.height ?? logic.getPlaceHolderSize(index).height,
         clearMemoryCacheWhenDispose: true,
-        enableUpscale: readSetting.enableUpscale.isTrue && !readPageState.useSuperResolution,
+        enableUpscale: readSetting.enableUpscale.isTrue,
         enableNeuralUpscale: _shouldNeuralUpscale(index),
         neuralPriority: index == readPageState.readPageInfo.currentImageIndex,
         downloadingWidgetBuilder: () => _placeholderOf(index, _downloadingWidgetBuilder(index)),

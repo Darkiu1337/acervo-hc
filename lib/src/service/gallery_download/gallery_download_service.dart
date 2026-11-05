@@ -33,7 +33,6 @@ import 'package:acervo_hc/src/network/jh_request.dart';
 import 'package:acervo_hc/src/network/xlecx_request.dart';
 import 'package:acervo_hc/src/service/local_config_service.dart';
 import 'package:acervo_hc/src/service/log.dart';
-import 'package:acervo_hc/src/service/super_resolution_service.dart';
 import 'package:acervo_hc/src/setting/download_setting.dart';
 import 'package:acervo_hc/src/setting/site_setting.dart';
 import 'package:acervo_hc/src/utils/convert_util.dart';
@@ -499,7 +498,6 @@ class GalleryDownloadService extends GetxController with GridBasePageServiceMixi
 
     log.info('Delete download gallery: ${gallery.title}, deleteImages:$deleteImages');
 
-    await superResolutionService.deleteSuperResolve(gallery.gid, SuperResolutionType.gallery);
 
     await _clearGalleryDownloadInfoInDatabase(gallery.gid);
     if (deleteImages) {

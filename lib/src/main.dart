@@ -32,7 +32,6 @@ import 'package:acervo_hc/src/service/read_progress_service.dart';
 import 'package:acervo_hc/src/service/schedule_service.dart';
 import 'package:acervo_hc/src/service/search_history_service.dart';
 import 'package:acervo_hc/src/service/storage_service.dart';
-import 'package:acervo_hc/src/service/super_resolution_service.dart';
 import 'package:acervo_hc/src/service/tag_search_order_service.dart';
 import 'package:acervo_hc/src/service/tag_translation_service.dart';
 import 'package:acervo_hc/src/service/volume_service.dart';
@@ -52,7 +51,6 @@ import 'package:acervo_hc/src/setting/read_setting.dart';
 import 'package:acervo_hc/src/setting/security_setting.dart';
 import 'package:acervo_hc/src/setting/site_setting.dart';
 import 'package:acervo_hc/src/setting/style_setting.dart';
-import 'package:acervo_hc/src/setting/super_resolution_setting.dart';
 import 'package:acervo_hc/src/setting/user_setting.dart';
 import 'package:acervo_hc/src/widget/app_manager.dart';
 
@@ -81,7 +79,6 @@ List<JHLifeCircleBean> lifeCircleBeans = [
   scheduleService,
   searchHistoryService,
   storageService,
-  superResolutionService,
   tagTranslationService,
   tagSearchOrderOptimizationService,
   volumeService,
@@ -100,7 +97,6 @@ List<JHLifeCircleBean> lifeCircleBeans = [
   securitySetting,
   siteSetting,
   styleSetting,
-  superResolutionSetting,
   userSetting,
   keyboardShortcutSetting,
   builtInBlockedUserService,

@@ -10,9 +10,7 @@ import 'package:acervo_hc/src/model/neural_upscale_config.dart';
 import 'package:acervo_hc/src/service/log.dart';
 import 'package:acervo_hc/src/service/neural_model_manager.dart';
 import 'package:acervo_hc/src/service/path_service.dart';
-import 'package:acervo_hc/src/service/super_resolution_service.dart';
 import 'package:acervo_hc/src/setting/read_setting.dart';
-import 'package:acervo_hc/src/setting/super_resolution_setting.dart';
 
 /// One page to be enhanced by the neural upscaler.
 class NeuralRequest {
@@ -207,16 +205,6 @@ class NeuralUpscaleService {
     return value;
   }
 
-  bool get _batchActive {
-    try {
-      return superResolutionService.superResolutionInfoTable
-          .entries()
-          .any((entry) => entry.value.status == SuperResolutionStatus.running);
-    } catch (_) {
-      return false;
-    }
-  }
-
   Future<void> _pump() async {
     if (_running) {
       return;
@@ -271,11 +259,6 @@ class NeuralUpscaleService {
     if (!neuralModelManager.isReady) {
       return null;
     }
-    if (_batchActive) {
-      log.info('Neural upscale skipped: batch super resolution is running');
-      return null;
-    }
-
     final NeuralModelPaths paths = neuralModelManager.paths!;
     final NeuralUpscaleModel model = readSetting.neuralUpscaleModel.value;
     final String modelDir = paths.modelsDir(model);
@@ -356,7 +339,7 @@ class NeuralUpscaleService {
       '-m',
       modelDir,
       '-g',
-      '${superResolutionSetting.gpuId.value}',
+      '${readSetting.neuralUpscaleGpuId.value}',
       '-f',
       'png',
       '-t',

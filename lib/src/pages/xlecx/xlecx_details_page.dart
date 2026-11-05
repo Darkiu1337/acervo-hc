@@ -157,7 +157,6 @@ class _XlecxDetailsPageState extends State<XlecxDetailsPage> {
         pageCount: loaded.pageCount,
         images: _images(loaded),
         thumbnails: _thumbnails(loaded),
-        useSuperResolution: false,
       ),
     );
   }

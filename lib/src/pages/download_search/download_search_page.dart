@@ -13,7 +13,6 @@ import '../../model/gallery_image.dart';
 import '../../model/gallery_url.dart';
 import '../../routes/routes.dart';
 import '../../service/gallery_download/gallery_download_service.dart';
-import '../../service/super_resolution_service.dart';
 import '../../utils/byte_util.dart';
 import '../../utils/date_util.dart';
 import '../../utils/route_util.dart';
@@ -136,8 +135,6 @@ class DownloadSearchPage extends StatelessWidget {
                           EHGalleryCategoryTag(category: gallery.category),
                           const Expanded(child: SizedBox()),
                           _buildGalleryIsOriginal(context, gallery),
-                          const SizedBox(width: 6),
-                          _buildGallerySuperResolutionLabel(context, gallery),
                           const SizedBox(width: 6),
                           _buildGalleryPublishTime(gallery, context),
                         ],
@@ -279,40 +276,6 @@ class DownloadSearchPage extends StatelessWidget {
     );
   }
 
-  Widget _buildGallerySuperResolutionLabel(BuildContext context, GallerySearchVO gallery) {
-    return GetBuilder<SuperResolutionService>(
-      id: '${SuperResolutionService.superResolutionId}::${gallery.gid}',
-      builder: (_) {
-        SuperResolutionInfo? superResolutionInfo = superResolutionService.get(gallery.gid, SuperResolutionType.gallery);
-
-        if (superResolutionInfo == null) {
-          return const SizedBox();
-        }
-
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          decoration: BoxDecoration(
-            borderRadius: superResolutionInfo.status == SuperResolutionStatus.success ? null : BorderRadius.circular(4),
-            border: Border.all(color: UIConfig.resumePauseButtonColor(context)),
-            shape: superResolutionInfo.status == SuperResolutionStatus.success ? BoxShape.circle : BoxShape.rectangle,
-          ),
-          child: Text(
-            superResolutionInfo.status == SuperResolutionStatus.paused
-                ? 'AI'
-                : superResolutionInfo.status == SuperResolutionStatus.success
-                    ? 'AI'
-                    : 'AI(${superResolutionInfo.imageStatuses.fold<int>(0, (previousValue, element) => previousValue + (element == SuperResolutionStatus.success ? 1 : 0))}/${superResolutionInfo.imageStatuses.length})',
-            style: TextStyle(
-              fontSize: 9,
-              color: UIConfig.resumePauseButtonColor(context),
-              decoration: superResolutionInfo.status == SuperResolutionStatus.paused ? TextDecoration.lineThrough : null,
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   Widget _buildGalleryDownloadProgressText(GalleryDownloadProgress? downloadProgress, BuildContext context) {
     if (downloadProgress == null) {
       return const SizedBox();
@@ -376,8 +339,6 @@ class DownloadSearchPage extends StatelessWidget {
                           EHGalleryCategoryTag(category: archive.category),
                           const Expanded(child: SizedBox()),
                           _buildArchiveIsOriginal(context, archive),
-                          const SizedBox(width: 6),
-                          _buildArchiveSuperResolutionLabel(context, archive),
                           const SizedBox(width: 6),
                           _buildArchivePublishTime(context, archive),
                         ],
@@ -459,40 +420,6 @@ class DownloadSearchPage extends StatelessWidget {
         'original'.tr,
         style: TextStyle(color: UIConfig.resumePauseButtonColor(context), fontWeight: FontWeight.bold, fontSize: 9),
       ),
-    );
-  }
-
-  Widget _buildArchiveSuperResolutionLabel(BuildContext context, ArchiveSearchVO archive) {
-    return GetBuilder<SuperResolutionService>(
-      id: '${SuperResolutionService.superResolutionId}::${archive.gid}',
-      builder: (_) {
-        SuperResolutionInfo? superResolutionInfo = superResolutionService.get(archive.gid, SuperResolutionType.archive);
-
-        if (superResolutionInfo == null) {
-          return const SizedBox();
-        }
-
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          decoration: BoxDecoration(
-            borderRadius: superResolutionInfo.status == SuperResolutionStatus.success ? null : BorderRadius.circular(4),
-            border: Border.all(color: UIConfig.resumePauseButtonColor(context)),
-            shape: superResolutionInfo.status == SuperResolutionStatus.success ? BoxShape.circle : BoxShape.rectangle,
-          ),
-          child: Text(
-            superResolutionInfo.status == SuperResolutionStatus.paused
-                ? 'AI'
-                : superResolutionInfo.status == SuperResolutionStatus.success
-                    ? 'AI'
-                    : 'AI(${superResolutionInfo.imageStatuses.fold<int>(0, (previousValue, element) => previousValue + (element == SuperResolutionStatus.success ? 1 : 0))}/${superResolutionInfo.imageStatuses.length})',
-            style: TextStyle(
-              fontSize: 9,
-              color: UIConfig.resumePauseButtonColor(context),
-              decoration: superResolutionInfo.status == SuperResolutionStatus.paused ? TextDecoration.lineThrough : null,
-            ),
-          ),
-        );
-      },
     );
   }
 

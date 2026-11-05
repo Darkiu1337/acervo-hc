@@ -39,6 +39,7 @@ import 'package:acervo_hc/src/pages/setting/performance/setting_performace_page.
 import 'package:acervo_hc/src/pages/setting/preference/block_rule/blocking_rule_page.dart';
 import 'package:acervo_hc/src/pages/setting/preference/setting_preference_page.dart';
 import 'package:acervo_hc/src/pages/setting/read/setting_read_page.dart';
+import 'package:acervo_hc/src/pages/setting/upscale/setting_upscale_page.dart';
 import 'package:acervo_hc/src/pages/setting/security/setting_security_page.dart';
 import 'package:acervo_hc/src/pages/setting/setting_page.dart';
 import 'package:acervo_hc/src/pages/setting/style/setting_style_page.dart';
@@ -54,7 +55,6 @@ import '../pages/search/desktop/desktop_search_page.dart';
 import '../pages/setting/account/setting_account_page.dart';
 import '../pages/setting/advanced/loglist/log/log_page.dart';
 import '../pages/setting/advanced/loglist/log_list_page.dart';
-import '../pages/setting/advanced/super_resolution/setting_super_resolution_page.dart';
 import '../pages/setting/download/archive_bot/archive_bot_settings_page.dart';
 import '../pages/setting/preference/block_rule/add_block_rule/configure_blocking_rule_page.dart';
 import '../pages/setting/style/page_list_style/setting_page_list_style_page.dart';
@@ -102,6 +102,7 @@ class Routes {
   static const String settingEH = "/setting_EH";
   static const String settingStyle = "/setting_style";
   static const String settingRead = "/setting_read";
+  static const String settingUpscale = "/setting_upscale";
   static const String settingPreference = "/setting_preference";
   static const String settingNetwork = "/setting_network";
   static const String settingDownload = "/setting_download";
@@ -132,7 +133,6 @@ class Routes {
   static const String extraGalleryScanPath = "/setting_download/extraGalleryScanPath";
   static const String archiveBotSettings = '/setting/download/archive_bot';
 
-  static const String superResolution = "/setting_advanced/superResolution";
   static const String logList = "/setting_advanced/logList";
   static const String log = "/setting_advanced/logList/log";
 
@@ -316,6 +316,11 @@ class Routes {
       transition: defaultTransition,
     ),
     EHPage(
+      name: settingUpscale,
+      page: () => const SettingUpscalePage().withEscOrFifthButton2BackRightRoute(),
+      transition: defaultTransition,
+    ),
+    EHPage(
       name: settingKeyboardShortcuts,
       page: () => const SettingKeyboardShortcutsPage(),
       transition: defaultTransition,
@@ -440,12 +445,6 @@ class Routes {
     EHPage(
       name: archiveBotSettings,
       page: () => const ArchiveBotSettingsPage().withEscOrFifthButton2BackRightRoute(),
-      transition: defaultTransition,
-      offAllBefore: false,
-    ),
-    EHPage(
-      name: superResolution,
-      page: () => const SettingSuperResolutionPage().withEscOrFifthButton2BackRightRoute(),
       transition: defaultTransition,
       offAllBefore: false,
     ),

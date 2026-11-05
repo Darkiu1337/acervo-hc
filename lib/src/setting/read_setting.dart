@@ -39,6 +39,9 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
   /// largest scale that fits the texture guard.
   Rx<NeuralUpscaleScale> neuralUpscaleScale = NeuralUpscaleScale.auto.obs;
 
+  /// Vulkan device index used by the neural upscaler (-1 = CPU).
+  RxInt neuralUpscaleGpuId = 0.obs;
+
   /// `-1` disables denoise; `0` is conservative; `1..3` are stronger denoise.
   RxInt neuralUpscaleDenoise = 0.obs;
 
@@ -185,6 +188,7 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
     _normalizeNeuralScale();
     neuralUpscaleDenoise.value = ((map['neuralUpscaleDenoise'] as num?)?.toInt() ?? 0).clamp(-1, 3).toInt();
     neuralUpscalePreload.value = ((map['neuralUpscalePreload'] as num?)?.toInt() ?? 2).clamp(0, 3).toInt();
+    neuralUpscaleGpuId.value = ((map['neuralUpscaleGpuId'] as num?)?.toInt() ?? 0).clamp(-1, 15).toInt();
     _normalizeNeuralDenoise();
     alignToTopWhenTurnPage.value = map['alignToTopWhenTurnPage'] ?? alignToTopWhenTurnPage.value;
     zoomStepPercent.value = (map['zoomStepPercent'] as num?)?.toInt() ?? zoomStepPercent.value;
@@ -240,6 +244,7 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
       'enableNeuralUpscale': enableNeuralUpscale.value,
       'neuralUpscaleModel': neuralUpscaleModel.value.index,
       'neuralUpscaleScale': neuralUpscaleScale.value.index,
+      'neuralUpscaleGpuId': neuralUpscaleGpuId.value,
       'neuralUpscaleDenoise': neuralUpscaleDenoise.value,
       'neuralUpscalePreload': neuralUpscalePreload.value,
       'alignToTopWhenTurnPage': alignToTopWhenTurnPage.value,
@@ -482,6 +487,12 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
   Future<void> saveNeuralUpscaleScale(NeuralUpscaleScale value) async {
     log.debug('saveNeuralUpscaleScale:${value.name}');
     neuralUpscaleScale.value = value;
+    await saveBeanConfig();
+  }
+
+  Future<void> saveNeuralUpscaleGpuId(int value) async {
+    log.debug('saveNeuralUpscaleGpuId:$value');
+    neuralUpscaleGpuId.value = value;
     await saveBeanConfig();
   }
 

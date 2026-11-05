@@ -40,6 +40,12 @@ class SettingPage extends StatelessWidget {
               title: Text('style'.tr),
               onTap: () => toRoute(Routes.settingPrefix + 'style'),
             ),
+            if (GetPlatform.isWindows || GetPlatform.isLinux)
+              ListTile(
+                leading: const Icon(Icons.auto_awesome),
+                title: Text('upscale'.tr),
+                onTap: () => toRoute(Routes.settingUpscale),
+              ),
             ListTile(
               leading: const Icon(Icons.local_library),
               title: Text('read'.tr),

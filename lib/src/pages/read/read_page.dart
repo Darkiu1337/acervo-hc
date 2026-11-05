@@ -15,7 +15,6 @@ import 'package:acervo_hc/src/pages/read/layout/horizontal_list/horizontal_list_
 import 'package:acervo_hc/src/pages/read/layout/horizontal_page/horizontal_page_layout.dart';
 import 'package:acervo_hc/src/pages/read/read_page_logic.dart';
 import 'package:acervo_hc/src/pages/read/read_page_state.dart';
-import 'package:acervo_hc/src/service/super_resolution_service.dart';
 import 'package:acervo_hc/src/widget/eh_mouse_button_listener.dart';
 import 'package:acervo_hc/src/widget/tap_zone_guide_overlay.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
@@ -364,26 +363,6 @@ class _ReadPageState extends State<ReadPage> with ScrollStatusListener, WindowLi
             title: Text(state.readPageInfo.galleryTitle, style: const TextStyle(color: UIConfig.readPageButtonColor)),
             leading: const BackButton(color: UIConfig.readPageButtonColor),
             actions: [
-              if (GetPlatform.isDesktop &&
-                  state.readPageInfo.gid != null &&
-                  (state.readPageInfo.mode == ReadMode.downloaded || state.readPageInfo.mode == ReadMode.archive) &&
-                  state.readPageInfo.useSuperResolution)
-                TextButton(
-                  child: GetBuilder<SuperResolutionService>(
-                    id: '${SuperResolutionService.superResolutionId}::${state.readPageInfo.gid}',
-                    builder: (_) => Text(
-                      'AI' + logic.getSuperResolutionProgress(),
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: state.useSuperResolution ? UIConfig.readPageActiveButtonColor(context) : UIConfig.readPageButtonColor,
-                      ),
-                    ),
-                  ),
-                  onPressed: logic.handleTapSuperResolutionButton,
-                  style: TextButton.styleFrom(
-                    minimumSize: const Size(56, 56),
-                  ),
-                ),
               Obx(() {
                 if (!logic.isInDoubleColumnReadDirection) {
                   return const SizedBox();

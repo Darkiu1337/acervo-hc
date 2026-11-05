@@ -13,13 +13,10 @@ import '../../../../model/read_page_info.dart';
 import '../../../../routes/routes.dart';
 import '../../../../service/archive_download_service.dart';
 import '../../../../service/read_progress_service.dart';
-import '../../../../service/super_resolution_service.dart';
 import '../../../../setting/read_setting.dart';
 import '../../../../setting/preference_setting.dart';
-import '../../../../setting/super_resolution_setting.dart';
 import '../../../../utils/process_util.dart';
 import '../../../../utils/route_util.dart';
-import '../../../../utils/toast_util.dart';
 import '../../../../utils/convert_util.dart';
 import '../../../../widget/eh_alert_dialog.dart';
 import '../../../../widget/eh_context_menu.dart';
@@ -170,7 +167,6 @@ mixin ArchiveDownloadPageLogicMixin on GetxController
           isOriginal: archive.isOriginal,
           readProgressRecordStorageKey: archive.gid.toString(),
           images: images,
-          useSuperResolution: superResolutionService.get(archive.gid, SuperResolutionType.archive) != null,
           readDirection: readDirection,
         ),
       );
@@ -184,33 +180,6 @@ mixin ArchiveDownloadPageLogicMixin on GetxController
       context,
       position: position,
       actions: [
-        if (superResolutionSetting.modelDirectoryPath.value != null &&
-            (superResolutionService.get(archive.gid, SuperResolutionType.archive) == null ||
-                superResolutionService.get(archive.gid, SuperResolutionType.archive)?.status == SuperResolutionStatus.paused))
-          EHContextMenuAction(
-            text: 'superResolution'.tr,
-            onTap: () async {
-              if (superResolutionService.get(archive.gid, SuperResolutionType.archive) == null && archive.isOriginal) {
-                bool? result = await Get.dialog(EHDialog(title: 'attention'.tr + '!', content: 'superResolveOriginalImageHint'.tr));
-                if (result != true) {
-                  return;
-                }
-              }
-
-              superResolutionService.superResolve(archive.gid, SuperResolutionType.archive);
-            },
-          ),
-        if (superResolutionService.get(archive.gid, SuperResolutionType.archive)?.status == SuperResolutionStatus.running)
-          EHContextMenuAction(
-            text: 'stopSuperResolution'.tr,
-            onTap: () => superResolutionService.pauseSuperResolve(archive.gid, SuperResolutionType.archive).then((_) => toast("success".tr)),
-          ),
-        if (superResolutionService.get(archive.gid, SuperResolutionType.archive)?.status == SuperResolutionStatus.paused ||
-            superResolutionService.get(archive.gid, SuperResolutionType.archive)?.status == SuperResolutionStatus.success)
-          EHContextMenuAction(
-            text: 'deleteSuperResolvedImage'.tr,
-            onTap: () => superResolutionService.deleteSuperResolve(archive.gid, SuperResolutionType.archive).then((_) => toast("success".tr)),
-          ),
         if (archiveDownloadInfo != null &&
             archiveDownloadInfo.archiveStatus.code < ArchiveStatus.downloaded.code &&
             archiveDownloadInfo.parseSource == ArchiveParseSource.bot.code)

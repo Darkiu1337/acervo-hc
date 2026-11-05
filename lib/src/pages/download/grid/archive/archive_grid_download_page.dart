@@ -10,7 +10,6 @@ import 'package:acervo_hc/src/pages/download/download_base_page.dart';
 import 'package:acervo_hc/src/pages/download/mixin/archive/archive_download_page_logic_mixin.dart';
 import 'package:acervo_hc/src/pages/download/mixin/archive/archive_download_page_mixin.dart';
 import 'package:acervo_hc/src/pages/download/mixin/archive/archive_download_page_state_mixin.dart';
-import 'package:acervo_hc/src/service/super_resolution_service.dart';
 
 import '../../../../model/gallery_image.dart';
 import '../../../../routes/routes.dart';
@@ -207,8 +206,6 @@ class ArchiveGridDownloadPage extends StatelessWidget with Scroll2TopPageMixin, 
       ),
       parseFromBot: archiveDownloadService.archiveDownloadInfos[archive.gid]?.parseSource == ArchiveParseSource.bot.code,
       isOriginal: archive.isOriginal,
-      gid: archive.gid,
-      superResolutionType: SuperResolutionType.archive,
       onTapWidget: inEditMode ? null : () => logic.handleTapItem(archive),
       onTapTitle: inEditMode ? null : () => logic.handleTapTitle(archive),
       onLongPress: inEditMode ? null : (position) => logic.handleLongPressOrSecondaryTapItem(archive, context, position: position),

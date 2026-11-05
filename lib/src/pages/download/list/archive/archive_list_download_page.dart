@@ -12,8 +12,6 @@ import 'package:acervo_hc/src/widget/grouped_list.dart';
 import '../../../../model/gallery_image.dart';
 import '../../../../routes/routes.dart';
 import '../../../../service/archive_download_service.dart';
-import '../../../../service/super_resolution_service.dart' as srs;
-import '../../../../service/super_resolution_service.dart';
 import '../../../../setting/performance_setting.dart';
 import '../../../../setting/preference_setting.dart';
 import '../../../../setting/style_setting.dart';
@@ -326,7 +324,6 @@ class ArchiveListDownloadPage extends StatelessWidget with Scroll2TopPageMixin, 
         _buildReUnlockButton(context, archive),
         _buildParseFromBot(context, archive),
         _buildIsOriginal(context, archive),
-        _buildSuperResolutionLabel(context, archive),
         _buildButton(context, archive),
       ],
     );
@@ -395,41 +392,6 @@ class ArchiveListDownloadPage extends StatelessWidget with Scroll2TopPageMixin, 
         'original'.tr,
         style: TextStyle(color: UIConfig.resumePauseButtonColor(context), fontWeight: FontWeight.bold, fontSize: 9),
       ),
-    );
-  }
-
-  Widget _buildSuperResolutionLabel(BuildContext context, ArchiveDownloadedData archive) {
-    return GetBuilder<srs.SuperResolutionService>(
-      id: '${srs.SuperResolutionService.superResolutionId}::${archive.gid}',
-      builder: (_) {
-        srs.SuperResolutionInfo? superResolutionInfo = superResolutionService.get(archive.gid, srs.SuperResolutionType.archive);
-
-        if (superResolutionInfo == null) {
-          return const SizedBox();
-        }
-
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 6),
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          decoration: BoxDecoration(
-            borderRadius: superResolutionInfo.status == srs.SuperResolutionStatus.success ? null : BorderRadius.circular(4),
-            border: Border.all(color: UIConfig.resumePauseButtonColor(context)),
-            shape: superResolutionInfo.status == srs.SuperResolutionStatus.success ? BoxShape.circle : BoxShape.rectangle,
-          ),
-          child: Text(
-            superResolutionInfo.status == srs.SuperResolutionStatus.paused
-                ? 'AI'
-                : superResolutionInfo.status == srs.SuperResolutionStatus.success
-                    ? 'AI'
-                    : 'AI(${superResolutionInfo.imageStatuses.fold<int>(0, (previousValue, element) => previousValue + (element == srs.SuperResolutionStatus.success ? 1 : 0))}/${superResolutionInfo.imageStatuses.length})',
-            style: TextStyle(
-              fontSize: 9,
-              color: UIConfig.resumePauseButtonColor(context),
-              decoration: superResolutionInfo.status == srs.SuperResolutionStatus.paused ? TextDecoration.lineThrough : null,
-            ),
-          ),
-        );
-      },
     );
   }
 

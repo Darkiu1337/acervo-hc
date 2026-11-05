@@ -36,9 +36,6 @@ class ReadPageInfo {
   /// with [images] in [ReadMode.online], the reader never parses E-H pages.
   List<GalleryThumbnail>? thumbnails;
 
-  /// used for initialize
-  bool useSuperResolution;
-
   ReadDirection? readDirection;
 
   ReadPageInfo({
@@ -53,7 +50,6 @@ class ReadPageInfo {
     required this.readProgressRecordStorageKey,
     this.images,
     this.thumbnails,
-    required this.useSuperResolution,
     this.readDirection,
   }) : currentImageIndex = initialIndex;
 }

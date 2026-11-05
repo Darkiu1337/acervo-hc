@@ -2,7 +2,6 @@ import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
 import 'package:acervo_hc/src/database/dao/gallery_history_dao.dart';
 import 'package:acervo_hc/src/enum/config_enum.dart';
@@ -21,7 +20,6 @@ import 'package:acervo_hc/src/service/tag_translation_service.dart';
 import 'package:acervo_hc/src/service/path_service.dart';
 import 'package:acervo_hc/src/setting/eh_setting.dart';
 import 'package:acervo_hc/src/setting/read_setting.dart';
-import 'package:acervo_hc/src/setting/super_resolution_setting.dart';
 import 'package:acervo_hc/src/utils/convert_util.dart';
 import 'package:path/path.dart';
 
@@ -58,7 +56,6 @@ class AppUpdateService with JHLifeCircleBeanErrorCatch implements JHLifeCircleBe
     UpdateLocalGalleryPathHandler(),
     UpdateReadDirectionHandler(),
     MigrateSearchConfigHandler(),
-    ClearSuperResolutionSettingHandler(),
     MigrateCookieHandler(),
     MigrateLocalFilterTagsHandler(),
     MigrateGalleryHistoryHandler(),
@@ -299,25 +296,6 @@ class MigrateSearchConfigHandler implements UpdateHandler {
   }
 }
 
-class ClearSuperResolutionSettingHandler implements UpdateHandler {
-  @override
-  List<JHLifeCircleBean> get initDependencies => [superResolutionSetting];
-
-  @override
-  Future<bool> match(int? fromVersion, int toVersion) async {
-    return fromVersion != null && fromVersion <= 7;
-  }
-
-  @override
-  Future<void> onInit() async {
-    log.info('ClearSuperResolutionSettingHandler onInit');
-    superResolutionSetting.saveModelDirectoryPath(null);
-  }
-
-  @override
-  Future<void> onReady() async {}
-}
-
 class MigrateCookieHandler implements UpdateHandler {
   @override
   List<JHLifeCircleBean> get initDependencies => [pathService, ehRequest];
@@ -505,7 +483,6 @@ class MigrateStorageConfigHandler implements UpdateHandler {
         securitySetting,
         siteSetting,
         styleSetting,
-        superResolutionSetting,
         userSetting,
         ehRequest,
       ];
@@ -608,13 +585,6 @@ class MigrateStorageConfigHandler implements UpdateHandler {
       futures.add(Future(() async {
         await localConfigService.write(configKey: ConfigEnum.styleSetting, value: jsonEncode(styleSettingMap));
         await styleSetting.refreshBean();
-      }));
-    }
-    Map? superResolutionSettingMap = storageService.read(ConfigEnum.superResolutionSetting.key);
-    if (superResolutionSettingMap != null) {
-      futures.add(Future(() async {
-        await localConfigService.write(configKey: ConfigEnum.superResolutionSetting, value: jsonEncode(superResolutionSettingMap));
-        await superResolutionSetting.refreshBean();
       }));
     }
     Map? userSettingMap = storageService.read(ConfigEnum.userSetting.key);

@@ -13,7 +13,6 @@ import 'package:acervo_hc/src/pages/download/mixin/gallery/gallery_download_page
 import 'package:acervo_hc/src/pages/download/mixin/gallery/gallery_download_page_mixin.dart';
 import 'package:acervo_hc/src/pages/download/mixin/gallery/gallery_download_page_state_mixin.dart';
 import 'package:acervo_hc/src/routes/routes.dart';
-import 'package:acervo_hc/src/service/super_resolution_service.dart';
 import 'package:acervo_hc/src/utils/route_util.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 
@@ -222,8 +221,6 @@ class GalleryGridDownloadPage extends StatelessWidget with Scroll2TopPageMixin, 
       ),
       parseFromBot: false,
       isOriginal: gallery.downloadOriginalImage,
-      gid: gallery.gid,
-      superResolutionType: SuperResolutionType.gallery,
       onTapWidget: inEditMode ? null : () => logic.handleTapItem(gallery),
       onTapTitle: inEditMode ? null : () => logic.handleTapTitle(gallery),
       onLongPress: inEditMode ? null : (position) => logic.handleLongPressOrSecondaryTapItem(gallery, context, position: position),

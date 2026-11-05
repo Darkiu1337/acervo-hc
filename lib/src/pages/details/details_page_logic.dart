@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:clipboard/clipboard.dart';
-import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -24,7 +23,6 @@ import 'package:acervo_hc/src/model/read_page_info.dart';
 import 'package:acervo_hc/src/network/eh_request.dart';
 import 'package:acervo_hc/src/pages/download/download_base_page.dart';
 import 'package:acervo_hc/src/service/read_progress_service.dart';
-import 'package:acervo_hc/src/service/super_resolution_service.dart';
 import 'package:acervo_hc/src/setting/download_setting.dart';
 import 'package:acervo_hc/src/setting/my_tags_setting.dart';
 import 'package:acervo_hc/src/utils/convert_util.dart';
@@ -58,13 +56,11 @@ import '../../model/gallery_detail.dart';
 import '../../model/gallery_image.dart';
 import '../../model/gallery_metadata.dart';
 import '../../model/gallery_note.dart';
-import '../../model/search_config.dart';
 import '../../model/tag_set.dart';
 import '../../service/history_service.dart';
 import '../../service/gallery_download/download_path_resolver.dart';
 import '../../service/gallery_download/gallery_download_service.dart';
 import '../../service/local_block_rule_service.dart';
-import '../../service/storage_service.dart';
 import '../../setting/eh_setting.dart';
 import '../../setting/read_setting.dart';
 import '../../setting/site_setting.dart';
@@ -747,7 +743,6 @@ class DetailsPageLogic extends GetxController with LoginRequiredMixin, Scroll2To
           isOriginal: archive.isOriginal,
           readProgressRecordStorageKey: archive.gid.toString(),
           images: images,
-          useSuperResolution: superResolutionService.get(archive.gid, SuperResolutionType.archive) != null,
           readDirection: readDirection,
         ),
       );
@@ -1095,7 +1090,6 @@ class DetailsPageLogic extends GetxController with LoginRequiredMixin, Scroll2To
           initialIndex: forceIndex ?? await getReadIndexRecord(),
           readProgressRecordStorageKey: state.galleryUrl.gid.toString(),
           pageCount: state.galleryDetails?.pageCount ?? state.gallery?.pageCount ?? state.galleryMetadata!.pageCount,
-          useSuperResolution: false,
           readDirection: webtoonReadDirection,
         ),
       )?.whenComplete(() => Future.delayed(const Duration(milliseconds: 800))).whenComplete(() => updateSafely([readButtonId]));
@@ -1121,7 +1115,6 @@ class DetailsPageLogic extends GetxController with LoginRequiredMixin, Scroll2To
         initialIndex: forceIndex ?? await getReadIndexRecord(),
         readProgressRecordStorageKey: state.galleryUrl.gid.toString(),
         pageCount: gallery.pageCount,
-        useSuperResolution: superResolutionService.get(state.galleryUrl.gid, SuperResolutionType.gallery) != null,
         readDirection: webtoonReadDirection,
       ),
     )?.whenComplete(() => Future.delayed(const Duration(milliseconds: 800))).whenComplete(() => updateSafely([readButtonId]));

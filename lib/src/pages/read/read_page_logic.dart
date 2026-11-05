@@ -21,7 +21,6 @@ import 'package:acervo_hc/src/pages/read/layout/horizontal_list/horizontal_list_
 import 'package:acervo_hc/src/pages/read/layout/horizontal_page/horizontal_page_layout_logic.dart';
 import 'package:acervo_hc/src/pages/read/layout/vertical_list/vertical_list_layout_logic.dart';
 import 'package:acervo_hc/src/pages/read/read_page_state.dart';
-import 'package:acervo_hc/src/service/super_resolution_service.dart';
 import 'package:acervo_hc/src/service/external_viewer_service.dart';
 import 'package:acervo_hc/src/service/volume_service.dart';
 import 'package:acervo_hc/src/setting/style_setting.dart';
@@ -889,25 +888,6 @@ class ReadPageLogic extends GetxController with WidgetsBindingObserver, GalleryI
         duration: const Duration(milliseconds: 200),
       );
     }
-  }
-
-  void handleTapSuperResolutionButton() {
-    state.useSuperResolution = !state.useSuperResolution;
-    log.info('toggle super resolution mode: ${state.useSuperResolution}');
-    updateSafely([topMenuId]);
-    layoutLogic.updateSafely([BaseLayoutLogic.pageId]);
-  }
-
-  String getSuperResolutionProgress() {
-    int gid = state.readPageInfo.gid!;
-    SuperResolutionType type = state.readPageInfo.mode == ReadMode.downloaded ? SuperResolutionType.gallery : SuperResolutionType.archive;
-    SuperResolutionInfo? superResolutionInfo = superResolutionService.get(gid, type);
-
-    if (superResolutionInfo == null) {
-      return '';
-    }
-
-    return '(${superResolutionInfo.imageStatuses.where((status) => status == SuperResolutionStatus.success).length}/${superResolutionInfo.imageStatuses.length})';
   }
 
   void toggleDisplayFirstPageAlone() {

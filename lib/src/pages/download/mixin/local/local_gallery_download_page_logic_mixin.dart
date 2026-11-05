@@ -12,7 +12,6 @@ import '../../../../model/read_page_info.dart';
 import '../../../../routes/routes.dart';
 import '../../../../service/local_config_service.dart';
 import '../../../../service/local_gallery_service.dart';
-import '../../../../service/storage_service.dart';
 import '../../../../setting/read_setting.dart';
 import '../../../../utils/process_util.dart';
 import '../../../../utils/route_util.dart' as route;
@@ -100,7 +99,6 @@ mixin LocalGalleryDownloadPageLogicMixin on GetxController {
           pageCount: images.length,
           readProgressRecordStorageKey: gallery.cover.path!,
           images: images,
-          useSuperResolution: false,
         ),
       );
     }

@@ -4,10 +4,7 @@ import 'package:acervo_hc/src/config/ui_config.dart';
 import 'package:acervo_hc/src/extension/get_logic_extension.dart';
 import 'package:acervo_hc/src/mixin/scroll_to_top_logic_mixin.dart';
 import 'package:acervo_hc/src/mixin/update_global_gallery_status_logic_mixin.dart';
-import 'package:acervo_hc/src/service/super_resolution_service.dart';
-import 'package:acervo_hc/src/setting/super_resolution_setting.dart';
 
-import '../../../../database/database.dart';
 import '../../../../model/read_page_info.dart';
 import '../../../../routes/routes.dart';
 import '../../../../service/gallery_download/download_path_resolver.dart';
@@ -17,7 +14,6 @@ import '../../../../setting/read_setting.dart';
 import '../../../../setting/preference_setting.dart';
 import '../../../../utils/process_util.dart';
 import '../../../../utils/route_util.dart';
-import '../../../../utils/toast_util.dart';
 import '../../../../utils/convert_util.dart';
 import '../../../../widget/eh_alert_dialog.dart';
 import '../../../../widget/eh_context_menu.dart';
@@ -175,7 +171,6 @@ mixin GalleryDownloadPageLogicMixin on GetxController
           initialIndex: readIndexRecord,
           readProgressRecordStorageKey: gallery.gid.toString(),
           pageCount: gallery.pageCount,
-          useSuperResolution: superResolutionService.get(gallery.gid, SuperResolutionType.gallery) != null,
           readDirection: readDirection,
         ),
       );
@@ -187,34 +182,6 @@ mixin GalleryDownloadPageLogicMixin on GetxController
       context,
       position: position,
       actions: [
-        if (superResolutionSetting.modelDirectoryPath.value != null &&
-            downloadService.galleryDownloadInfos[gallery.gid]?.downloadProgress.downloadStatus == DownloadStatus.downloaded &&
-            (superResolutionService.get(gallery.gid, SuperResolutionType.gallery) == null ||
-                superResolutionService.get(gallery.gid, SuperResolutionType.gallery)?.status == SuperResolutionStatus.paused))
-          EHContextMenuAction(
-            text: 'superResolution'.tr,
-            onTap: () async {
-              if (superResolutionService.get(gallery.gid, SuperResolutionType.gallery) == null && gallery.downloadOriginalImage) {
-                bool? result = await Get.dialog(EHDialog(title: 'attention'.tr + '!', content: 'superResolveOriginalImageHint'.tr));
-                if (result != true) {
-                  return;
-                }
-              }
-
-              superResolutionService.superResolve(gallery.gid, SuperResolutionType.gallery);
-            },
-          ),
-        if (superResolutionService.get(gallery.gid, SuperResolutionType.gallery)?.status == SuperResolutionStatus.running)
-          EHContextMenuAction(
-            text: 'stopSuperResolution'.tr,
-            onTap: () => superResolutionService.pauseSuperResolve(gallery.gid, SuperResolutionType.gallery).then((_) => toast("success".tr)),
-          ),
-        if (superResolutionService.get(gallery.gid, SuperResolutionType.gallery)?.status == SuperResolutionStatus.paused ||
-            superResolutionService.get(gallery.gid, SuperResolutionType.gallery)?.status == SuperResolutionStatus.success)
-          EHContextMenuAction(
-            text: 'deleteSuperResolvedImage'.tr,
-            onTap: () => superResolutionService.deleteSuperResolve(gallery.gid, SuperResolutionType.gallery).then((_) => toast("success".tr)),
-          ),
         EHContextMenuAction(
           text: 'changeGroup'.tr,
           onTap: () => handleChangeGroup(gallery),

@@ -60,7 +60,6 @@ class ReadPageState with ScrollStatusListerState {
   bool showTapZoneGuide = false;
   Battery battery = Battery();
   int batteryLevel = 100;
-  bool useSuperResolution = false;
   bool displayFirstPageAlone = readSetting.displayFirstPageAlone.value;
   FocusNode focusNode = FocusNode();
 
@@ -110,7 +109,5 @@ class ReadPageState with ScrollStatusListerState {
     imageContainerSizes = List.generate(readPageInfo.pageCount, (_) => null);
     parseImageUrlErrorMsg = List.generate(readPageInfo.pageCount, (_) => null);
     parseImageUrlErrorMsg = List.generate(readPageInfo.pageCount, (_) => null);
-
-    useSuperResolution = readPageInfo.useSuperResolution;
   }
 }

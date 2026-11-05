@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:acervo_hc/src/model/neural_gpu.dart';
 import 'package:acervo_hc/src/model/neural_upscale_config.dart';
 
 void main() {
@@ -34,6 +35,28 @@ void main() {
 
     test('returns 1 when even 2x does not fit, so the caller skips', () {
       expect(neuralScaleFor(4000, 4000, NeuralUpscaleScale.x2), 1);
+    });
+  });
+
+  group('parseNeuralGpus', () {
+    test('keeps one name per ncnn device and sorts by index', () {
+      const String stderr = '''
+[0 NVIDIA GeForce GTX 1650]  queueC=2[8]  queueG=0[16]
+[0 NVIDIA GeForce GTX 1650]  fp16-p/s/a=1/1/1
+[0 NVIDIA GeForce GTX 1650]  subgroup=32
+[1 AMD Radeon(TM) Graphics]  queueC=1[2]
+[1 AMD Radeon(TM) Graphics]  fp16-p/s/a=1/1/1
+''';
+      final List<NeuralGpu> gpus = parseNeuralGpus(stderr);
+      expect(gpus.length, 2);
+      expect(gpus[0].index, 0);
+      expect(gpus[0].name, 'NVIDIA GeForce GTX 1650');
+      expect(gpus[1].index, 1);
+      expect(gpus[1].name, 'AMD Radeon(TM) Graphics');
+    });
+
+    test('returns an empty list when there is no device line', () {
+      expect(parseNeuralGpus('no devices here'), isEmpty);
     });
   });
 

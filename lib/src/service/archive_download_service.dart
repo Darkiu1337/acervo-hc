@@ -23,7 +23,6 @@ import 'package:acervo_hc/src/model/archive_unlock_result.dart';
 import 'package:acervo_hc/src/network/archive_bot_request.dart';
 import 'package:acervo_hc/src/network/eh_request.dart';
 import 'package:acervo_hc/src/service/path_service.dart';
-import 'package:acervo_hc/src/service/super_resolution_service.dart';
 import 'package:acervo_hc/src/setting/archive_bot_setting.dart';
 import 'package:acervo_hc/src/setting/download_setting.dart';
 import 'package:acervo_hc/src/setting/network_setting.dart';
@@ -159,7 +158,6 @@ class ArchiveDownloadService extends GetxController with GridBasePageServiceMixi
 
       await pauseDownloadArchive(gid);
 
-      await superResolutionService.deleteSuperResolve(gid, SuperResolutionType.archive);
 
       await _deleteArchiveInfoInDatabase(gid);
 

@@ -7,7 +7,6 @@ import 'package:acervo_hc/src/model/gallery_image.dart';
 import 'package:acervo_hc/src/utils/route_util.dart';
 import 'package:acervo_hc/src/widget/eh_image.dart';
 import 'package:acervo_hc/src/widget/eh_wheel_speed_controller.dart';
-import 'package:acervo_hc/src/service/super_resolution_service.dart';
 
 import '../../../../mixin/scroll_to_top_logic_mixin.dart';
 import '../../../../mixin/scroll_to_top_page_mixin.dart';
@@ -230,8 +229,6 @@ class GridGallery extends StatelessWidget {
   final Widget widget;
   final bool parseFromBot;
   final bool isOriginal;
-  final int? gid;
-  final SuperResolutionType? superResolutionType;
   final VoidCallback? onTapWidget;
   final VoidCallback? onTapTitle;
   final void Function(Offset globalPosition)? onLongPress;
@@ -244,8 +241,6 @@ class GridGallery extends StatelessWidget {
     required this.widget,
     required this.parseFromBot,
     required this.isOriginal,
-    this.gid,
-    this.superResolutionType,
     this.onTapWidget,
     this.onTapTitle,
     this.onLongPress,
@@ -295,37 +290,6 @@ class GridGallery extends StatelessWidget {
                 border: Border.all(color: UIConfig.onBackGroundColor(context)),
               ),
               child: const Icon(Icons.smart_toy_outlined, size: UIConfig.downloadPageBotIconSize),
-            ),
-          if (gid != null && superResolutionType != null)
-            GetBuilder<SuperResolutionService>(
-              id: '${SuperResolutionService.superResolutionId}::$gid',
-              builder: (_) {
-                SuperResolutionInfo? superResolutionInfo = superResolutionService.get(gid!, superResolutionType!);
-                return superResolutionInfo == null
-                    ? const SizedBox()
-                    : Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 2),
-                        margin: const EdgeInsets.only(right: 4),
-                        decoration: BoxDecoration(
-                          color: UIConfig.backGroundColor(context),
-                          borderRadius: superResolutionInfo.status == SuperResolutionStatus.success ? null : BorderRadius.circular(4),
-                          border: Border.all(color: UIConfig.onBackGroundColor(context)),
-                          shape: superResolutionInfo.status == SuperResolutionStatus.success ? BoxShape.circle : BoxShape.rectangle,
-                        ),
-                        child: Text(
-                          superResolutionInfo.status == SuperResolutionStatus.paused
-                              ? 'AI'
-                              : superResolutionInfo.status == SuperResolutionStatus.success
-                                  ? 'AI'
-                                  : 'AI(${superResolutionInfo.imageStatuses.fold<int>(0, (previousValue, element) => previousValue + (element == SuperResolutionStatus.success ? 1 : 0))}/${superResolutionInfo.imageStatuses.length})',
-                          style: TextStyle(
-                            fontSize: 9,
-                            color: UIConfig.onBackGroundColor(context),
-                            decoration: superResolutionInfo.status == SuperResolutionStatus.paused ? TextDecoration.lineThrough : null,
-                          ),
-                        ),
-                      );
-              },
             ),
           if (isOriginal)
             Container(

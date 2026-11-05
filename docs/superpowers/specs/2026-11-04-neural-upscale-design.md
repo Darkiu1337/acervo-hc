@@ -195,9 +195,9 @@ agrada mais. Por isso o padrão é SE e o Pro é opção.
 9. **Plataforma:** Windows x64 e Linux x64 na fase 1. O serviço/cache é
    independente de plataforma; só o runner escolhe o binário e o zip do modelo
    (`...-windows.zip` ou `...-ubuntu.zip`). Android/iOS ficam fora.
-10. **Recurso antigo:** o super resolution em lote continua. O novo caminho
-    reaproveita uma instalação de modelo válida que já exista; senão baixa uma
-    cópia gerenciada. Um lock global de GPU serializa neural e lote.
+10. **Recurso antigo:** removido em 2026-11-05 (serviço, página, rota, toggle
+    do leitor, ações e rótulos de download). A tabela/DAO antigos ficam no
+    banco por compatibilidade, sem uso. O leitor usa só o neural.
 
 ## 7. Arquitetura proposta (fase 1)
 
@@ -353,7 +353,7 @@ Em `read_setting.dart` (sem novo bean de config):
   caminho do modelo neural é gerenciado e separado. Criar `neuralModelDir` no
   modelo manager; manter `gpuId` compartilhado, com a UI mostrando o nome.
 
-UI em Configurações → Leitura:
+UI em Configurações → Upscale (entrada própria; a seção saiu de Leitura):
 
 - Switch “Melhoria neural (beta)”.
 - Status do modelo + botão “Baixar modelo (~46 MB)” com progresso.
@@ -401,8 +401,6 @@ sha1('<sourceKey>|<model>|<denoise>|<scale>|<width>x<height>|v1')
 ### 7.9 Ciclo de vida e limites
 
 - Um processo por vez; fila priorizada; `kill` ao cancelar.
-- Lock global de GPU com o lote; neural desligado quando
-  `readPageState.useSuperResolution` (a imagem exibida já é 4×).
 - Pausar quando o app não está em foco (opcional, `WidgetsBindingObserver`).
 - Pausar em bateria (opcional; `battery_plus` já é dependência) — decisão do
   builder.
@@ -470,5 +468,22 @@ sha1('<sourceKey>|<model>|<denoise>|<scale>|<width>x<height>|v1')
 4. **Cache em disco:** 2 GB, LRU.
 5. **Escopo:** rodar sempre em página de baixa resolução, para a pré-carga
    deixar o zoom pronto.
-6. **Recurso antigo:** manter o super resolution em lote como está.
+6. **Recurso antigo:** remover o super resolution em lote.
 7. **Plataformas:** Windows x64 e Linux x64 na fase 1; Android/iOS fora.
+
+## 13. Revisão de 2026-11-05
+
+- O super resolution em lote foi removido da interface e do leitor: serviço,
+  página, rota, modelo/seleção de GPU, toggle por galeria, ações de
+  download/detalhes e rótulos “AI(...)”. A tabela/DAO antigos permanecem no
+  banco sem uso, para não exigir uma migração destrutiva.
+- As configurações foram consolidadas numa entrada própria
+  **Configurações → Upscale**, com o neural, o modelo/status/download e a GPU.
+  A seção neural saiu de Leitura; a entrada antiga de Avançado foi removida.
+- A GPU passou para `readSetting.neuralUpscaleGpuId`. A lista é obtida rodando
+  o binário ncnn com um PNG 64×64 e `-v`, e parseando as linhas
+  `[índice nome]`; o dropdown mostra “0 — NVIDIA GeForce GTX 1650”, etc.
+- Escala manual 2×/3×/4×, com limite de 6144 px por eixo; 4× só no SE
+  (`models-pro` não tem up4x). O app cai para a maior escala que couber.
+- O cache de disco continua em 2 GB (FIFO por data de gravação; a memória é
+  LRU por acesso). O modelo fica em `neural_models`, separado do cache.
