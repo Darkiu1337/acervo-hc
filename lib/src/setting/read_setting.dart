@@ -47,7 +47,7 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
   RxInt neuralUpscaleDenoise = 0.obs;
 
   /// How many pages ahead of the visible one are pre-enhanced.
-  RxInt neuralUpscalePreload = 2.obs;
+  RxInt neuralUpscalePreload = 3.obs;
 
   /// Align a zoomed page to its top edge when the reader turns the page.
   RxBool alignToTopWhenTurnPage = true.obs;
@@ -188,7 +188,7 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
         neuralScaleIndex >= 0 && neuralScaleIndex < NeuralUpscaleScale.values.length ? neuralScaleIndex : 0];
     _normalizeNeuralScale();
     neuralUpscaleDenoise.value = ((map['neuralUpscaleDenoise'] as num?)?.toInt() ?? 0).clamp(-1, 3).toInt();
-    neuralUpscalePreload.value = ((map['neuralUpscalePreload'] as num?)?.toInt() ?? 2).clamp(0, 3).toInt();
+    neuralUpscalePreload.value = ((map['neuralUpscalePreload'] as num?)?.toInt() ?? 3).clamp(0, 3).toInt();
     neuralUpscaleGpuId.value = ((map['neuralUpscaleGpuId'] as num?)?.toInt() ?? 0).clamp(-1, 15).toInt();
     _normalizeNeuralDenoise();
     if (enableNeuralUpscale.isTrue) {

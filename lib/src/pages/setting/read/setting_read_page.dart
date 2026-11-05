@@ -5,6 +5,7 @@ import 'package:acervo_hc/src/config/ui_config.dart';
 import 'package:acervo_hc/src/extension/widget_extension.dart';
 import 'package:acervo_hc/src/pages/setting/keyboard_shortcuts/setting_keyboard_shortcuts_page.dart';
 import 'package:acervo_hc/src/pages/setting/read/tap_zone/setting_tap_zone_page.dart';
+import 'package:acervo_hc/src/pages/setting/upscale/setting_upscale_page.dart';
 import 'package:acervo_hc/src/setting/preference_setting.dart';
 import 'package:acervo_hc/src/setting/read_setting.dart';
 import 'package:acervo_hc/src/setting/style_setting.dart';
@@ -54,6 +55,7 @@ class SettingReadPage extends StatelessWidget {
                   _buildZoomStepPercent().center(),
                   _buildEnableBottomMenu().center(),
                   _buildTapZoneStyle(context).center(),
+                  if (GetPlatform.isWindows || GetPlatform.isLinux) _buildUpscaleSettings(context).center(),
                   _buildEnableImageMaxKilobytes().center(),
                   if (readSetting.enableMaxImageKilobyte.isTrue) _buildImageMaxKilobytes(context).fadeIn(const Key('imageMaxKilobytes')).center(),
                   if (GetPlatform.isDesktop) _buildUseThirdPartyViewer().center(),
@@ -320,6 +322,44 @@ class SettingReadPage extends StatelessWidget {
           );
         } else {
           toRoute(Routes.settingTapZoneStyle);
+        }
+      },
+    );
+  }
+
+  Widget _buildUpscaleSettings(BuildContext context) {
+    return ListTile(
+      title: Text('upscale'.tr),
+      subtitle: Text('upscaleSettingsHint'.tr),
+      trailing: const Icon(Icons.keyboard_arrow_right),
+      onTap: () {
+        final rootNav = Navigator.of(context, rootNavigator: true);
+        final nearestNav = Navigator.of(context);
+        if (rootNav != nearestNav &&
+            nearestNav.widget.key != Get.keys[left] &&
+            nearestNav.widget.key != Get.keys[right] &&
+            nearestNav.widget.key != Get.keys[leftV2] &&
+            nearestNav.widget.key != Get.keys[rightV2]) {
+          nearestNav.push(
+            PageRouteBuilder(
+                pageBuilder: (context, animation, secondaryAnimation) => const SettingUpscalePage(),
+                transitionsBuilder: preferenceSetting.enableSwipeBackGesture.isTrue && styleSetting.isInMobileLayout
+                    ? (context, animation, secondaryAnimation, child) =>
+                    SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(1, 0),
+                        end: Offset.zero,
+                      ).animate(CurvedAnimation(
+                        parent: animation,
+                        curve: Curves.easeInOut,
+                      )),
+                      child: child,
+                    )
+                    : (context, animation, secondaryAnimation, child) => FadeTransition(opacity: animation, child: child),
+                transitionDuration: UIConfig.defaultPageRouteTransitionDuration),
+          );
+        } else {
+          toRoute(Routes.settingUpscale);
         }
       },
     );

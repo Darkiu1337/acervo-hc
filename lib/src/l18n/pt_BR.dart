@@ -612,6 +612,7 @@ class pt_BR {
       'neuralUpscaleGpuRefresh': 'Atualizar lista de GPUs',
       'neuralUpscaleHelp': 'A primeira exibição de cada página leva cerca de 3 a 4 s em 2×; 3×/4× custam mais. Depois disso o resultado vem do cache. O upscale melhora traço, textura e artefatos de JPEG, mas não recupera informação que não existe. Páginas em preto e branco são mantidas em cinza, mesmo que o modelo tente colorir.',
       'upscale': 'Upscale',
+      'upscaleSettingsHint': 'Melhoria neural, modelo, escala, ruído e pré-carregamento',
       'alignToTopWhenTurnPage': 'Voltar ao topo ao trocar de página',
       'alignToTopWhenTurnPageHint': 'Com zoom ativo, a página nova começa no topo. Desative para manter a posição de cada página.',
       'zoomStepPercent': 'Passo do zoom',

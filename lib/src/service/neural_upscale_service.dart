@@ -57,7 +57,7 @@ class NeuralUpscaleService {
   static final NeuralUpscaleService instance = NeuralUpscaleService._();
 
   static const int _memoryCacheBytes = 192 * 1024 * 1024;
-  static const int _diskCacheBytes = 2 * 1024 * 1024 * 1024;
+  static const int _diskCacheBytes = 4 * 1024 * 1024 * 1024;
   static const int _maxOutputDimension = neuralMaxOutputDimension;
 
   /// Sources at or above this width already look fine with the shader.
@@ -76,9 +76,11 @@ class NeuralUpscaleService {
 
   Future<void>? _initFuture;
 
+  Directory get _cacheDirPath =>
+      Directory(p.join(pathService.getCacheDir().path, 'neural_upscale'));
+
   Directory get _cacheDir {
-    final Directory dir =
-        Directory(p.join(pathService.getCacheDir().path, 'neural_upscale'));
+    final Directory dir = _cacheDirPath;
     if (!dir.existsSync()) {
       dir.createSync(recursive: true);
     }
@@ -122,6 +124,22 @@ class NeuralUpscaleService {
       if (!job.completer.isCompleted) {
         job.completer.complete(null);
       }
+    }
+  }
+
+  /// Deletes every cached neural page, keeping the downloaded model.
+  ///
+  /// Called when the app exits (and once on startup, as a safety net for
+  /// crashes) so the multi-gigabyte cache never survives a full shutdown.
+  Future<void> clearDiskCache() async {
+    final Directory dir = _cacheDirPath;
+    try {
+      if (await dir.exists()) {
+        await dir.delete(recursive: true);
+        log.info('Neural upscale: disk cache cleared (${dir.path})');
+      }
+    } catch (e) {
+      log.warning('Neural upscale: clear disk cache failed: $e');
     }
   }
 

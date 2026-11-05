@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:desktop_webview_window/desktop_webview_window.dart';
@@ -26,6 +27,7 @@ import 'package:acervo_hc/src/service/local_block_rule_service.dart';
 import 'package:acervo_hc/src/service/local_config_service.dart';
 import 'package:acervo_hc/src/service/local_gallery_service.dart';
 import 'package:acervo_hc/src/service/log.dart';
+import 'package:acervo_hc/src/service/neural_upscale_service.dart';
 import 'package:acervo_hc/src/service/path_service.dart';
 import 'package:acervo_hc/src/service/quick_search_service.dart';
 import 'package:acervo_hc/src/service/read_progress_service.dart';
@@ -122,6 +124,10 @@ void main(List<String> args) async {
   for (JHLifeCircleBean bean in lifeCircleBeans) {
     await bean.initBean();
   }
+
+  /// Safety net for a crash or a forced kill: the neural page cache is meant to
+  /// live only inside one run of the app.
+  unawaited(neuralUpscaleService.clearDiskCache());
 
   runApp(const MyApp());
 }

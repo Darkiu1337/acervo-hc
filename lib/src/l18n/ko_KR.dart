@@ -451,6 +451,8 @@ class ko_KR {
       'clearPageCache': '페이지 캐시 삭제',
       'clearSuccess': '삭제 완료',
       'superResolution': '초고해상도 이미지 생성',
+      'upscale': '업스케일',
+      'upscaleSettingsHint': '신경망 향상, 모델, 배율, 노이즈 제거 및 미리 로드',
       'stopSuperResolution': '초고해상도 이미지 생성 취소',
       'deleteSuperResolvedImage': '초고해상도 이미지 삭제',
       'superResolveOriginalImageHint': '원본 이미지 처리는 더 많은 시간과 공간, 성능을 사용합니다. 계속하시겠습니까?',

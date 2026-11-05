@@ -451,6 +451,8 @@ class zh_CN {
       'clearPageCache': '清除页面缓存',
       'clearSuccess': '清除成功',
       'superResolution': '图片超分辨率',
+      'upscale': '超分',
+      'upscaleSettingsHint': '神经网络增强、模型、缩放、降噪和预载',
       'stopSuperResolution': '停止图片超分辨率',
       'deleteSuperResolvedImage': '删除图片超分辨率后的图片',
       'superResolveOriginalImageHint': '处理原图会耗费更多的时间、空间和性能，确定继续？',

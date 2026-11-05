@@ -9,6 +9,7 @@ import 'package:acervo_hc/src/extension/get_logic_extension.dart';
 import '../config/theme_config.dart';
 import '../config/ui_config.dart';
 import '../routes/routes.dart';
+import '../service/neural_upscale_service.dart';
 import '../setting/security_setting.dart';
 import '../setting/style_setting.dart';
 import '../service/log.dart';
@@ -74,6 +75,7 @@ class _AppManagerState extends State<AppManager> with WidgetsBindingObserver {
     _listener = AppLifecycleListener(
       onInactive: _onInactive,
       onResume: _onResume,
+      onExitRequested: _onExitRequested,
       onStateChange: (AppLifecycleState state) => _currentState = state,
     );
 
@@ -152,6 +154,21 @@ class _AppManagerState extends State<AppManager> with WidgetsBindingObserver {
 
   void _logMemoryPressure() {
     log.warning('Memory pressure');
+  }
+
+  /// A full app shutdown must not leave the neural page cache behind. The
+  /// downloaded model lives in a sibling folder and is preserved; the deletion
+  /// is bounded so a huge cache cannot delay closing for long (whatever is
+  /// left is removed on the next startup).
+  Future<AppExitResponse> _onExitRequested() async {
+    try {
+      neuralUpscaleService.cancelSession();
+      neuralUpscaleService.clearMemoryCache();
+      await neuralUpscaleService.clearDiskCache().timeout(const Duration(seconds: 3));
+    } catch (e) {
+      log.warning('Clear neural upscale cache on exit failed', e);
+    }
+    return AppExitResponse.exit;
   }
 
   void _onInactive() {

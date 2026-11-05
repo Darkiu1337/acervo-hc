@@ -612,6 +612,7 @@ class en_US {
       'neuralUpscaleGpuRefresh': 'Refresh GPU list',
       'neuralUpscaleHelp': 'The first view of each page takes about 3-4 s at 2x; 3x/4x cost more. After that the result comes from cache. Upscaling improves lines, texture and JPEG artifacts, but it cannot recover information that is not there. Black-and-white pages stay gray even if the model tries to add color.',
       'upscale': 'Upscale',
+      'upscaleSettingsHint': 'Neural enhancement, model, scale, denoise and preload',
       'alignToTopWhenTurnPage': 'Scroll back to the top when turning the page',
       'alignToTopWhenTurnPageHint': 'While zoomed, a new page starts at its top edge. Turn off to keep each page pan position.',
       'zoomStepPercent': 'Zoom step',

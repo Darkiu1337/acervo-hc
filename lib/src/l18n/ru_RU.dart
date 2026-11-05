@@ -455,6 +455,8 @@ class ru_RU {
       'clearPageCache': 'Очистить кэш страниц',
       'clearSuccess': 'Успешно очищено',
       'superResolution': 'Супер-разрешение изображений',
+      'upscale': 'Апскейл',
+      'upscaleSettingsHint': 'Нейронное улучшение, модель, масштаб, шумоподавление и предзагрузка',
       'stopSuperResolution': 'Остановить супер-разрешение',
       'deleteSuperResolvedImage': 'Удалить обработанное изображение',
       'superResolveOriginalImageHint': 'Обработка оригинального изображения требует больше времени, места и ресурсов. Продолжить?',

@@ -60,6 +60,7 @@ abstract class BaseLayoutLogic extends GetxController with GetTickerProviderStat
   Worker? tapDragGestureSwitcherListener;
   Worker? showScrollBarListener;
   Worker? upscaleListener;
+  Worker? neuralUpscaleListener;
   Worker? zoomStepListener;
 
   @override
@@ -68,6 +69,7 @@ abstract class BaseLayoutLogic extends GetxController with GetTickerProviderStat
     tapDragGestureSwitcherListener = ever(readSetting.enableTapDragToScaleUp, (value) => updateSafely([pageId]));
     showScrollBarListener = ever(readSetting.showScrollBar, (value) => updateSafely([pageId]));
     upscaleListener = ever(readSetting.enableUpscale, (value) => updateSafely([pageId]));
+    neuralUpscaleListener = ever(readSetting.enableNeuralUpscale, (value) => updateSafely([pageId]));
     zoomStepListener = ever(readSetting.zoomStepPercent, (value) => updateSafely([pageId]));
     super.onInit();
   }
@@ -80,6 +82,7 @@ abstract class BaseLayoutLogic extends GetxController with GetTickerProviderStat
     tapDragGestureSwitcherListener?.dispose();
     showScrollBarListener?.dispose();
     upscaleListener?.dispose();
+    neuralUpscaleListener?.dispose();
     zoomStepListener?.dispose();
     super.onClose();
   }

@@ -8,7 +8,7 @@ Este app nasceu como fork do JHenTai e hoje tem identidade própria. O cliente o
 
 | Área | O que foi adicionado |
 | --- | --- |
-| **Leitor** | Zoom preservado entre páginas, retorno ao topo, atalhos de teclado, upscale 2× e visualizador externo |
+| **Leitor** | Zoom preservado entre páginas, retorno ao topo, atalhos de teclado, upscale (nitidez 2× e melhoria neural) e visualizador externo |
 | **Xlecx** | Fonte externa: cinco listagens, filtros de categoria e tags, busca e prévia das páginas |
 | **Já lidos** | Lista local que esconde obras concluídas das listas de navegação |
 | **Idioma** | Tradução pt-BR completa (822 chaves) e correções de i18n |
@@ -20,10 +20,10 @@ O resto do app — busca, favoritos, downloads, arquivos, histórico e rankings 
 
 - **Zoom contínuo entre páginas** — em página única, coluna dupla e listas, cada página já é montada na escala atual e alinhada ao topo, inclusive as pré-carregadas. Virar a página nunca mostra um quadro em 1.0× antes de ajustar.
 - **Volta ao topo ao virar a página** (Configurações → Leitura), limitada ao tamanho real do conteúdo em vez do viewport.
-- **Atalhos de teclado** — `Ctrl` + `←`/`→` deslocam na horizontal, `↑`/`↓` na vertical e `+`/`-` alteram o zoom no passo configurado (5/8/12/20%), todos com repetição de tecla.
+- **Atalhos de teclado** — `←`/`→` deslocam a imagem ampliada na horizontal (e trocam de página quando ela não está ampliada); `Ctrl`/`Alt` + `←`/`→` trocam de página, `↑`/`↓` deslocam na vertical com zoom e `+`/`-` alteram o zoom no passo configurado (5/8/12/20%), todos com repetição de tecla.
 - **`photo_view` próprio** (`packages/photo_view`) — escala inicial correta, zoom multiplicativo com `Ctrl` + roda do mouse ancorado no cursor, arraste mais sensível e duplo clique em passos de 1.5×.
 - **Placeholders de carregamento** não sofrem zoom: ficam centralizados e no tamanho normal.
-- **Upscale 2× da página atual** — Catmull-Rom bicúbico + shaders AMD FidelityFX CAS com cache LRU, para o texto dos balões continuar nítido em zoom alto (Configurações → Leitura).
+- **Upscale da página atual** — nitidez 2× (Catmull-Rom bicúbico + shaders AMD FidelityFX CAS) ou melhoria neural Real-CUGAN sob demanda, para o texto dos balões continuar nítido em zoom alto. O cache em disco vai até 4 GB e é apagado quando o app fecha (`Configurações → Upscale`, também acessível pelo item **Upscale** no painel da leitura).
 - **Visualizador externo** — botão direito → *Abrir no visualizador externo* (nomacs, ImageGlass, XnView ou qualquer `.exe`). Galerias online são transmitidas página a página para `%TEMP%\acervo_hc_viewer\...`, com overlay de progresso e limpeza automática.
 
 ## Fonte Xlecx
