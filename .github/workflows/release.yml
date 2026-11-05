@@ -1,0 +1,72 @@
+name: Release
+
+# Publishing a v* tag builds both platforms and turns the artifacts into a
+# GitHub Release. Branch pushes keep using the two build workflows directly.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+# A release must finish; a newer tag waits instead of cancelling this one.
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    uses: ./.github/workflows/build-windows-reader.yml
+
+  linux:
+    uses: ./.github/workflows/build-linux-appimage.yml
+
+  publish:
+    needs: [windows, linux]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Publish GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          TAG="${GITHUB_REF_NAME}"
+          # v1.2.0 -> "Acervo H&C 1.2"
+          TITLE="Acervo H&C ${TAG#v}"
+          TITLE="${TITLE%.*}"
+          NOTES="changelog/${TAG}.md"
+
+          files=()
+          while IFS= read -r -d '' file; do
+            files+=("$file")
+          done < <(find dist -type f \( -name '*.zip' -o -name '*.AppImage' \) -print0)
+
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No release assets were downloaded" >&2
+            exit 1
+          fi
+
+          notes_args=()
+          if [ -f "$NOTES" ]; then
+            notes_args+=(--notes-file "$NOTES")
+          else
+            notes_args+=(--generate-notes)
+          fi
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --title "$TITLE" "${notes_args[@]}"
+            gh release upload "$TAG" "${files[@]}" --clobber
+          else
+            gh release create "$TAG" --title "$TITLE" "${notes_args[@]}" "${files[@]}"
+          fi

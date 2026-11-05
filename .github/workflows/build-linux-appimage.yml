@@ -14,10 +14,13 @@ on:
       - '.github/workflows/build-linux-appimage.yml'
   # Builds any branch on demand without waiting for a merge.
   workflow_dispatch:
+  # Called by the release workflow when a v* tag is pushed.
+  workflow_call:
 
-# A newer push to master makes the previous build obsolete.
+# A newer push to master makes the previous build obsolete. The suffix keeps
+# the Windows and Linux builds apart when the release workflow calls both.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-linux
   cancel-in-progress: true
 
 jobs:
