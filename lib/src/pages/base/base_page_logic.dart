@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -20,10 +21,12 @@ import '../../mixin/scroll_to_top_logic_mixin.dart';
 import '../../mixin/scroll_to_top_state_mixin.dart';
 import '../../model/gallery.dart';
 import '../../model/gallery_source.dart';
+import '../../model/gallery_tag.dart';
 import '../../network/eh_request.dart';
 import '../../routes/routes.dart';
 import '../../service/already_read_service.dart';
 import '../../service/local_block_rule_service.dart';
+import '../../service/read_progress_service.dart';
 import '../../service/tag_translation_service.dart';
 import '../../setting/user_setting.dart';
 import '../../utils/eh_spider_parser.dart';
@@ -494,6 +497,7 @@ abstract class BasePageLogic extends GetxController with Scroll2TopLogicMixin {
     }
 
     await _translateGalleryTagsIfNeeded(galleries);
+    await readProgressService.preloadReadProgress(galleries.map((gallery) => gallery.gid));
 
     List<Gallery> filteredGalleries = await _filterByBlockingRules(galleries);
 
@@ -530,8 +534,19 @@ abstract class BasePageLogic extends GetxController with Scroll2TopLogicMixin {
   }
 
   Future<void> _translateGalleryTagsIfNeeded(List<Gallery> galleries) async {
-    await Future.wait(galleries.map((gallery) {
-      return tagTranslationService.translateTagsIfNeeded(gallery.tags);
-    }).toList());
+    if (galleries.isEmpty) {
+      return;
+    }
+    // One batched lookup for the whole page instead of one per gallery tag.
+    final LinkedHashMap<String, List<GalleryTag>> merged = LinkedHashMap<String, List<GalleryTag>>();
+    for (final Gallery gallery in galleries) {
+      gallery.tags.forEach((namespace, tags) {
+        (merged[namespace] ??= <GalleryTag>[]).addAll(tags);
+      });
+    }
+    if (merged.isEmpty) {
+      return;
+    }
+    await tagTranslationService.translateTagsIfNeeded(merged);
   }
 }

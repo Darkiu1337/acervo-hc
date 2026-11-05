@@ -41,6 +41,24 @@ class ReadProgressService extends GetxController with JHLifeCircleBeanErrorCatch
     return progress;
   }
 
+  /// Cached read progress for a gallery, or null when it was never loaded.
+  /// Cards use this to avoid scheduling a future (and an extra rebuild) per
+  /// build; [preloadReadProgress] fills the cache for a whole gallery page.
+  int? cachedReadProgress(int gid) => _progressCache[gid.toString()];
+
+  /// Loads the read progress of [gids] that aren't cached yet, then notifies
+  /// the cards of the galleries that actually had progress.
+  Future<void> preloadReadProgress(Iterable<int> gids) async {
+    final List<int> missing = gids.where((gid) => !_progressCache.containsKey(gid.toString())).toList();
+    if (missing.isEmpty) {
+      return;
+    }
+    await Future.wait(missing.map(getReadProgress));
+    for (final int gid in missing) {
+      updateSafely(['$readProgressUpdateId::$gid']);
+    }
+  }
+
   /// Delete read progress for a gallery and notify listeners
   Future<void> deleteReadProgress(String recordKey) async {
     _progressCache.remove(recordKey);

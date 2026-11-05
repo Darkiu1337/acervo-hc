@@ -176,21 +176,11 @@ class EHGalleryListCard extends StatelessWidget {
       }
     });
 
-    return SizedBox(
+    return _GalleryCardTagWaterFlow(
+      mergedList: mergedList,
+      crossAxisCount: 3,
       height: UIConfig.galleryCardTagsHeight,
-      child: WaterfallFlow.builder(
-        scrollDirection: Axis.horizontal,
-
-        /// disable keepScrollOffset because we used [PageStorageKey], which leads to a conflict with this WaterfallFlow
-        controller: ScrollController(keepScrollOffset: false),
-        gridDelegate: const SliverWaterfallFlowDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          mainAxisSpacing: 4,
-          crossAxisSpacing: 4,
-        ),
-        itemCount: mergedList.length,
-        itemBuilder: (_, int index) => EHTag(tag: mergedList[index]),
-      ).enableMouseDrag(withScrollBar: false),
+      shrinkWrap: false,
     );
   }
 
@@ -243,33 +233,24 @@ class EHGalleryListCard extends StatelessWidget {
       init: Get.find<ReadProgressService>(),
       id: '${ReadProgressService.readProgressUpdateId}::${gallery.gid}',
       builder: (_) {
-        return FutureBuilder<int>(
-          future: readProgressService.getReadProgress(gallery.gid),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) {
-              return const SizedBox.shrink();
-            }
+        final int readIndex = readProgressService.cachedReadProgress(gallery.gid) ?? 0;
 
-            final readIndex = snapshot.data ?? 0;
+        double progress = gallery.pageCount != null && gallery.pageCount! > 0 ? ((readIndex + 1) / gallery.pageCount!).clamp(0.0, 1.0) : 0.0;
 
-            double progress = gallery.pageCount != null && gallery.pageCount! > 0 ? ((readIndex + 1) / gallery.pageCount!).clamp(0.0, 1.0) : 0.0;
+        // Don't show indicator if no progress
+        if (readIndex == 0.0) {
+          return const SizedBox.shrink();
+        }
 
-            // Don't show indicator if no progress
-            if (readIndex == 0.0) {
-              return const SizedBox.shrink();
-            }
-
-            return SizedBox(
-              width: UIConfig.galleryCardReadProgressIndicatorSize,
-              height: UIConfig.galleryCardReadProgressIndicatorSize,
-              child: CircularProgressIndicator(
-                value: progress,
-                strokeWidth: 2,
-                backgroundColor: UIConfig.galleryCardTextColor(context).withValues(alpha: 0.2),
-                valueColor: AlwaysStoppedAnimation<Color>(UIConfig.galleryCardTextColor(context)),
-              ),
-            );
-          },
+        return SizedBox(
+          width: UIConfig.galleryCardReadProgressIndicatorSize,
+          height: UIConfig.galleryCardReadProgressIndicatorSize,
+          child: CircularProgressIndicator(
+            value: progress,
+            strokeWidth: 2,
+            backgroundColor: UIConfig.galleryCardTextColor(context).withValues(alpha: 0.2),
+            valueColor: AlwaysStoppedAnimation<Color>(UIConfig.galleryCardTextColor(context)),
+          ),
         );
       },
     );
@@ -296,6 +277,56 @@ class EHGalleryListCard extends StatelessWidget {
           fontSize: UIConfig.galleryCardTextSize,
           color: UIConfig.galleryCardTextColor(context),
           decoration: gallery.isExpunged ? TextDecoration.lineThrough : null),
+    );
+  }
+}
+
+/// Owns the [ScrollController] of the nested tag flow. Building one per card
+/// rebuild leaked a controller each time and forced the flow to relayout.
+class _GalleryCardTagWaterFlow extends StatefulWidget {
+  final List<GalleryTag> mergedList;
+  final int crossAxisCount;
+  final double height;
+  final bool shrinkWrap;
+
+  const _GalleryCardTagWaterFlow({
+    Key? key,
+    required this.mergedList,
+    required this.crossAxisCount,
+    required this.height,
+    required this.shrinkWrap,
+  }) : super(key: key);
+
+  @override
+  State<_GalleryCardTagWaterFlow> createState() => _GalleryCardTagWaterFlowState();
+}
+
+class _GalleryCardTagWaterFlowState extends State<_GalleryCardTagWaterFlow> {
+  /// disable keepScrollOffset because we used [PageStorageKey], which leads to a conflict with this WaterfallFlow
+  final ScrollController _controller = ScrollController(keepScrollOffset: false);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: widget.height,
+      child: WaterfallFlow.builder(
+        scrollDirection: Axis.horizontal,
+        shrinkWrap: widget.shrinkWrap,
+        controller: _controller,
+        gridDelegate: SliverWaterfallFlowDelegateWithFixedCrossAxisCount(
+          crossAxisCount: widget.crossAxisCount,
+          mainAxisSpacing: 4,
+          crossAxisSpacing: 4,
+        ),
+        itemCount: widget.mergedList.length,
+        itemBuilder: (_, int index) => EHTag(tag: widget.mergedList[index]),
+      ).enableMouseDrag(withScrollBar: false),
     );
   }
 }
