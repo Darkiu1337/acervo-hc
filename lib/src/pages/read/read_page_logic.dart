@@ -816,16 +816,12 @@ class ReadPageLogic extends GetxController with WidgetsBindingObserver, GalleryI
     }
   }
 
-  /// Left/right arrow keys keep their configured action (page turn by default)
-  /// unless Ctrl is held: with Ctrl and a zoomed image they pan the content
-  /// horizontally instead.
+  /// Left/right arrow keys pan the zoomed image horizontally. With Ctrl or Alt
+  /// held they run the configured page-turn action instead; the same happens
+  /// when the image is not zoomed (there is nothing to pan).
   void handleHorizontalArrow({required bool isRight, required VoidCallback pageTurn}) {
-    if (!layoutLogic.isCtrlPressed) {
+    if (layoutLogic.isArrowPageTurnModifierPressed || !layoutLogic.isZoomed) {
       pageTurn();
-      return;
-    }
-
-    if (!layoutLogic.isZoomed) {
       return;
     }
 

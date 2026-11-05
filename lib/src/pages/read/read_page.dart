@@ -79,8 +79,8 @@ class _ReadPageState extends State<ReadPage> with ScrollStatusListener, WindowLi
       ...baseKeyHandlers,
     };
 
-    // Left/right keep their configured page-turn action, even while the image
-    // is zoomed, unless Ctrl is held (then they pan the zoomed content).
+    // Left/right pan the zoomed image horizontally; Ctrl/Alt + left/right run
+    // the configured page-turn action, which is also used when not zoomed.
     // Up/down pan vertical content; +/- (including the numpad) zoom.
     keyHandlers.putIfAbsent(LogicalKeyboardKey.arrowUp, () => logic.handleArrowUp);
     keyHandlers.putIfAbsent(LogicalKeyboardKey.arrowDown, () => logic.handleArrowDown);
@@ -140,11 +140,11 @@ class _ReadPageState extends State<ReadPage> with ScrollStatusListener, WindowLi
                 return true;
               }
 
-              /// left/right only repeat while Ctrl is held (pan); a plain held
-              /// arrow must keep turning exactly one page
+              /// left/right repeat only while panning a zoomed image; with
+              /// Ctrl/Alt held (page turn) a held arrow must keep turning
+              /// exactly one page
               if (key == LogicalKeyboardKey.arrowLeft || key == LogicalKeyboardKey.arrowRight) {
-                final Set<LogicalKeyboardKey> pressed = HardwareKeyboard.instance.logicalKeysPressed;
-                return pressed.contains(LogicalKeyboardKey.controlLeft) || pressed.contains(LogicalKeyboardKey.controlRight);
+                return !logic.layoutLogic.isArrowPageTurnModifierPressed && logic.layoutLogic.isZoomed;
               }
 
               return false;

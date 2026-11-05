@@ -159,6 +159,15 @@ abstract class BaseLayoutLogic extends GetxController with GetTickerProviderStat
     return pressed.contains(LogicalKeyboardKey.controlLeft) || pressed.contains(LogicalKeyboardKey.controlRight);
   }
 
+  bool get isAltPressed {
+    final Set<LogicalKeyboardKey> pressed = HardwareKeyboard.instance.logicalKeysPressed;
+    return pressed.contains(LogicalKeyboardKey.altLeft) || pressed.contains(LogicalKeyboardKey.altRight);
+  }
+
+  /// Whether a horizontal arrow must turn the page instead of panning the
+  /// zoomed image. Ctrl and Alt both hold that role.
+  bool get isArrowPageTurnModifierPressed => isCtrlPressed || isAltPressed;
+
   /// Distance covered by one arrow-key pan, proportional to the viewport.
   Offset get panStep {
     final Size region = readPageState.displayRegionSize;
