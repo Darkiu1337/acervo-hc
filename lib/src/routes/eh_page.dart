@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 
+import '../config/ui_config.dart';
+
 enum Side {
   left,
   right,
@@ -20,5 +22,6 @@ class EHPage extends GetPage {
     this.offAllBefore = true,
     super.transition,
     super.popGesture,
+    super.transitionDuration = UIConfig.defaultPageRouteTransitionDuration,
   });
 }

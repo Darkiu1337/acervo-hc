@@ -14,11 +14,11 @@ extension WidgetExtension on Widget {
   }
 
   Widget fadeIn([Key? key]) {
-    return FadeIn(key: key, child: this);
+    return FadeIn(duration: const Duration(milliseconds: 150), key: key, child: this);
   }
 
   Widget fadeOut([Key? key]) {
-    return FadeOut(key: key, child: this, animate: true);
+    return FadeOut(duration: const Duration(milliseconds: 150), key: key, child: this, animate: true);
   }
 
   Widget withListTileTheme(BuildContext context) {

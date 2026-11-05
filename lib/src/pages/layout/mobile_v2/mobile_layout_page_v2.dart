@@ -113,9 +113,18 @@ class MobileLayoutPageV2 extends StatelessWidget {
           id: logic.bodyId,
           builder: (_) => Stack(
             children: [
-              Offstage(offstage: state.selectedNavigationIndex != 0, child: buildHomeBody()),
-              Offstage(offstage: state.selectedNavigationIndex != 1, child: const DownloadPage()),
-              Offstage(offstage: state.selectedNavigationIndex != 2, child: const SettingPage()),
+              Offstage(
+                offstage: state.selectedNavigationIndex != 0,
+                child: TickerMode(enabled: state.selectedNavigationIndex == 0, child: buildHomeBody()),
+              ),
+              Offstage(
+                offstage: state.selectedNavigationIndex != 1,
+                child: TickerMode(enabled: state.selectedNavigationIndex == 1, child: const DownloadPage()),
+              ),
+              Offstage(
+                offstage: state.selectedNavigationIndex != 2,
+                child: TickerMode(enabled: state.selectedNavigationIndex == 2, child: const SettingPage()),
+              ),
             ],
           ),
         ),
@@ -139,7 +148,7 @@ class MobileLayoutPageV2 extends StatelessWidget {
           .mapIndexed(
             (index, icon) => Offstage(
               offstage: state.selectedDrawerTabOrder != index,
-              child: icon.page.call(),
+              child: TickerMode(enabled: state.selectedDrawerTabOrder == index, child: icon.page.call()),
             ),
           )
           .toList(),
