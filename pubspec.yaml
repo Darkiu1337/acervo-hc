@@ -2,7 +2,7 @@ name: acervo_hc
 description: Acervo H&C — leitor de mangá para E-Hentai/EXHentai com fonte Xlecx, leitor aprimorado e tradução pt-BR
 
 publish_to: 'none'
-version: 1.3.1+4
+version: 1.3.2+5
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-Acervo H&C is a Flutter app for browsing E-Hentai / EXHentai (fork of JHenTai), targeting Android, iOS, Windows, macOS, and Linux. Version `8.0.14+328` (from pubspec.yaml).
+Acervo H&C is a Flutter app for browsing E-Hentai / EXHentai (fork of JHenTai), targeting Android, iOS, Windows, macOS, and Linux. Version `1.3.2+5` (from pubspec.yaml).
 
 ## Build & dev commands
 
