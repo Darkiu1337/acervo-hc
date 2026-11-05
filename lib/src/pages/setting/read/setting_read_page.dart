@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:acervo_hc/src/config/ui_config.dart';
 import 'package:acervo_hc/src/extension/widget_extension.dart';
+import 'package:acervo_hc/src/model/gallery_neural_mode.dart';
+import 'package:acervo_hc/src/pages/read/read_page_logic.dart';
 import 'package:acervo_hc/src/pages/setting/keyboard_shortcuts/setting_keyboard_shortcuts_page.dart';
 import 'package:acervo_hc/src/pages/setting/read/tap_zone/setting_tap_zone_page.dart';
 import 'package:acervo_hc/src/pages/setting/upscale/setting_upscale_page.dart';
@@ -55,6 +57,7 @@ class SettingReadPage extends StatelessWidget {
                   _buildZoomStepPercent().center(),
                   _buildEnableBottomMenu().center(),
                   _buildTapZoneStyle(context).center(),
+                  if (Get.isRegistered<ReadPageLogic>()) _buildGalleryNeuralMode().center(),
                   if (GetPlatform.isWindows || GetPlatform.isLinux) _buildUpscaleSettings(context).center(),
                   _buildEnableImageMaxKilobytes().center(),
                   if (readSetting.enableMaxImageKilobyte.isTrue) _buildImageMaxKilobytes(context).fadeIn(const Key('imageMaxKilobytes')).center(),
@@ -325,6 +328,33 @@ class SettingReadPage extends StatelessWidget {
         }
       },
     );
+  }
+
+  /// Neural mode for the gallery currently open in the reader. Only shown when
+  /// this page was opened from the reader.
+  Widget _buildGalleryNeuralMode() {
+    final ReadPageLogic logic = Get.find<ReadPageLogic>();
+    return Obx(() {
+      final GalleryNeuralMode mode = logic.galleryNeuralMode.value;
+      return ListTile(
+        title: Text('galleryNeuralMode'.tr),
+        subtitle: Text('galleryNeuralModeHint'.tr),
+        trailing: DropdownButton<GalleryNeuralMode>(
+          value: mode,
+          onChanged: (GalleryNeuralMode? value) {
+            if (value != null) {
+              logic.setGalleryNeuralMode(value);
+            }
+          },
+          items: GalleryNeuralMode.values
+              .map((GalleryNeuralMode value) => DropdownMenuItem<GalleryNeuralMode>(
+                    value: value,
+                    child: Text(value.labelKey.tr),
+                  ))
+              .toList(),
+        ),
+      );
+    });
   }
 
   Widget _buildUpscaleSettings(BuildContext context) {

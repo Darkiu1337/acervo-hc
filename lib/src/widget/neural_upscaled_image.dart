@@ -20,6 +20,9 @@ class NeuralUpscaledImage extends StatefulWidget {
   /// Absolute page index inside the gallery.
   final int index;
 
+  /// Process the page even when it looks black and white.
+  final bool forceGrayscale;
+
   final int frameCount;
   final bool useShaderFallback;
   final double? width;
@@ -32,6 +35,7 @@ class NeuralUpscaledImage extends StatefulWidget {
     required this.source,
     required this.cacheKey,
     this.index = 0,
+    this.forceGrayscale = false,
     this.frameCount = 1,
     this.useShaderFallback = false,
     this.width,
@@ -65,7 +69,8 @@ class _NeuralUpscaledImageState extends State<NeuralUpscaledImage> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.cacheKey != widget.cacheKey ||
         oldWidget.source != widget.source ||
-        oldWidget.index != widget.index) {
+        oldWidget.index != widget.index ||
+        oldWidget.forceGrayscale != widget.forceGrayscale) {
       _neural = null;
       _inWindow = neuralUpscaleService.inWindow(widget.index);
       _start();
@@ -134,6 +139,7 @@ class _NeuralUpscaledImageState extends State<NeuralUpscaledImage> {
             cacheKey: widget.cacheKey,
             index: widget.index,
             frameCount: widget.frameCount,
+            forceGrayscale: widget.forceGrayscale,
           ),
         );
         if (!mounted || generation != _generation) {

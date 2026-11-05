@@ -8,6 +8,7 @@ import 'package:acervo_hc/src/extension/widget_extension.dart';
 import 'package:acervo_hc/src/mixin/scroll_status_listener.dart';
 import 'package:acervo_hc/src/mixin/scroll_status_listener_state.dart';
 import 'package:acervo_hc/src/mixin/window_widget_mixin.dart';
+import 'package:acervo_hc/src/model/gallery_neural_mode.dart';
 import 'package:acervo_hc/src/model/read_action.dart';
 import 'package:acervo_hc/src/model/read_page_info.dart';
 import 'package:acervo_hc/src/model/tap_zone_config.dart';
@@ -400,6 +401,7 @@ class _ReadPageState extends State<ReadPage> with ScrollStatusListener, WindowLi
                   ),
                 ),
               ),
+              _buildGalleryNeuralButton(context),
               if (readSetting.enableBottomMenu.isFalse)
                 ElevatedButton(
                   child: const Icon(Icons.settings, size: 24, color: UIConfig.readPageButtonColor),
@@ -418,6 +420,45 @@ class _ReadPageState extends State<ReadPage> with ScrollStatusListener, WindowLi
         );
       },
     );
+  }
+
+  /// Quick neural toggle for the gallery: auto -> on -> off -> auto.
+  ///
+  /// Lives in the top menu so the user does not need the settings submenu to
+  /// compare the page with and without the neural pass. Hidden while the
+  /// feature is globally off, since there is nothing to control.
+  Widget _buildGalleryNeuralButton(BuildContext context) {
+    return Obx(() {
+      if (readSetting.enableNeuralUpscale.isFalse) {
+        return const SizedBox();
+      }
+      final GalleryNeuralMode mode = logic.galleryNeuralMode.value;
+      final bool active = mode == GalleryNeuralMode.on;
+      final Color color = mode == GalleryNeuralMode.off
+          ? UIConfig.readPageButtonColor.withOpacity(0.35)
+          : active
+              ? UIConfig.readPageActiveButtonColor(context)
+              : UIConfig.readPageButtonColor;
+      return Tooltip(
+        message: mode.labelKey.tr,
+        child: ElevatedButton(
+          child: Icon(
+            active ? Icons.auto_awesome : Icons.auto_awesome_outlined,
+            size: 24,
+            color: color,
+          ),
+          onPressed: logic.cycleGalleryNeuralMode,
+          style: ElevatedButton.styleFrom(
+            elevation: 0,
+            padding: const EdgeInsets.all(0),
+            surfaceTintColor: Colors.transparent,
+            backgroundColor: Colors.transparent,
+            shadowColor: Colors.transparent,
+            minimumSize: const Size(56, 56),
+          ),
+        ),
+      );
+    });
   }
 
   /// bottom menu

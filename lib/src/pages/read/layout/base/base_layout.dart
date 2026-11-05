@@ -164,7 +164,13 @@ abstract class BaseLayout extends StatelessWidget {
 
   /// Whether the neural upscaler wraps each page. The queue itself decides
   /// which pages run: the visible one and its neighbours.
-  bool get _neuralEnabled => readSetting.enableNeuralUpscale.isTrue;
+  bool get _neuralEnabled =>
+      readSetting.enableNeuralUpscale.isTrue &&
+      readPageLogic.galleryNeuralMode.value.allowsNeural;
+
+  /// Whether grayscale pages must go through the model (gallery forced on).
+  bool get _neuralForceGrayscale =>
+      readPageLogic.galleryNeuralMode.value.forcesGrayscale;
 
   Widget _buildOnlineImage(BuildContext context, int index) {
     return GestureDetector(
@@ -182,6 +188,7 @@ abstract class BaseLayout extends StatelessWidget {
         enableUpscale: readSetting.enableUpscale.isTrue,
         enableNeuralUpscale: _neuralEnabled,
         neuralIndex: index,
+        neuralForceGrayscale: _neuralForceGrayscale,
         maxBytes: readSetting.enableMaxImageKilobyte.isTrue ? readSetting.maxImageKilobyte.toInt() * 1024 : null,
       ),
     );
@@ -310,6 +317,7 @@ abstract class BaseLayout extends StatelessWidget {
         enableUpscale: readSetting.enableUpscale.isTrue,
         enableNeuralUpscale: _neuralEnabled,
         neuralIndex: index,
+        neuralForceGrayscale: _neuralForceGrayscale,
         downloadingWidgetBuilder: () => _placeholderOf(index, _downloadingWidgetBuilder(index)),
         pausedWidgetBuilder: () => _placeholderOf(index, _pausedWidgetBuilder(index)),
         loadingWidgetBuilder: () => _placeholderOf(index, _loadingWidgetBuilder(context, index)),

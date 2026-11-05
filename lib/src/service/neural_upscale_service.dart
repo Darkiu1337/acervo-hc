@@ -6,8 +6,10 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
+import 'package:acervo_hc/src/model/gray_metrics.dart';
 import 'package:acervo_hc/src/model/neural_pixels.dart';
 import 'package:acervo_hc/src/model/neural_upscale_config.dart';
+import 'package:acervo_hc/src/service/gray_sampler.dart';
 import 'package:acervo_hc/src/service/log.dart';
 import 'package:acervo_hc/src/service/neural_model_manager.dart';
 import 'package:acervo_hc/src/service/neural_queue.dart';
@@ -30,6 +32,10 @@ class NeuralRequest {
   /// Decoded frame count. Multi-frame images (GIF/animated WebP) are skipped.
   final int frameCount;
 
+  /// Process the page even when the grayscale probe says it is black and
+  /// white. Set when the user forces the neural pass for the whole gallery.
+  final bool forceGrayscale;
+
   /// Optional local file, used to avoid re-encoding the decoded bitmap.
   final String? sourcePath;
 
@@ -38,6 +44,7 @@ class NeuralRequest {
     required this.cacheKey,
     this.index = 0,
     this.frameCount = 1,
+    this.forceGrayscale = false,
     this.sourcePath,
   });
 }
@@ -83,6 +90,10 @@ class NeuralUpscaleService {
   final Map<String, ui.Image> _memory = <String, ui.Image>{};
   final List<String> _lru = <String>[];
   int _memoryBytes = 0;
+
+  /// Grayscale classification by source identity. The page content never
+  /// changes, so the sample survives retries and focus changes.
+  final Map<String, GrayMetrics> _grayBySource = <String, GrayMetrics>{};
 
   /// Every job that is queued or running, by computed cache key. Used to
   /// deduplicate requests and to keep the widget attached to the waiting job.
@@ -236,6 +247,15 @@ class NeuralUpscaleService {
 
     if (!_shouldProcess(request, scale)) {
       return null;
+    }
+
+    /// Already classified as black and white: skip the queue entirely instead
+    /// of enqueueing a job that would return right away.
+    if (!request.forceGrayscale) {
+      final GrayMetrics? known = _grayBySource[request.cacheKey];
+      if (known != null && known.lenientGray) {
+        return null;
+      }
     }
 
     final _NeuralJob? existing = _queued[key];
@@ -445,10 +465,24 @@ class NeuralUpscaleService {
       throw const _NeuralAborted();
     }
 
-    final bool grayscale = await _isGrayscaleSource(job.request.source);
+    /// Runs before the disk-cache lookup: a page skipped as grayscale must not
+    /// be served from a texture cached while the user had the gallery forced on.
+    final GrayMetrics? metrics = await _metricsFor(
+      job.request.source,
+      job.request.cacheKey,
+    );
+    if (metrics != null && metrics.lenientGray && !job.request.forceGrayscale) {
+      log.info(
+        'Neural upscale: page ${job.request.index} skipped '
+        '(grayscale, ${(metrics.lenientColoredRatio * 100).toStringAsFixed(2)}% color)',
+      );
+      return null;
+    }
     if (_abortRequested) {
       throw const _NeuralAborted();
     }
+
+    final bool grayscale = metrics?.strictGray ?? false;
 
     final File output = File(p.join(_cacheDir.path, '${job.key}.png'));
     if (output.existsSync() && output.lengthSync() > 0) {
@@ -640,19 +674,19 @@ class NeuralUpscaleService {
     }
   }
 
-  Future<bool> _isGrayscaleSource(ui.Image source) async {
-    try {
-      final ByteData? data =
-          await source.toByteData(format: ui.ImageByteFormat.rawRgba);
-      if (data == null) {
-        return false;
-      }
-      return isGrayscaleRgba(
-        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
-      );
-    } catch (_) {
-      return false;
+  Future<GrayMetrics?> _metricsFor(ui.Image source, String sourceKey) async {
+    final GrayMetrics? known = _grayBySource[sourceKey];
+    if (known != null) {
+      return known;
     }
+    final GrayMetrics? metrics = await sampleGray(source);
+    if (metrics != null) {
+      if (_grayBySource.length >= 512) {
+        _grayBySource.clear();
+      }
+      _grayBySource[sourceKey] = metrics;
+    }
+    return metrics;
   }
 
   Future<ui.Image?> _desaturate(ui.Image image, File output) async {

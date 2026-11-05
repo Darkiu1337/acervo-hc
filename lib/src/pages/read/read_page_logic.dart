@@ -33,6 +33,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../model/detail_page_info.dart';
 import '../../model/gallery_image.dart';
+import '../../model/gallery_neural_mode.dart';
 import '../../model/read_page_info.dart';
 import '../../network/eh_request.dart';
 import '../../routes/routes.dart';
@@ -120,6 +121,11 @@ class ReadPageLogic extends GetxController with WidgetsBindingObserver, GalleryI
 
   bool inited = false;
   Completer<void> delayInitCompleter = Completer<void>();
+
+  /// Neural upscale behavior for the gallery being read. Persisted per gallery:
+  /// [GalleryNeuralMode.auto] skips black-and-white pages, [on] forces them and
+  /// [off] disables the neural pass for the whole gallery.
+  final Rx<GalleryNeuralMode> galleryNeuralMode = GalleryNeuralMode.auto.obs;
 
   @override
   void onReady() {
@@ -254,6 +260,8 @@ class ReadPageLogic extends GetxController with WidgetsBindingObserver, GalleryI
     tapZoneConfigListener = ever(readSetting.tapZoneConfigJson, (_) => updateSafely([tapZoneId]));
 
     _maybeShowTapZoneGuide();
+
+    unawaited(_loadGalleryNeuralMode());
 
     inited = true;
     if (!delayInitCompleter.isCompleted) {
@@ -911,6 +919,68 @@ class ReadPageLogic extends GetxController with WidgetsBindingObserver, GalleryI
     state.readPageInfo.currentImageIndex = index;
     neuralUpscaleService.setFocus(index);
     update([sliderId, pageNoId, thumbnailNoId]);
+  }
+
+  /// Loads the neural mode saved for this gallery.
+  Future<void> _loadGalleryNeuralMode() async {
+    try {
+      final String? raw = await localConfigService
+          .read(
+            configKey: ConfigEnum.galleryNeuralMode,
+            subConfigKey: state.readPageInfo.readProgressRecordStorageKey,
+          )
+          .timeout(const Duration(milliseconds: 500), onTimeout: () => null);
+      if (isClosed || raw == null) {
+        return;
+      }
+      final GalleryNeuralMode saved = GalleryNeuralMode.values.firstWhere(
+        (GalleryNeuralMode mode) => mode.name == raw,
+        orElse: () => GalleryNeuralMode.auto,
+      );
+      if (saved == galleryNeuralMode.value) {
+        return;
+      }
+      galleryNeuralMode.value = saved;
+
+      /// Anything queued while the gallery opened with the default mode may be
+      /// unwanted now, and the memory cache is cleared so the new mode decides
+      /// from scratch.
+      neuralUpscaleService.cancelSession();
+      neuralUpscaleService.clearMemoryCache();
+      updateSafely([layoutId]);
+    } catch (e) {
+      log.warning('read gallery neural mode failed: $e');
+    }
+  }
+
+  /// Applies [mode] to this gallery, drops the queue built for the previous
+  /// mode and persists the choice.
+  Future<void> setGalleryNeuralMode(GalleryNeuralMode mode) async {
+    if (galleryNeuralMode.value == mode) {
+      return;
+    }
+
+    galleryNeuralMode.value = mode;
+    neuralUpscaleService.cancelSession();
+    neuralUpscaleService.clearMemoryCache();
+    updateSafely([layoutId]);
+
+    try {
+      await localConfigService.write(
+        configKey: ConfigEnum.galleryNeuralMode,
+        subConfigKey: state.readPageInfo.readProgressRecordStorageKey,
+        value: mode.name,
+      );
+    } catch (e) {
+      log.warning('save gallery neural mode failed: $e');
+    }
+  }
+
+  /// Quick toggle in the reader: auto -> on -> off -> auto.
+  void cycleGalleryNeuralMode() {
+    final GalleryNeuralMode next = galleryNeuralMode.value.next;
+    toast('${'galleryNeuralMode'.tr}: ${next.labelKey.tr}');
+    unawaited(setGalleryNeuralMode(next));
   }
 
   Future<void> _flushReadProgress() async {
