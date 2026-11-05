@@ -15,12 +15,13 @@ void main() {
       expect(queue.contains(7), isFalse);
     });
 
-    test('page zero does not underflow', () {
+    test('page zero keeps the behind window but nothing beyond it', () {
       final NeuralQueue queue = NeuralQueue()..setFocus(0);
 
       expect(queue.contains(0), isTrue);
-      expect(queue.contains(-1), isFalse);
-      expect(queue.stale(<int>[-1, 0, 1]), <int>[0]);
+      expect(queue.contains(-2), isTrue);
+      expect(queue.contains(-3), isFalse);
+      expect(queue.stale(<int>[-3, -1, 0, 1]), <int>[0]);
     });
   });
 
