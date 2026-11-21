@@ -72,18 +72,26 @@ abstract class BasePageLogic extends GetxController with Scroll2TopLogicMixin {
 
     alreadyReadService.ensureRestored();
 
-    /// A gallery marked as read from the details page disappears from the open
-    /// listing without needing a refresh.
-    _alreadyReadWorker = ever(alreadyReadService.galleries, (_) {
+    /// A gallery marked as read (on either E-H or Xlecx) disappears from the
+    /// open listing without needing a refresh.
+    _alreadyReadWorker = ever(alreadyReadService.revision, (_) {
       if (!hideAlreadyReadGalleries || state.galleries.isEmpty) {
         return;
       }
 
       final int length = state.galleries.length;
-      state.galleries.removeWhere((gallery) => alreadyReadService.contains(gallery.gid));
+      state.galleries.removeWhere((gallery) => alreadyReadService.isAlreadyRead(gallery));
 
       if (state.galleries.length != length) {
-        updateSafely();
+        if (state.galleries.isEmpty) {
+          updateSafely();
+        } else {
+          updateSafely([bodyId, loadingStateId]);
+        }
+      }
+
+      if (state.galleries.isNotEmpty) {
+        alreadyReadService.scheduleVisualDeduplication(state.galleries);
       }
     });
 
@@ -253,6 +261,7 @@ abstract class BasePageLogic extends GetxController with Scroll2TopLogicMixin {
 
     List<Gallery> galleries = await postHandleNewGalleries(galleryPage.galleries);
 
+    final bool wasEmpty = state.galleries.isEmpty;
     state.galleries.insertAll(0, galleries);
     state.totalCount = galleryPage.totalCount;
     state.prevGid = galleryPage.prevGid;
@@ -260,7 +269,11 @@ abstract class BasePageLogic extends GetxController with Scroll2TopLogicMixin {
 
     state.loadingState = prevState;
 
-    updateSafely();
+    if (wasEmpty) {
+      updateSafely();
+    } else {
+      updateSafely([bodyId, loadingStateId]);
+    }
   }
 
   /// has scrolled to bottom, so need to load more data.
@@ -302,6 +315,7 @@ abstract class BasePageLogic extends GetxController with Scroll2TopLogicMixin {
 
     List<Gallery> galleries = await postHandleNewGalleries(galleryPage.galleries);
 
+    final bool wasEmpty = state.galleries.isEmpty;
     state.galleries.addAll(galleries);
     state.totalCount = galleryPage.totalCount;
     state.nextGid = galleryPage.nextGid;
@@ -315,7 +329,11 @@ abstract class BasePageLogic extends GetxController with Scroll2TopLogicMixin {
       state.loadingState = LoadingState.idle;
     }
 
-    updateSafely();
+    if (wasEmpty) {
+      updateSafely();
+    } else {
+      updateSafely([bodyId, loadingStateId]);
+    }
   }
 
   Future<void> jumpPage(DateTime dateTime) async {
@@ -465,7 +483,7 @@ abstract class BasePageLogic extends GetxController with Scroll2TopLogicMixin {
     int attempts = 0;
     while (attempts < 5 &&
         page.galleries.isNotEmpty &&
-        page.galleries.every((gallery) => alreadyReadService.contains(gallery.gid))) {
+        page.galleries.every((gallery) => alreadyReadService.isAlreadyRead(gallery))) {
       if (prevGid != null) {
         if (page.prevGid == null) {
           break;
@@ -502,7 +520,10 @@ abstract class BasePageLogic extends GetxController with Scroll2TopLogicMixin {
     List<Gallery> filteredGalleries = await _filterByBlockingRules(galleries);
 
     if (hideAlreadyReadGalleries) {
-      filteredGalleries = filteredGalleries.where((gallery) => !alreadyReadService.contains(gallery.gid)).toList();
+      filteredGalleries = filteredGalleries.where((gallery) => !alreadyReadService.isAlreadyRead(gallery)).toList();
+      if (filteredGalleries.isNotEmpty) {
+        alreadyReadService.scheduleVisualDeduplication(filteredGalleries);
+      }
     }
 
     if (preferenceSetting.preloadGalleryCover.isTrue) {

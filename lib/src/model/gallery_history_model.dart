@@ -13,6 +13,15 @@ class GalleryHistoryModel {
   bool isExpunged;
   List<String> tags;
 
+  /// Optional alternate title (e.g. English/Romaji when Japanese title is
+  /// preferred, or vice-versa) so cross-provider matching sees both forms.
+  String? altTitle;
+
+  /// Optional 128-bit perceptual gradient hash (32 hex chars) of [coverUrl]
+  /// used to match the same gallery across E-Hentai/ExHentai and Xlecx even
+  /// when titles differ completely.
+  String? coverHash;
+
   GalleryHistoryModel({
     required this.galleryUrl,
     required this.title,
@@ -25,6 +34,8 @@ class GalleryHistoryModel {
     required this.publishTime,
     required this.isExpunged,
     required this.tags,
+    this.altTitle,
+    this.coverHash,
   });
 
   Map<String, dynamic> toJson() {
@@ -40,6 +51,8 @@ class GalleryHistoryModel {
       "publishTime": this.publishTime,
       "isExpunged": this.isExpunged,
       "tags": this.tags,
+      if (this.altTitle != null && this.altTitle!.isNotEmpty) "altTitle": this.altTitle,
+      if (this.coverHash != null && this.coverHash!.isNotEmpty) "coverHash": this.coverHash,
     };
   }
 
@@ -56,11 +69,13 @@ class GalleryHistoryModel {
       publishTime: json["publishTime"],
       isExpunged: json["isExpunged"],
       tags: json["tags"].cast<String>(),
+      altTitle: json["altTitle"] as String?,
+      coverHash: json["coverHash"] as String?,
     );
   }
 
   @override
   String toString() {
-    return 'GalleryHistoryModel{galleryUrl: $galleryUrl, title: $title, category: $category, coverUrl: $coverUrl, pageCount: $pageCount, rating: $rating, language: $language, uploader: $uploader, publishTime: $publishTime, isExpunged: $isExpunged, tags: $tags}';
+    return 'GalleryHistoryModel{galleryUrl: $galleryUrl, title: $title, category: $category, coverUrl: $coverUrl, pageCount: $pageCount, rating: $rating, language: $language, uploader: $uploader, publishTime: $publishTime, isExpunged: $isExpunged, tags: $tags, altTitle: $altTitle, coverHash: $coverHash}';
   }
 }

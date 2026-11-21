@@ -297,7 +297,7 @@ class _XlecxDetailsPageState extends State<XlecxDetailsPage> {
             );
           }),
           Obx(() {
-            final bool isAlreadyRead = alreadyReadService.contains(gallery.gid);
+            final bool isAlreadyRead = alreadyReadService.isAlreadyRead(_favoriteSnapshot());
             return IconButton(
               tooltip: isAlreadyRead ? 'removeFromAlreadyRead'.tr : 'markAsAlreadyRead'.tr,
               icon: Icon(
@@ -403,6 +403,7 @@ class _XlecxDetailsPageState extends State<XlecxDetailsPage> {
                     containerHeight: 267,
                     fit: BoxFit.cover,
                     borderRadius: BorderRadius.circular(10),
+                    maxBytes: 512 * 1024,
                   ),
                 );
 
@@ -502,7 +503,8 @@ class _XlecxDetailsPageState extends State<XlecxDetailsPage> {
                 fit: BoxFit.contain,
                 containerColor: UIConfig.galleryCardBackGroundColor(context),
                 borderRadius: BorderRadius.circular(8),
-                maxBytes: 512 * 1024,
+                maxBytes: 384 * 1024,
+                loadingWidgetBuilder: () => const SizedBox.shrink(),
 
                 /// Fall back to the full size image instead of leaving a broken
                 /// tile when the thumbnail route fails.
@@ -512,7 +514,8 @@ class _XlecxDetailsPageState extends State<XlecxDetailsPage> {
                   fit: BoxFit.contain,
                   containerColor: UIConfig.galleryCardBackGroundColor(context),
                   borderRadius: BorderRadius.circular(8),
-                  maxBytes: 512 * 1024,
+                  maxBytes: 384 * 1024,
+                  loadingWidgetBuilder: () => const SizedBox.shrink(),
                 ),
               ),
             ),

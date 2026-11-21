@@ -36,6 +36,7 @@ import '../../mixin/scroll_to_top_state_mixin.dart';
 import '../../service/gallery_download/gallery_download_service.dart';
 import '../../setting/preference_setting.dart';
 import '../../setting/style_setting.dart';
+import '../../utils/convert_util.dart';
 import '../../utils/date_util.dart';
 import '../../utils/route_util.dart';
 import '../../utils/search_util.dart';
@@ -1041,8 +1042,14 @@ class DetailsPage extends StatelessWidget with Scroll2TopPageMixin {
       global: false,
       init: logic,
       builder: (_) => Obx(() {
-        bool disabled = state.galleryDetails == null && state.gallery == null;
-        bool alreadyRead = alreadyReadService.contains(state.galleryUrl.gid);
+        final detail = state.galleryDetails;
+        final gallery = state.gallery;
+        bool disabled = detail == null && gallery == null;
+        bool alreadyRead = detail != null
+            ? alreadyReadService.isHistoryModelAlreadyRead(galleryDetail2GalleryHistoryModel(detail))
+            : gallery != null
+                ? alreadyReadService.isAlreadyRead(gallery)
+                : alreadyReadService.contains(state.galleryUrl.gid);
 
         return IconTextButton(
           width: UIConfig.detailsPageActionExtent,

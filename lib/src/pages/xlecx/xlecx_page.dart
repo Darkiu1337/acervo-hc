@@ -216,7 +216,7 @@ class XlecxPage extends StatelessWidget {
   /// without opening the detail page.
   void _showCardMenu(BuildContext context, Gallery gallery, {Offset? position}) {
     final bool isFavorite = localFavoriteService.contains(gallery.gid);
-    final bool isAlreadyRead = alreadyReadService.contains(gallery.gid);
+    final bool isAlreadyRead = alreadyReadService.isAlreadyRead(gallery);
 
     showEHContextMenu(
       context,

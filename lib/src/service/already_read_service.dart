@@ -1,9 +1,15 @@
+import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 
 import 'package:get/get.dart';
+import 'package:acervo_hc/src/model/gallery.dart';
 import 'package:acervo_hc/src/model/gallery_history_model.dart';
+import 'package:acervo_hc/src/model/gallery_source.dart';
 import 'package:acervo_hc/src/service/log.dart';
 import 'package:acervo_hc/src/service/storage_service.dart';
+import 'package:acervo_hc/src/utils/cover_hash_util.dart';
+import 'package:acervo_hc/src/utils/gallery_identity_matcher.dart';
 
 AlreadyReadService alreadyReadService = AlreadyReadService();
 
@@ -11,26 +17,65 @@ AlreadyReadService alreadyReadService = AlreadyReadService();
 ///
 /// The list has two roles:
 ///  1. it hides the gallery from the listing pages (home, search, popular,
-///     watched and the Xlecx source), so already seen works do not come back;
+///     watched and the Xlecx source) — including cross-provider duplicates
+///     between E-Hentai/ExHentai and Xlecx — so already seen works do not come
+///     back on either provider;
 ///  2. it is the source of the "Already read" page in the sidebar, where they
 ///     can be inspected and removed.
 ///
-/// Works for both sources (E-H and Xlecx) because a `GalleryHistoryModel`
-/// already carries a [GalleryUrl] that knows its source. Stored in GetStorage
-/// as a JSON array (same rationale as the local favorites: no Drift schema
-/// change and no `build_runner` codegen), newest first.
+/// Cross-provider deduplication uses a two-tier multi-signal strategy:
+///  - Tier 1 (synchronous, sub-millisecond): strict normalized title variants
+///    (handling brackets and bilingual separators) + sequel/chapter numeric
+///    guards + page-count compatibility + creator/artist corroboration.
+///  - Tier 2 (asynchronous, cache-first): 128-bit perceptual cover dHash
+///    matching for galleries whose titles differ across providers or are too
+///    short/generic to match safely by metadata alone.
 class AlreadyReadService {
   static const String _storageKey = 'alreadyReadGalleries';
 
   /// Rows per page of the "Already read" page.
   static const int pageSize = 100;
 
+  /// Max concurrent cover hash decodes for background visual deduplication.
+  static const int _maxVisualConcurrency = 3;
+
   final RxList<GalleryHistoryModel> galleries = <GalleryHistoryModel>[].obs;
 
   /// gids in [galleries], for fast checks while filtering listings/cards.
   final RxSet<int> gids = <int>{}.obs;
 
+  /// Bumped whenever the already-read set or discovered cross-provider matches
+  /// change so listings and detail buttons stay in sync.
+  final RxInt revision = 0.obs;
+
   bool _restored = false;
+  bool _backfillStarted = false;
+
+  /// Per-provider normalized identities for fast cross-provider checks.
+  final List<GalleryIdentity> _ehIdentities = <GalleryIdentity>[];
+  final List<GalleryIdentity> _xlecxIdentities = <GalleryIdentity>[];
+
+  /// Exact-variant lookup indexes (`variant.comparable -> identities`) to keep
+  /// Tier 1 matching near O(1) even with large already-read lists.
+  final Map<String, List<GalleryIdentity>> _ehTitleIndex = <String, List<GalleryIdentity>>{};
+  final Map<String, List<GalleryIdentity>> _xlecxTitleIndex = <String, List<GalleryIdentity>>{};
+
+  /// Maps a cross-provider matched gallery's gid -> the gid of the stored
+  /// already-read entry that matched it.
+  final Map<int, int> _crossMatchedToSource = <int, int>{};
+
+  /// Tracks visual check state per `(gid -> hashEpoch)` so each visible card
+  /// is hashed at most once until new opposing cover hashes arrive.
+  final Map<int, int> _visuallyCheckedEpoch = <int, int>{};
+  int _hashEpoch = 0;
+
+  /// Pending background visual dedup queue.
+  final Queue<Gallery> _visualQueue = Queue<Gallery>();
+  final Set<int> _visualQueuedGids = <int>{};
+  int _visualInFlight = 0;
+
+  /// Debounced persistence when backfilling cover hashes.
+  Timer? _persistTimer;
 
   int get count => galleries.length;
 
@@ -57,28 +102,144 @@ class AlreadyReadService {
           log.error('Restore already-read entry failed', e);
         }
       }
+      _rebuildIndexes();
+      _scheduleBackfillMissingHashes();
     } catch (e) {
       log.error('Restore already-read galleries failed', e);
     }
   }
 
+  /// True when [gid] is directly marked as read OR has already been matched
+  /// against an already-read entry from the other provider.
   bool contains(int gid) {
     ensureRestored();
-    return gids.contains(gid);
+    revision.value;
+    return gids.contains(gid) || _crossMatchedToSource.containsKey(gid);
+  }
+
+  /// Synchronous check for listings and detail views: checks exact gid,
+  /// previously discovered visual matches, and Tier 1 multi-signal metadata
+  /// matching against the opposing provider.
+  bool isAlreadyRead(Gallery gallery) {
+    ensureRestored();
+    revision.value;
+
+    final int gid = gallery.gid;
+    if (gids.contains(gid) || _crossMatchedToSource.containsKey(gid)) {
+      return true;
+    }
+
+    final int? matchedSourceGid = _matchTier1(gallery);
+    if (matchedSourceGid != null) {
+      _crossMatchedToSource[gid] = matchedSourceGid;
+      return true;
+    }
+
+    return false;
+  }
+
+  /// Returns the stored [GalleryHistoryModel] matching [gallery] (either exact
+  /// gid or cross-provider counterpart), or `null` if not read.
+  GalleryHistoryModel? findMatchingEntry(Gallery gallery) {
+    ensureRestored();
+    revision.value;
+
+    final int gid = gallery.gid;
+    final int? sourceGid = gids.contains(gid)
+        ? gid
+        : (_crossMatchedToSource[gid] ?? _matchTier1(gallery));
+    if (sourceGid == null) {
+      return null;
+    }
+    if (sourceGid != gid) {
+      _crossMatchedToSource[gid] = sourceGid;
+    }
+    return _findByGid(sourceGid);
+  }
+
+  /// Returns the stored entry matching [gid] (exact or cached cross-match).
+  GalleryHistoryModel? findMatchingEntryByGid(int gid) {
+    ensureRestored();
+    revision.value;
+
+    final int? sourceGid = gids.contains(gid) ? gid : _crossMatchedToSource[gid];
+    return sourceGid == null ? null : _findByGid(sourceGid);
+  }
+
+  /// Schedules lightweight background Tier 2 (perceptual cover hash) checks for
+  /// visible listing cards that were not already caught by Tier 1.
+  ///
+  /// Does nothing when the opposing provider has no hashed already-read entries
+  /// with a compatible page count.
+  void scheduleVisualDeduplication(Iterable<Gallery> candidates) {
+    ensureRestored();
+
+    for (final Gallery gallery in candidates) {
+      final int gid = gallery.gid;
+      if (gallery.cover.url.trim().isEmpty) {
+        continue;
+      }
+      if (gids.contains(gid) || _crossMatchedToSource.containsKey(gid)) {
+        continue;
+      }
+      if (_visuallyCheckedEpoch[gid] == _hashEpoch || _visualQueuedGids.contains(gid)) {
+        continue;
+      }
+      if (!_hasPotentialVisualCandidate(gallery)) {
+        _visuallyCheckedEpoch[gid] = _hashEpoch;
+        continue;
+      }
+
+      _visualQueuedGids.add(gid);
+      _visualQueue.add(gallery);
+    }
+
+    _pumpVisualQueue();
+  }
+
+  /// Checks whether a [GalleryHistoryModel] (e.g. built from a detail page
+  /// opened via direct link) is already read directly or via a cross-provider
+  /// counterpart.
+  bool isHistoryModelAlreadyRead(GalleryHistoryModel model) {
+    ensureRestored();
+    revision.value;
+
+    final int gid = model.galleryUrl.gid;
+    if (gids.contains(gid) || _crossMatchedToSource.containsKey(gid)) {
+      return true;
+    }
+
+    final int? matchedSourceGid = _matchTier1Identity(GalleryIdentity.fromHistoryModel(model));
+    if (matchedSourceGid != null) {
+      _crossMatchedToSource[gid] = matchedSourceGid;
+      return true;
+    }
+
+    return false;
   }
 
   /// Returns `true` when the gallery is marked as read after this call.
+  ///
+  /// When toggling a gallery that is matched via a cross-provider counterpart,
+  /// removes that counterpart so the gallery becomes unread on both providers.
   Future<bool> toggle(GalleryHistoryModel gallery) async {
     ensureRestored();
-    final bool alreadyRead = gids.contains(gallery.galleryUrl.gid);
+    final int gid = gallery.galleryUrl.gid;
 
-    if (alreadyRead) {
-      await remove(gallery.galleryUrl.gid);
-    } else {
-      await add(gallery);
+    if (gids.contains(gid)) {
+      await remove(gid);
+      return false;
     }
 
-    return !alreadyRead;
+    final int? crossSourceGid =
+        _crossMatchedToSource[gid] ?? _matchTier1Identity(GalleryIdentity.fromHistoryModel(gallery));
+    if (crossSourceGid != null && gids.contains(crossSourceGid)) {
+      await remove(crossSourceGid);
+      return false;
+    }
+
+    await add(gallery);
+    return true;
   }
 
   Future<void> add(GalleryHistoryModel gallery) async {
@@ -94,21 +255,31 @@ class AlreadyReadService {
     /// the new gallery was still missing).
     gids.add(gallery.galleryUrl.gid);
     galleries.value = next;
+    _rebuildIndexes();
+    revision.value++;
 
     await _persist();
+
+    if (gallery.coverHash == null && gallery.coverUrl.trim().isNotEmpty) {
+      unawaited(_computeAndStoreEntryHash(gallery.galleryUrl.gid));
+    }
   }
 
   Future<void> remove(int gid) async {
     ensureRestored();
-    if (!gids.contains(gid)) {
+    final int targetGid = gids.contains(gid) ? gid : (_crossMatchedToSource[gid] ?? gid);
+    if (!gids.contains(targetGid)) {
       return;
     }
 
     final List<GalleryHistoryModel> next = List<GalleryHistoryModel>.of(galleries)
-      ..removeWhere((GalleryHistoryModel e) => e.galleryUrl.gid == gid);
+      ..removeWhere((GalleryHistoryModel e) => e.galleryUrl.gid == targetGid);
 
-    gids.remove(gid);
+    gids.remove(targetGid);
+    _crossMatchedToSource.removeWhere((int candidateGid, int sourceGid) => sourceGid == targetGid || candidateGid == targetGid);
     galleries.value = next;
+    _rebuildIndexes();
+    revision.value++;
 
     await _persist();
   }
@@ -116,7 +287,13 @@ class AlreadyReadService {
   Future<void> clear() async {
     ensureRestored();
     gids.clear();
+    _crossMatchedToSource.clear();
+    _visuallyCheckedEpoch.clear();
+    _visualQueue.clear();
+    _visualQueuedGids.clear();
     galleries.value = <GalleryHistoryModel>[];
+    _rebuildIndexes();
+    revision.value++;
     await _persist();
   }
 
@@ -130,7 +307,216 @@ class AlreadyReadService {
     return galleries.skip(pageIndex * pageSize).take(pageSize).toList();
   }
 
+  GalleryHistoryModel? _findByGid(int gid) {
+    for (final GalleryHistoryModel entry in galleries) {
+      if (entry.galleryUrl.gid == gid) {
+        return entry;
+      }
+    }
+    return null;
+  }
+
+  void _rebuildIndexes() {
+    _ehIdentities.clear();
+    _xlecxIdentities.clear();
+    _ehTitleIndex.clear();
+    _xlecxTitleIndex.clear();
+
+    for (final GalleryHistoryModel entry in galleries) {
+      final GalleryIdentity identity = GalleryIdentity.fromHistoryModel(entry);
+      final List<GalleryIdentity> list =
+          identity.source == GallerySource.eh ? _ehIdentities : _xlecxIdentities;
+      final Map<String, List<GalleryIdentity>> titleIndex =
+          identity.source == GallerySource.eh ? _ehTitleIndex : _xlecxTitleIndex;
+
+      list.add(identity);
+      for (final TitleVariant variant in identity.titleVariants) {
+        (titleIndex[variant.comparable] ??= <GalleryIdentity>[]).add(identity);
+      }
+    }
+  }
+
+  int? _matchTier1(Gallery gallery) {
+    return _matchTier1Identity(GalleryIdentity.fromGallery(gallery));
+  }
+
+  int? _matchTier1Identity(GalleryIdentity candidate) {
+    final bool isEh = candidate.source == GallerySource.eh;
+    final List<GalleryIdentity> opposingList = isEh ? _xlecxIdentities : _ehIdentities;
+    if (opposingList.isEmpty) {
+      return null;
+    }
+
+    final Map<String, List<GalleryIdentity>> titleIndex = isEh ? _xlecxTitleIndex : _ehTitleIndex;
+    final Set<int> checked = <int>{};
+
+    /// Fast path: check exact normalized title-variant hits first in O(1).
+    for (final TitleVariant variant in candidate.titleVariants) {
+      final List<GalleryIdentity>? bucket = titleIndex[variant.comparable];
+      if (bucket == null) {
+        continue;
+      }
+      for (final GalleryIdentity entry in bucket) {
+        if (!checked.add(entry.gid)) {
+          continue;
+        }
+        if (GalleryIdentityMatcher.match(candidate, entry) != null) {
+          return entry.gid;
+        }
+      }
+    }
+
+    /// Fallback for fuzzy title + creator matches (only when candidate has
+    /// creators; without creators, Tier 1 cannot accept fuzzy titles anyway).
+    if (candidate.creators.isNotEmpty) {
+      for (final GalleryIdentity entry in opposingList) {
+        if (!checked.add(entry.gid) || entry.creators.isEmpty) {
+          continue;
+        }
+        if (GalleryIdentityMatcher.match(candidate, entry) != null) {
+          return entry.gid;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  bool _hasPotentialVisualCandidate(Gallery gallery) {
+    final List<GalleryIdentity> opposingList =
+        gallery.galleryUrl.source == GallerySource.eh ? _xlecxIdentities : _ehIdentities;
+    if (opposingList.isEmpty) {
+      return false;
+    }
+
+    final int? pages = (gallery.pageCount != null && gallery.pageCount! > 0) ? gallery.pageCount : null;
+    for (final GalleryIdentity entry in opposingList) {
+      if (entry.coverHash != null && GalleryIdentityMatcher.arePageCountsCompatible(pages, entry.pageCount)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void _pumpVisualQueue() {
+    while (_visualInFlight < _maxVisualConcurrency && _visualQueue.isNotEmpty) {
+      final Gallery gallery = _visualQueue.removeFirst();
+      _visualQueuedGids.remove(gallery.gid);
+      _visualInFlight++;
+      unawaited(_runVisualCheck(gallery));
+    }
+  }
+
+  Future<void> _runVisualCheck(Gallery gallery) async {
+    final int gid = gallery.gid;
+    final int epochAtStart = _hashEpoch;
+
+    try {
+      if (gids.contains(gid) || _crossMatchedToSource.containsKey(gid)) {
+        return;
+      }
+
+      final CoverPerceptualHash? coverHash = await CoverHashUtil.computeForUrl(
+        gallery.cover.url,
+        allowNetwork: true,
+      );
+      _visuallyCheckedEpoch[gid] = epochAtStart;
+
+      if (coverHash == null) {
+        return;
+      }
+
+      final GalleryIdentity candidate = GalleryIdentity.fromGallery(gallery, coverHash: coverHash);
+      final List<GalleryIdentity> opposingList =
+          candidate.source == GallerySource.eh ? _xlecxIdentities : _ehIdentities;
+
+      for (final GalleryIdentity entry in opposingList) {
+        if (entry.coverHash == null) {
+          continue;
+        }
+        final GalleryMatchResult? result = GalleryIdentityMatcher.match(candidate, entry);
+        if (result != null) {
+          _crossMatchedToSource[gid] = entry.gid;
+          log.debug(
+            'Cross-provider already-read match (${result.reason.name}, dist=${result.coverDistance}): '
+            '${gallery.galleryUrl.url} <-> gid=${entry.gid}',
+          );
+          revision.value++;
+          break;
+        }
+      }
+    } catch (e) {
+      log.debug('Visual already-read dedup failed for gid=$gid: $e');
+    } finally {
+      _visualInFlight--;
+      _pumpVisualQueue();
+    }
+  }
+
+  Future<void> _computeAndStoreEntryHash(int gid) async {
+    final GalleryHistoryModel? entry = _findByGid(gid);
+    if (entry == null || entry.coverHash != null || entry.coverUrl.trim().isEmpty) {
+      return;
+    }
+
+    final CoverPerceptualHash? hash = await CoverHashUtil.computeForUrl(
+      entry.coverUrl,
+      allowNetwork: true,
+    );
+    if (hash == null) {
+      return;
+    }
+
+    final GalleryHistoryModel? current = _findByGid(gid);
+    if (current == null || current.coverHash != null) {
+      return;
+    }
+
+    current.coverHash = hash.toHex();
+    _hashEpoch++;
+    _rebuildIndexes();
+    revision.value++;
+    _scheduleDebouncedPersist();
+  }
+
+  /// Lazily computes cover hashes for existing already-read entries that were
+  /// saved before perceptual deduplication existed. Runs gently one at a time
+  /// so startup and scrolling stay completely unaffected.
+  void _scheduleBackfillMissingHashes() {
+    if (_backfillStarted) {
+      return;
+    }
+    _backfillStarted = true;
+
+    final List<int> missingGids = galleries
+        .where((GalleryHistoryModel e) => e.coverHash == null && e.coverUrl.trim().isNotEmpty)
+        .map((GalleryHistoryModel e) => e.galleryUrl.gid)
+        .toList();
+    if (missingGids.isEmpty) {
+      return;
+    }
+
+    unawaited(Future<void>(() async {
+      await Future<void>.delayed(const Duration(seconds: 2));
+      for (final int gid in missingGids) {
+        if (!gids.contains(gid)) {
+          continue;
+        }
+        await _computeAndStoreEntryHash(gid);
+        await Future<void>.delayed(const Duration(milliseconds: 180));
+      }
+    }));
+  }
+
+  void _scheduleDebouncedPersist() {
+    _persistTimer?.cancel();
+    _persistTimer = Timer(const Duration(seconds: 2), () {
+      unawaited(_persist());
+    });
+  }
+
   Future<void> _persist() {
+    _persistTimer?.cancel();
     return storageService.write(_storageKey, jsonEncode(galleries.toList()));
   }
 }

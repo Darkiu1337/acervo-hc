@@ -74,9 +74,18 @@ Gallery galleryHistoryModel2Gallery(GalleryHistoryModel model) {
 }
 
 GalleryHistoryModel galleryDetail2GalleryHistoryModel(GalleryDetail galleryDetail) {
+  final bool preferJp = SiteSetting.preferJapaneseTitle.isTrue && galleryDetail.japaneseTitle != null && galleryDetail.japaneseTitle!.isNotEmpty;
+  final String primaryTitle = preferJp ? galleryDetail.japaneseTitle! : galleryDetail.rawTitle;
+  final String? secondaryTitle = preferJp
+      ? (galleryDetail.rawTitle != primaryTitle ? galleryDetail.rawTitle : null)
+      : (galleryDetail.japaneseTitle != null && galleryDetail.japaneseTitle!.isNotEmpty && galleryDetail.japaneseTitle != primaryTitle
+          ? galleryDetail.japaneseTitle
+          : null);
+
   return GalleryHistoryModel(
     galleryUrl: galleryDetail.galleryUrl,
-    title: SiteSetting.preferJapaneseTitle.isTrue ? (galleryDetail.japaneseTitle ?? galleryDetail.rawTitle) : galleryDetail.rawTitle,
+    title: primaryTitle,
+    altTitle: secondaryTitle,
     category: galleryDetail.category,
     coverUrl: galleryDetail.cover.url,
     pageCount: galleryDetail.pageCount,

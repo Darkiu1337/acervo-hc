@@ -37,13 +37,22 @@ class XlecxLogic extends GetxController {
     localFavoriteService.ensureRestored();
     alreadyReadService.ensureRestored();
 
-    /// Marking a card as already read removes it from the open grid.
-    _alreadyReadWorker = ever(alreadyReadService.galleries, (_) {
+    /// Marking a card as already read (on either Xlecx or E-H) removes it from
+    /// the open grid.
+    _alreadyReadWorker = ever(alreadyReadService.revision, (_) {
+      if (state.galleries.isEmpty) {
+        return;
+      }
+
       final int length = state.galleries.length;
-      state.galleries.removeWhere((gallery) => alreadyReadService.contains(gallery.gid));
+      state.galleries.removeWhere((gallery) => alreadyReadService.isAlreadyRead(gallery));
 
       if (state.galleries.length != length) {
         update([bodyId]);
+      }
+
+      if (state.galleries.isNotEmpty) {
+        alreadyReadService.scheduleVisualDeduplication(state.galleries);
       }
     });
 
@@ -308,8 +317,11 @@ class XlecxLogic extends GetxController {
         state.hasMore = page.hasMore;
 
         final List<Gallery> visible =
-            page.galleries.where((Gallery gallery) => !alreadyReadService.contains(gallery.gid)).toList();
+            page.galleries.where((Gallery gallery) => !alreadyReadService.isAlreadyRead(gallery)).toList();
         state.galleries.addAll(visible);
+        if (visible.isNotEmpty) {
+          alreadyReadService.scheduleVisualDeduplication(visible);
+        }
 
         if (visible.isNotEmpty || !state.hasMore) {
           if (!state.hasMore) {
