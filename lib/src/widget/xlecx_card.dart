@@ -29,26 +29,29 @@ class XlecxCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      onLongPress: onLongPress,
-      onSecondaryTapDown: onSecondaryTap == null ? null : (TapDownDetails details) => onSecondaryTap!(details.globalPosition),
-      borderRadius: BorderRadius.circular(10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: EHImage(
-                    galleryImage: gallery.cover,
-                    autoLayout: true,
-                    fit: BoxFit.cover,
-                    containerColor: UIConfig.galleryCardBackGroundColor(context),
-                    borderRadius: BorderRadius.circular(10),
+    return RepaintBoundary(
+      child: InkWell(
+        onTap: onTap,
+        onLongPress: onLongPress,
+        onSecondaryTapDown: onSecondaryTap == null ? null : (TapDownDetails details) => onSecondaryTap!(details.globalPosition),
+        borderRadius: BorderRadius.circular(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: EHImage(
+                      galleryImage: gallery.cover,
+                      autoLayout: true,
+                      fit: BoxFit.cover,
+                      containerColor: UIConfig.galleryCardBackGroundColor(context),
+                      borderRadius: BorderRadius.circular(10),
+                      maxBytes: 384 * 1024,
+                      loadingWidgetBuilder: () => const SizedBox.shrink(),
+                    ),
                   ),
-                ),
                 if (isFavorite)
                   Positioned(
                     top: 6,
@@ -85,6 +88,7 @@ class XlecxCard extends StatelessWidget {
               ),
             ),
         ],
+      ),
       ),
     );
   }

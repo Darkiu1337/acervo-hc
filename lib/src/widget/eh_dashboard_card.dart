@@ -54,12 +54,16 @@ class _EHDashboardCardState extends State<EHDashboardCard> {
       containerWidth: UIConfig.dashboardCardSize,
       galleryImage: image,
       fit: BoxFit.cover,
+      maxBytes: 256 * 1024,
+      loadingWidgetBuilder: () => const SizedBox.shrink(),
       completedWidgetBuilder: (_) {
-        Get.engine.addPostFrameCallback((_) {
-          if (mounted && !loadSuccess) {
-            setState(() => loadSuccess = true);
-          }
-        });
+        if (!loadSuccess) {
+          Get.engine.addPostFrameCallback((_) {
+            if (mounted && !loadSuccess) {
+              setState(() => loadSuccess = true);
+            }
+          });
+        }
         return null;
       },
     );

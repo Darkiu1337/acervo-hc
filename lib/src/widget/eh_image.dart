@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:animate_do/animate_do.dart';
 import 'package:extended_image/extended_image.dart';
 
 // ignore: implementation_imports
@@ -10,7 +9,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 import 'package:acervo_hc/src/config/ui_config.dart';
-import 'package:acervo_hc/src/extension/widget_extension.dart';
 import 'package:acervo_hc/src/model/gallery_image.dart';
 import 'package:acervo_hc/src/setting/advanced_setting.dart';
 import 'package:acervo_hc/src/setting/style_setting.dart';
@@ -281,8 +279,11 @@ class _EHImageState extends State<EHImage> {
       loadStateChanged: (ExtendedImageState state) {
         switch (state.extendedImageLoadState) {
           case LoadState.loading:
-            return widget.loadingProgressWidgetBuilder != null
-                ? widget.loadingProgressWidgetBuilder!.call(_computeLoadingProgress(state.loadingProgress, state.extendedImageInfo))
+            if (widget.loadingProgressWidgetBuilder != null) {
+              return widget.loadingProgressWidgetBuilder!.call(_computeLoadingProgress(state.loadingProgress, state.extendedImageInfo));
+            }
+            return widget.loadingWidgetBuilder != null
+                ? widget.loadingWidgetBuilder!.call()
                 : Center(child: UIConfig.loadingAnimation(context));
           case LoadState.failed:
             return widget.failedWidgetBuilder?.call(state) ??
@@ -303,14 +304,16 @@ class _EHImageState extends State<EHImage> {
               child = ExtendedImageSlidePageHandler(child: child, extendedImageSlidePageState: state.slidePageState);
             }
 
-            child = Center(
-              child: Container(
+            if (widget.shadows != null && widget.shadows!.isNotEmpty) {
+              child = Container(
                 decoration: BoxDecoration(boxShadow: widget.shadows, borderRadius: widget.borderRadius),
                 child: child,
-              ),
-            );
+              );
+            }
 
-            return widget.forceFadeIn || !state.wasSynchronouslyLoaded ? child.fadeIn() : child;
+            child = Center(child: child);
+
+            return widget.forceFadeIn || !state.wasSynchronouslyLoaded ? _FastFadeIn(child: child) : child;
         }
       },
     );
@@ -363,21 +366,24 @@ class _EHImageState extends State<EHImage> {
             Widget child = widget.completedWidgetBuilder?.call(state) ?? _buildExtendedRawImage(state);
             child = _maybeWrapWithEnhanced(child, state);
 
-            child = ClipRRect(child: child, borderRadius: widget.borderRadius);
+            if (widget.borderRadius != BorderRadius.zero) {
+              child = ClipRRect(child: child, borderRadius: widget.borderRadius);
+            }
 
             if (state.slidePageState != null) {
               child = ExtendedImageSlidePageHandler(child: child, extendedImageSlidePageState: state.slidePageState);
             }
 
-            return FadeIn(
-              duration: const Duration(milliseconds: 150),
-              child: Center(
-                child: Container(
-                  decoration: BoxDecoration(boxShadow: widget.shadows, borderRadius: widget.borderRadius),
-                  child: child,
-                ),
-              ),
-            );
+            if (widget.shadows != null && widget.shadows!.isNotEmpty) {
+              child = Container(
+                decoration: BoxDecoration(boxShadow: widget.shadows, borderRadius: widget.borderRadius),
+                child: child,
+              );
+            }
+
+            child = Center(child: child);
+
+            return widget.forceFadeIn || !state.wasSynchronouslyLoaded ? _FastFadeIn(child: child) : child;
         }
       },
       filterQuality: FilterQuality.medium,
@@ -673,5 +679,34 @@ class _GateExtendedNetworkImageProvider extends network_image_io.ExtendedNetwork
     final ui.Codec codec = await super.instantiateImageCodec(data, decode);
     EHImageFrameCountRegistry.record(frameCountKey, codec.frameCount);
     return codec.frameCount > 1 ? _PausableCodec(codec, gate) : codec;
+  }
+}
+
+/// Lightweight one-shot opacity fade backed by [FadeTransition] (compositor
+/// alpha, zero per-frame widget rebuilds).
+class _FastFadeIn extends StatefulWidget {
+  final Widget child;
+
+  const _FastFadeIn({required this.child});
+
+  @override
+  State<_FastFadeIn> createState() => _FastFadeInState();
+}
+
+class _FastFadeInState extends State<_FastFadeIn> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 120),
+  )..forward();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(opacity: _controller, child: widget.child);
   }
 }

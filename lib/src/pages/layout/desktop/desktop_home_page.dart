@@ -18,10 +18,17 @@ class DesktopHomePage extends StatelessWidget {
       builder: (_) => Stack(
         children: state.icons
             .where((icon) => icon.shouldRender)
-            .mapIndexed((index, icon) => Offstage(
-                  offstage: state.selectedTabOrder != index,
+            .mapIndexed((index, icon) {
+              final bool isSelected = state.selectedTabOrder == index;
+              return Offstage(
+                key: ValueKey(icon.name),
+                offstage: !isSelected,
+                child: TickerMode(
+                  enabled: isSelected,
                   child: icon.page.call(),
-                ))
+                ),
+              );
+            })
             .toList(),
       ),
     );

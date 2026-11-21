@@ -147,6 +147,7 @@ class MobileLayoutPageV2 extends StatelessWidget {
           .where((icon) => icon.shouldRender)
           .mapIndexed(
             (index, icon) => Offstage(
+              key: ValueKey(icon.name),
               offstage: state.selectedDrawerTabOrder != index,
               child: TickerMode(enabled: state.selectedDrawerTabOrder == index, child: icon.page.call()),
             ),

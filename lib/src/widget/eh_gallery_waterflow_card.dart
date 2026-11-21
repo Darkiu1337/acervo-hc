@@ -1,10 +1,8 @@
 import 'dart:collection';
 import 'dart:math';
 
-import 'package:animate_do/animate_do.dart';
 import 'package:blur/blur.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:get/get.dart';
 import 'package:acervo_hc/src/extension/string_extension.dart';
 import 'package:acervo_hc/src/extension/widget_extension.dart';
@@ -18,6 +16,7 @@ import '../model/gallery_tag.dart';
 import 'eh_gallery_category_tag.dart';
 import 'eh_gallery_list_card_.dart';
 import 'eh_image.dart';
+import 'eh_static_rating_bar.dart';
 
 class EHGalleryWaterFlowCard extends StatelessWidget {
   final Gallery gallery;
@@ -39,11 +38,13 @@ class EHGalleryWaterFlowCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => handleTapCard(gallery),
-      onLongPressStart: handleLongPressCard == null ? null : (details) => handleLongPressCard!(gallery, details.globalPosition),
-      onSecondaryTapDown: handleSecondaryTapCard == null ? null : (details) => handleSecondaryTapCard!(gallery, details.globalPosition),
-      child: FadeIn(duration: const Duration(milliseconds: 100), child: _buildCard(context)),
+    return RepaintBoundary(
+      child: GestureDetector(
+        onTap: () => handleTapCard(gallery),
+        onLongPressStart: handleLongPressCard == null ? null : (details) => handleLongPressCard!(gallery, details.globalPosition),
+        onSecondaryTapDown: handleSecondaryTapCard == null ? null : (details) => handleSecondaryTapCard!(gallery, details.globalPosition),
+        child: _buildCard(context),
+      ),
     );
   }
 
@@ -160,6 +161,8 @@ class EHGalleryWaterFlowCard extends StatelessWidget {
           containerWidth: fittedSizes.destination.width,
           containerColor: UIConfig.waterFallFlowCardBackGroundColor(context),
           heroTag: gallery.blockedByLocalRules ? null : gallery.cover,
+          maxBytes: 384 * 1024,
+          loadingWidgetBuilder: () => const SizedBox.shrink(),
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(listMode == ListMode.waterfallFlowBig ? 12 : 8),
             topRight: Radius.circular(listMode == ListMode.waterfallFlowBig ? 12 : 8),
@@ -194,15 +197,11 @@ class EHGalleryWaterFlowCard extends StatelessWidget {
   Widget _buildLanguage() => Text(LocaleConsts.language2Abbreviation[gallery.language] ?? '', style: const TextStyle(fontSize: 9));
 
   Widget _buildRatingBar(BuildContext context) {
-    return RatingBar.builder(
-      unratedColor: UIConfig.galleryRatingStarUnRatedColor(context),
-      initialRating: gallery.rating,
-      itemCount: 5,
-      allowHalfRating: true,
+    return EHStaticRatingBar(
+      rating: gallery.rating,
       itemSize: 11,
-      ignoreGestures: true,
-      itemBuilder: (context, _) => Icon(Icons.star, color: gallery.hasRated ? UIConfig.galleryRatingStarRatedColor(context) : UIConfig.galleryRatingStarColor),
-      onRatingUpdate: (_) {},
+      ratedColor: gallery.hasRated ? UIConfig.galleryRatingStarRatedColor(context) : UIConfig.galleryRatingStarColor,
+      unratedColor: UIConfig.galleryRatingStarUnRatedColor(context),
     );
   }
 

@@ -30,6 +30,8 @@ class EHThumbnail extends StatelessWidget {
       containerHeight: containerHeight,
       containerWidth: containerWidth,
       borderRadius: borderRadius,
+      maxBytes: 256 * 1024,
+      loadingWidgetBuilder: () => const SizedBox.shrink(),
     );
   }
 
@@ -39,6 +41,7 @@ class EHThumbnail extends StatelessWidget {
       containerHeight: containerHeight,
       containerWidth: containerWidth,
       borderRadius: borderRadius,
+      loadingWidgetBuilder: () => const SizedBox.shrink(),
       completedWidgetBuilder: (ExtendedImageState state) {
         FittedSizes fittedSizes = applyBoxFit(
           BoxFit.contain,

@@ -18,9 +18,20 @@ abstract interface class ExtraBlockRuleProvider {
   Map<String, List<LocalBlockRule>> get extraGroupedRules;
 }
 
+class _CompiledBlockRule {
+  final LocalBlockRule rule;
+  final LocalBlockRuleHandler handler;
+
+  const _CompiledBlockRule(this.rule, this.handler);
+}
+
 class LocalBlockRuleService with JHLifeCircleBeanErrorCatch implements JHLifeCircleBean {
   final List<LocalBlockRuleHandler> handlers = [];
   final List<ExtraBlockRuleProvider> extraBlockRuleProviders = [];
+
+  /// Cached grouped rules per target so every gallery listing page does not
+  /// query SQLite and re-sort all 23 handlers on every item.
+  final Map<LocalBlockTargetEnum, List<List<_CompiledBlockRule>>> _compiledRulesCache = {};
 
   @override
   Future<void> doInitBean() async {
@@ -53,6 +64,14 @@ class LocalBlockRuleService with JHLifeCircleBeanErrorCatch implements JHLifeCir
 
   @override
   Future<void> doAfterBeanReady() async {}
+
+  void _invalidateCache([LocalBlockTargetEnum? target]) {
+    if (target == null) {
+      _compiledRulesCache.clear();
+    } else {
+      _compiledRulesCache.remove(target);
+    }
+  }
 
   LocalBlockRuleHandler getHandlerByRule(LocalBlockRule rule) => handlers.where((h) => h.matchRule(rule)).sorted((a, b) => a.order - b.order).first;
 
@@ -100,6 +119,7 @@ class LocalBlockRuleService with JHLifeCircleBeanErrorCatch implements JHLifeCir
         expression: Value(rule.expression),
       ),
     );
+    _invalidateCache(rule.target);
 
     return Future.value((success: true, msg: null));
   }
@@ -131,6 +151,7 @@ class LocalBlockRuleService with JHLifeCircleBeanErrorCatch implements JHLifeCir
         );
       }
     });
+    _invalidateCache();
 
     return Future.value((success: true, msg: null));
   }
@@ -143,6 +164,7 @@ class LocalBlockRuleService with JHLifeCircleBeanErrorCatch implements JHLifeCir
       log.error('Remove block rule failed, update database failed.');
       return Future.value((success: false, msg: 'Update database failed'));
     }
+    _invalidateCache();
 
     return Future.value((success: true, msg: null));
   }
@@ -186,7 +208,39 @@ class LocalBlockRuleService with JHLifeCircleBeanErrorCatch implements JHLifeCir
       inserted = true;
     });
 
+    if (inserted) {
+      _invalidateCache(rule.target);
+    }
+
     return (success: true, inserted: inserted, msg: null);
+  }
+
+  Future<List<List<_CompiledBlockRule>>> _getCompiledRules(LocalBlockTargetEnum targetEnum) async {
+    final List<List<_CompiledBlockRule>>? cached = _compiledRulesCache[targetEnum];
+    if (cached != null) {
+      return cached;
+    }
+
+    final List<BlockRuleData> datas = await BlockRuleDao.selectBlockRulesByTarget(targetEnum.code);
+    final Map<String, List<LocalBlockRule>> groupedRules = datas
+        .map((data) => LocalBlockRule(
+              id: data.id,
+              groupId: data.groupId,
+              target: LocalBlockTargetEnum.fromCode(data.target),
+              attribute: LocalBlockAttributeEnum.fromCode(data.attribute),
+              pattern: LocalBlockPatternEnum.fromCode(data.pattern),
+              expression: data.expression,
+            ))
+        .groupListsBy((rule) => rule.groupId!);
+
+    final List<List<_CompiledBlockRule>> compiled = groupedRules.values
+        .map((List<LocalBlockRule> group) => group
+            .map((LocalBlockRule rule) => _CompiledBlockRule(rule, getHandlerByRule(rule)))
+            .toList(growable: false))
+        .toList(growable: false);
+
+    _compiledRulesCache[targetEnum] = compiled;
+    return compiled;
   }
 
   Future<List<T>> executeRules<T>(List<T> items) async {
@@ -198,41 +252,33 @@ class LocalBlockRuleService with JHLifeCircleBeanErrorCatch implements JHLifeCir
     }
 
     try {
-      List<BlockRuleData> datas = await BlockRuleDao.selectBlockRulesByTarget(targetEnum.code);
+      final List<List<_CompiledBlockRule>> compiledGroups = await _getCompiledRules(targetEnum);
 
-      Map<String, List<LocalBlockRule>> groupedRules = datas
-          .map((data) => LocalBlockRule(
-                id: data.id,
-                groupId: data.groupId,
-                target: LocalBlockTargetEnum.fromCode(data.target),
-                attribute: LocalBlockAttributeEnum.fromCode(data.attribute),
-                pattern: LocalBlockPatternEnum.fromCode(data.pattern),
-                expression: data.expression,
-              ))
-          .groupListsBy((rule) => rule.groupId!);
-
-      groupedRules.forEach((groupId, rules) {
+      for (final List<_CompiledBlockRule> group in compiledGroups) {
         results.removeWhere((item) {
-          bool hit = true;
-          for (LocalBlockRule rule in rules) {
-            LocalBlockRuleHandler handler = getHandlerByRule(rule);
-            hit = hit && handler.executeRule(item, rule);
+          for (final _CompiledBlockRule compiled in group) {
+            if (!compiled.handler.executeRule(item, compiled.rule)) {
+              return false;
+            }
           }
-          return hit;
+          return true;
         });
-      });
+      }
 
       for (ExtraBlockRuleProvider provider in extraBlockRuleProviders) {
         if (provider.target == targetEnum) {
           Map<String, List<LocalBlockRule>> extraGroupedRules = provider.extraGroupedRules;
           extraGroupedRules.forEach((groupId, rules) {
+            final List<_CompiledBlockRule> compiledExtra = rules
+                .map((LocalBlockRule rule) => _CompiledBlockRule(rule, getHandlerByRule(rule)))
+                .toList(growable: false);
             results.removeWhere((item) {
-              bool hit = true;
-              for (LocalBlockRule rule in rules) {
-                LocalBlockRuleHandler handler = getHandlerByRule(rule);
-                hit = hit && handler.executeRule(item, rule);
+              for (final _CompiledBlockRule compiled in compiledExtra) {
+                if (!compiled.handler.executeRule(item, compiled.rule)) {
+                  return false;
+                }
               }
-              return hit;
+              return true;
             });
           });
         }

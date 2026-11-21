@@ -3,65 +3,94 @@ import 'package:flutter/material.dart';
 
 import '../setting/mouse_setting.dart';
 
-class EHWheelSpeedController extends StatelessWidget {
+/// Smooths mouse-wheel scrolling while preserving responsive input.
+///
+/// Rapid wheel notches accumulate onto a shared target offset using a short
+/// ease-out curve (instead of cancelling the previous animation and dropping
+/// its remaining distance), while fine precision/trackpad deltas pass straight
+/// through with zero animation latency.
+class EHWheelSpeedController extends StatefulWidget {
   final ScrollController? controller;
   final Widget child;
 
   const EHWheelSpeedController({Key? key, required this.controller, required this.child}) : super(key: key);
 
   @override
+  State<EHWheelSpeedController> createState() => _EHWheelSpeedControllerState();
+}
+
+class _EHWheelSpeedControllerState extends State<EHWheelSpeedController> {
+  static const Duration _scrollDuration = Duration(milliseconds: 110);
+  static const double _trackpadDeltaThreshold = 20.0;
+
+  double? _targetOffset;
+  int _lastWheelTimestampMs = 0;
+
+  @override
   Widget build(BuildContext context) {
     return Listener(
-      /// For some reason (probably because of the high resolution monitor), scroll by mouse wheel is very slow,
-      /// so i call [animateTo] manually to simulate a faster scroll speed.
-      onPointerSignal: (PointerSignalEvent event) {
-        if (event is PointerScrollEvent) {
-          if (controller == null || !controller!.hasClients) {
-            return;
-          }
+      onPointerSignal: _handlePointerSignal,
+      child: widget.child,
+    );
+  }
 
-          final double delta = event.scrollDelta.dy * mouseSetting.wheelScrollSpeed.value;
-          if (delta == 0) {
-            return;
-          }
+  void _handlePointerSignal(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent) {
+      return;
+    }
+    final ScrollController? controller = widget.controller;
+    if (controller == null || !controller.hasClients) {
+      return;
+    }
 
-          GestureBinding.instance.pointerSignalResolver.resolve(event);
+    final double rawDy = event.scrollDelta.dy;
+    final double delta = rawDy * mouseSetting.wheelScrollSpeed.value;
+    if (delta == 0) {
+      return;
+    }
 
-          ScrollPosition position = controller!.position;
+    GestureBinding.instance.pointerSignalResolver.resolve(event);
 
-          /// at edge
-          if (position.pixels < position.minScrollExtent || position.pixels > position.maxScrollExtent) {
-            return;
-          }
+    final ScrollPosition position = controller.position;
+    if (position.pixels < position.minScrollExtent || position.pixels > position.maxScrollExtent) {
+      _targetOffset = null;
+      return;
+    }
 
-          /// at edge
-          if (position.pixels + delta <= 0) {
-            position.animateTo(
-              0,
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.ease,
-            );
-            return;
-          }
+    /// Precision trackpads emit small, high-frequency deltas; apply them
+    /// directly without animation so scrolling feels 1:1 with finger motion.
+    if (rawDy.abs() < _trackpadDeltaThreshold) {
+      _targetOffset = null;
+      position.pointerScroll(delta);
+      return;
+    }
 
-          /// at edge
-          if (position.pixels + delta >= position.maxScrollExtent) {
-            position.animateTo(
-              position.maxScrollExtent,
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.ease,
-            );
-            return;
-          }
+    final int nowMs = DateTime.now().millisecondsSinceEpoch;
+    final bool continuousWheel = _targetOffset != null && (nowMs - _lastWheelTimestampMs) <= 220;
+    _lastWheelTimestampMs = nowMs;
 
-          position.animateTo(
-            position.pixels + delta,
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.ease,
-          );
-        }
-      },
-      child: child,
+    /// If scrolling reversed direction or the list moved externally (scrollbar
+    /// drag / scroll-to-top), anchor from the current scroll offset.
+    double baseOffset = position.pixels;
+    if (continuousWheel) {
+      final double prevTarget = _targetOffset!;
+      final bool sameDirection = (prevTarget - position.pixels) * delta >= 0;
+      if (sameDirection && (prevTarget - position.pixels).abs() < 2400) {
+        baseOffset = prevTarget;
+      }
+    }
+
+    final double nextTarget = (baseOffset + delta).clamp(position.minScrollExtent, position.maxScrollExtent);
+    if ((nextTarget - position.pixels).abs() < 0.5) {
+      _targetOffset = nextTarget;
+      return;
+    }
+
+    _targetOffset = nextTarget;
+    position.animateTo(
+      nextTarget,
+      duration: _scrollDuration,
+      curve: Curves.easeOutCubic,
     );
   }
 }

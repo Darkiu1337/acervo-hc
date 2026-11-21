@@ -1,9 +1,7 @@
 import 'dart:async';
 
-import 'package:animate_do/animate_do.dart';
 import 'package:blur/blur.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:get/get.dart';
 import 'package:acervo_hc/src/config/ui_config.dart';
 import 'package:acervo_hc/src/extension/widget_extension.dart';
@@ -16,6 +14,7 @@ import 'package:waterfall_flow/waterfall_flow.dart';
 import '../consts/locale_consts.dart';
 import '../utils/date_util.dart';
 import 'eh_image.dart';
+import 'eh_static_rating_bar.dart';
 import 'eh_tag.dart';
 import 'eh_gallery_category_tag.dart';
 import '../service/read_progress_service.dart';
@@ -45,13 +44,12 @@ class EHGalleryListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => handleTapCard(gallery),
-      onLongPressStart: handleLongPressCard == null ? null : (details) => handleLongPressCard!(gallery, details.globalPosition),
-      onSecondaryTapDown: handleSecondaryTapCard == null ? null : (details) => handleSecondaryTapCard!(gallery, details.globalPosition),
-      child: FadeIn(
-        duration: const Duration(milliseconds: 100),
+    return RepaintBoundary(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => handleTapCard(gallery),
+        onLongPressStart: handleLongPressCard == null ? null : (details) => handleLongPressCard!(gallery, details.globalPosition),
+        onSecondaryTapDown: handleSecondaryTapCard == null ? null : (details) => handleSecondaryTapCard!(gallery, details.globalPosition),
         child: SizedBox(
           height: withTags ? UIConfig.galleryCardHeight : UIConfig.galleryCardHeightWithoutTags,
           child: listMode == ListMode.flat || listMode == ListMode.flatWithoutTags ? buildFlatGalleryCard(context) : buildRoundGalleryCard(context),
@@ -124,6 +122,8 @@ class EHGalleryListCard extends StatelessWidget {
       containerWidth: withTags ? UIConfig.galleryCardCoverWidth : UIConfig.galleryCardCoverWidthWithoutTags,
       heroTag: gallery.blockedByLocalRules ? null : gallery.cover,
       fit: BoxFit.fitWidth,
+      maxBytes: 256 * 1024,
+      loadingWidgetBuilder: () => const SizedBox.shrink(),
     );
   }
 
@@ -213,18 +213,11 @@ class EHGalleryListCard extends StatelessWidget {
   }
 
   Widget _buildRatingBar(BuildContext context) {
-    return RatingBar.builder(
-      unratedColor: UIConfig.galleryRatingStarUnRatedColor(context),
-      initialRating: gallery.rating,
-      itemCount: 5,
-      allowHalfRating: true,
+    return EHStaticRatingBar(
+      rating: gallery.rating,
       itemSize: 16,
-      ignoreGestures: true,
-      itemBuilder: (context, _) => Icon(
-        Icons.star,
-        color: gallery.hasRated ? UIConfig.galleryRatingStarRatedColor(context) : UIConfig.galleryRatingStarColor,
-      ),
-      onRatingUpdate: (rating) {},
+      ratedColor: gallery.hasRated ? UIConfig.galleryRatingStarRatedColor(context) : UIConfig.galleryRatingStarColor,
+      unratedColor: UIConfig.galleryRatingStarUnRatedColor(context),
     );
   }
 
