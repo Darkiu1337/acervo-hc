@@ -108,6 +108,46 @@ class XlecxParser {
   /// True while the site still shows a "Next" link, i.e. there are more pages.
   static bool parseHasNextPage(String html) => RegExp(r'>\s*Next\s*</a>').hasMatch(html);
 
+  /// True when the HTML header reflects an authenticated DLE session.
+  static bool isLoggedInHtml(String html) => html.contains('header__login-btn--logged');
+
+  /// True when the HTML header shows the guest login trigger.
+  static bool isGuestHtml(String html) => html.contains('js-show-login');
+
+  static final RegExp _loginErrorRegExp = RegExp(
+    r'<div[^>]*class="[^"]*message-info__content[^"]*"[^>]*>([\s\S]*?)</div>',
+    caseSensitive: false,
+  );
+  static final RegExp _loggedInUserLinkRegExp = RegExp(
+    r'href="(?:https?://xlecx\.one)?/user/([^/"?#]+)/"',
+    caseSensitive: false,
+  );
+
+  /// Extracts DLE's error banner text (e.g. wrong username/password), or `null`
+  /// when no error box is present.
+  static String? parseLoginError(String html) {
+    final String? raw = _firstGroup(_loginErrorRegExp, html);
+    if (raw == null) {
+      return null;
+    }
+    final String cleaned = unescapeHtml(stripTags(raw)).replaceAll(RegExp(r'\s+'), ' ').trim();
+    return cleaned.isEmpty ? null : cleaned;
+  }
+
+  /// Extracts the logged-in account name from the DLE user profile link when
+  /// present in the authenticated header.
+  static String? parseLoggedInUsername(String html) {
+    if (!isLoggedInHtml(html)) {
+      return null;
+    }
+    final String? slug = _firstGroup(_loggedInUserLinkRegExp, html);
+    if (slug == null || slug.trim().isEmpty) {
+      return null;
+    }
+    final String decoded = decodeSlug(slug);
+    return decoded.isEmpty ? null : decoded;
+  }
+
   /// Metadata of a post, or null when it has no page images (video posts).
   static XlecxDetail? parseDetail(String html, int id) {
     final List<String> pageUrls = <String>[];

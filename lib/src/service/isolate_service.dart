@@ -8,11 +8,15 @@ IsolateService isolateService = IsolateService();
 
 class IsolateService with JHLifeCircleBeanErrorCatch implements JHLifeCircleBean {
   late final StatefulIsolate _isolate;
+  bool _initialized = false;
+
+  bool get isInitialized => _initialized;
 
   @override
   Future<void> doInitBean() async {
     _isolate = StatefulIsolate();
     await _isolate.init();
+    _initialized = true;
   }
 
   @override

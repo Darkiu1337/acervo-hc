@@ -1,12 +1,14 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:acervo_hc/src/model/gallery.dart';
 import 'package:acervo_hc/src/model/gallery_url.dart';
 import 'package:acervo_hc/src/model/xlecx_detail.dart';
 import 'package:acervo_hc/src/model/xlecx_search.dart';
-import 'package:acervo_hc/src/setting/network_setting.dart';
+import 'package:acervo_hc/src/service/isolate_service.dart';
 import 'package:acervo_hc/src/service/xlecx_session_service.dart';
+import 'package:acervo_hc/src/setting/network_setting.dart';
 import 'package:acervo_hc/src/utils/xlecx_parser.dart';
 
 /// One page of a Xlecx listing.
@@ -21,6 +23,36 @@ class XlecxPage {
   const XlecxPage({required this.galleries, required this.hasMore});
 }
 
+/// Outcome of a credential-based Xlecx login attempt.
+class XlecxLoginResult {
+  final bool success;
+  final String? username;
+  final String? errorMessage;
+  final bool isCloudflareBlocked;
+
+  const XlecxLoginResult({
+    required this.success,
+    this.username,
+    this.errorMessage,
+    this.isCloudflareBlocked = false,
+  });
+}
+
+XlecxPage _parseGalleryPageInIsolate(String html) {
+  return XlecxPage(
+    galleries: XlecxParser.parseGalleryList(html),
+    hasMore: XlecxParser.parseHasNextPage(html),
+  );
+}
+
+XlecxDetail? _parseDetailInIsolate(List<dynamic> args) {
+  return XlecxParser.parseDetail(args[0] as String, args[1] as int);
+}
+
+List<XlecxTag> _parseTagsInIsolate(String html) {
+  return XlecxParser.parseTags(html);
+}
+
 /// HTTP client for https://xlecx.one.
 ///
 /// Deliberately separate from the E-H request layer: no E-H cookies, no domain
@@ -29,6 +61,8 @@ class XlecxPage {
 /// a plain Dio instance is enough (no clearance, no curl).
 class XlecxRequest {
   static const String baseUrl = XlecxParser.baseUrl;
+
+  static const String _skipCookieExtraKey = 'skipXlecxCookie';
 
   static const String _userAgent =
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36';
@@ -92,6 +126,11 @@ class XlecxRequest {
     )..interceptors.add(
         InterceptorsWrapper(
           onRequest: (RequestOptions options, RequestInterceptorHandler handler) {
+            if (options.extra[_skipCookieExtraKey] == true) {
+              handler.next(options);
+              return;
+            }
+
             /// The user's session (when configured) unlocks the posts the site
             /// restricts to registered users. Read on every request so saving
             /// or clearing the cookie takes effect immediately.
@@ -103,6 +142,161 @@ class XlecxRequest {
           },
         ),
       );
+  }
+
+  /// Signs into Xlecx directly using DataLife Engine's login form
+  /// (`login_name`, `login_password`, `login=submit`).
+  ///
+  /// Omitting `login_not_save` enables DLE's "remember me" so the response sets
+  /// `PHPSESSID` together with persistent `dle_user_id` + `dle_password`
+  /// cookies — the plaintext password is never persisted on disk.
+  Future<XlecxLoginResult> login({
+    required String username,
+    required String password,
+  }) async {
+    final String trimmedUser = username.trim();
+    if (trimmedUser.isEmpty || password.isEmpty) {
+      return const XlecxLoginResult(success: false);
+    }
+
+    final Map<String, String> collectedCookies = <String, String>{};
+
+    try {
+      Response<String> response = await dio.post<String>(
+        '$baseUrl/',
+        data: <String, dynamic>{
+          'login_name': trimmedUser,
+          'login_password': password,
+          'login': 'submit',
+        },
+        options: Options(
+          responseType: ResponseType.plain,
+          contentType: 'application/x-www-form-urlencoded',
+          validateStatus: (int? status) => status != null && status < 500,
+          followRedirects: false,
+          headers: <String, dynamic>{
+            'Origin': baseUrl,
+            'Referer': '$baseUrl/',
+            'Sec-Fetch-Site': 'same-origin',
+          },
+          extra: const <String, dynamic>{_skipCookieExtraKey: true},
+        ),
+      );
+
+      _mergeSetCookies(response, collectedCookies);
+
+      /// Follow up to 4 redirects manually while carrying the newly issued
+      /// session cookies.
+      String currentUrl = '$baseUrl/';
+      int hops = 0;
+      while (response.statusCode != null &&
+          response.statusCode! >= 300 &&
+          response.statusCode! < 400 &&
+          hops < 4) {
+        final String? location = response.headers.value('location');
+        if (location == null || location.isEmpty) {
+          break;
+        }
+        final String nextUrl = _resolveUrl(currentUrl, location);
+        if (nextUrl == currentUrl) {
+          break;
+        }
+        currentUrl = nextUrl;
+        hops++;
+
+        final String cookieHeader = _formatCookieHeader(collectedCookies);
+        response = await dio.get<String>(
+          currentUrl,
+          options: Options(
+            responseType: ResponseType.plain,
+            validateStatus: (int? status) => status != null && status < 500,
+            followRedirects: false,
+            headers: <String, dynamic>{
+              if (cookieHeader.isNotEmpty) 'Cookie': cookieHeader,
+              'Referer': '$baseUrl/',
+              'Sec-Fetch-Site': 'same-origin',
+            },
+            extra: const <String, dynamic>{_skipCookieExtraKey: true},
+          ),
+        );
+        _mergeSetCookies(response, collectedCookies);
+      }
+
+      String html = response.data ?? '';
+      if (_isCloudflareHtml(html)) {
+        return const XlecxLoginResult(success: false, isCloudflareBlocked: true);
+      }
+
+      final String? phpsessid = _cookieValueIgnoreCase(collectedCookies, XlecxSessionService.phpsessidCookieName);
+      final String? dleUserId = _cookieValueIgnoreCase(collectedCookies, XlecxSessionService.userIdCookieName);
+      final String? dlePassword = _cookieValueIgnoreCase(collectedCookies, XlecxSessionService.passwordCookieName);
+
+      bool loggedIn = XlecxParser.isLoggedInHtml(html);
+
+      /// Some DLE setups set auth cookies on the POST and render the logged-in
+      /// header on the next GET. Verify once if we received auth cookies without
+      /// an explicit error message.
+      final String? errorBanner = XlecxParser.parseLoginError(html);
+      if (!loggedIn &&
+          errorBanner == null &&
+          ((dleUserId != null && dlePassword != null) || phpsessid != null)) {
+        final String cookieHeader = _formatCookieHeader(collectedCookies);
+        if (cookieHeader.isNotEmpty) {
+          final Response<String> verifyResponse = await dio.get<String>(
+            '$baseUrl/',
+            options: Options(
+              responseType: ResponseType.plain,
+              validateStatus: (int? status) => status != null && status < 500,
+              followRedirects: false,
+              headers: <String, dynamic>{'Cookie': cookieHeader},
+              extra: const <String, dynamic>{_skipCookieExtraKey: true},
+            ),
+          );
+          _mergeSetCookies(verifyResponse, collectedCookies);
+          final String verifyHtml = verifyResponse.data ?? '';
+          if (_isCloudflareHtml(verifyHtml)) {
+            return const XlecxLoginResult(success: false, isCloudflareBlocked: true);
+          }
+          if (XlecxParser.isLoggedInHtml(verifyHtml)) {
+            html = verifyHtml;
+            loggedIn = true;
+          }
+        }
+      }
+
+      if (!loggedIn) {
+        return XlecxLoginResult(
+          success: false,
+          errorMessage: errorBanner,
+        );
+      }
+
+      final String finalPhpsessid = _cookieValueIgnoreCase(collectedCookies, XlecxSessionService.phpsessidCookieName) ?? '';
+      final String finalUserId = _cookieValueIgnoreCase(collectedCookies, XlecxSessionService.userIdCookieName) ?? '';
+      final String finalPassword = _cookieValueIgnoreCase(collectedCookies, XlecxSessionService.passwordCookieName) ?? '';
+
+      if (finalPhpsessid.isEmpty && finalUserId.isEmpty && finalPassword.isEmpty) {
+        return const XlecxLoginResult(success: false);
+      }
+
+      final String displayUsername = XlecxParser.parseLoggedInUsername(html) ?? trimmedUser;
+      await xlecxSessionService.save(
+        phpsessid: finalPhpsessid,
+        dleUserId: finalUserId,
+        dlePassword: finalPassword,
+        username: displayUsername,
+      );
+
+      return XlecxLoginResult(success: true, username: displayUsername);
+    } on DioException catch (e) {
+      return XlecxLoginResult(
+        success: false,
+        errorMessage: e.message,
+        isCloudflareBlocked: errorMarkerOf(e) == cloudflareErrorMarker,
+      );
+    } catch (e) {
+      return XlecxLoginResult(success: false, errorMessage: e.toString());
+    }
   }
 
   /// A `/f/` listing: category, tags, artist/parody and sort. The site applies
@@ -152,17 +346,18 @@ class XlecxRequest {
           );
 
     final String html = _checkedHtml(response);
-    return XlecxPage(
-      galleries: XlecxParser.parseGalleryList(html),
-      hasMore: XlecxParser.parseHasNextPage(html),
-    );
+    return _parseGalleryPage(html);
   }
 
   /// The `/tags/` directory (one page, ~1000 tags).
   Future<List<XlecxTag>> requestTags() async {
     final Response<String> response = await _get('$baseUrl/tags/');
+    final String html = _checkedHtml(response);
 
-    return XlecxParser.parseTags(_checkedHtml(response));
+    if (isolateService.isInitialized) {
+      return isolateService.run(_parseTagsInIsolate, html);
+    }
+    return _parseTagsInIsolate(html);
   }
 
   /// True when the configured cookies are accepted by the site, false when it
@@ -181,10 +376,19 @@ class XlecxRequest {
       final Response<String> response = await _get('$baseUrl/');
       final String html = _checkedHtml(response);
 
-      if (html.contains('header__login-btn--logged')) {
+      if (XlecxParser.isLoggedInHtml(html)) {
+        final String? parsedUser = XlecxParser.parseLoggedInUsername(html);
+        if (parsedUser != null && parsedUser != xlecxSessionService.username) {
+          await xlecxSessionService.save(
+            phpsessid: xlecxSessionService.phpsessid ?? '',
+            dleUserId: xlecxSessionService.dleUserId ?? '',
+            dlePassword: xlecxSessionService.dlePassword ?? '',
+            username: parsedUser,
+          );
+        }
         return true;
       }
-      if (html.contains('js-show-login')) {
+      if (XlecxParser.isGuestHtml(html)) {
         return false;
       }
       return null;
@@ -197,7 +401,11 @@ class XlecxRequest {
     final Response<String> response = await _get(galleryUrl.url);
 
     final int id = galleryUrl.externalId!;
-    final XlecxDetail? detail = XlecxParser.parseDetail(_checkedHtml(response), id);
+    final String html = _checkedHtml(response);
+    final XlecxDetail? detail = isolateService.isInitialized
+        ? await isolateService.run(_parseDetailInIsolate, <dynamic>[html, id])
+        : _parseDetailInIsolate(<dynamic>[html, id]);
+
     if (detail == null) {
       /// No page images: a video post or a post whose gallery was pulled.
       throw DioException(
@@ -247,12 +455,15 @@ class XlecxRequest {
 
   Future<XlecxPage> _requestGalleryPage(String path) async {
     final Response<String> response = await _get('$baseUrl$path');
-
     final String html = _checkedHtml(response);
-    return XlecxPage(
-      galleries: XlecxParser.parseGalleryList(html),
-      hasMore: XlecxParser.parseHasNextPage(html),
-    );
+    return _parseGalleryPage(html);
+  }
+
+  Future<XlecxPage> _parseGalleryPage(String html) {
+    if (isolateService.isInitialized) {
+      return isolateService.run(_parseGalleryPageInIsolate, html);
+    }
+    return Future<XlecxPage>.value(_parseGalleryPageInIsolate(html));
   }
 
   /// GET with manual redirect handling (see [_htmlOptions]).
@@ -276,6 +487,60 @@ class XlecxRequest {
 
     return response;
   }
+
+  static void _mergeSetCookies(Response<String> response, Map<String, String> target) {
+    final List<String>? setCookies = response.headers[HttpHeaders.setCookieHeader];
+    if (setCookies == null) {
+      return;
+    }
+
+    for (final String header in setCookies) {
+      try {
+        final Cookie parsed = Cookie.fromSetCookieValue(header);
+        final String name = parsed.name.trim();
+        final String value = parsed.value.trim();
+        if (name.isEmpty) {
+          continue;
+        }
+        if (value.isEmpty || value.toLowerCase() == 'deleted') {
+          target.remove(name);
+        } else {
+          target[name] = value;
+        }
+      } catch (_) {
+        // Fallback parser for malformed Set-Cookie attributes.
+        final String pair = header.split(';').first;
+        final int sep = pair.indexOf('=');
+        if (sep <= 0) {
+          continue;
+        }
+        final String name = pair.substring(0, sep).trim();
+        final String value = pair.substring(sep + 1).trim();
+        if (value.isEmpty || value.toLowerCase() == 'deleted') {
+          target.remove(name);
+        } else {
+          target[name] = value;
+        }
+      }
+    }
+  }
+
+  static String? _cookieValueIgnoreCase(Map<String, String> cookies, String name) {
+    final String lower = name.toLowerCase();
+    for (final MapEntry<String, String> entry in cookies.entries) {
+      if (entry.key.toLowerCase() == lower) {
+        return entry.value;
+      }
+    }
+    return null;
+  }
+
+  static String _formatCookieHeader(Map<String, String> cookies) {
+    return cookies.entries.map((MapEntry<String, String> e) => '${e.key}=${e.value}').join('; ');
+  }
+
+  static bool _isCloudflareHtml(String html) =>
+      html.contains('Just a moment') || html.contains('_cf_chl_opt');
 
   /// Resolves a `Location` header.
   ///
@@ -318,7 +583,7 @@ class XlecxRequest {
     final String html = response.data ?? '';
     final int? status = response.statusCode;
 
-    if (html.contains('Just a moment') || html.contains('_cf_chl_opt')) {
+    if (_isCloudflareHtml(html)) {
       throw _refused(response, cloudflareErrorMarker, 'Xlecx is behind a Cloudflare challenge');
     }
 

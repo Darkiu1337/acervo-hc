@@ -2,15 +2,13 @@ import 'package:acervo_hc/src/service/storage_service.dart';
 
 XlecxSessionService xlecxSessionService = XlecxSessionService();
 
-/// Stores the Xlecx session cookies entered by the user.
+/// Stores the Xlecx session cookies obtained from logging in (or entered
+/// manually as a fallback).
 ///
-/// Some posts on the site are restricted to registered users. The app does not
-/// drive the site's login form (it sits behind Cloudflare/Turnstile), so the
-/// user copies the cookies from a browser session that is already logged in.
-///
-/// DLE authenticates either through `PHPSESSID` or, when "remember me" is on,
-/// through the `dle_user_id` + `dle_password` pair, so each cookie has its own
-/// field (like the E-Hentai login form).
+/// Some posts on the site are restricted to registered users. Logging in with
+/// username/password via DLE's form returns `PHPSESSID` plus the persistent
+/// `dle_user_id` + `dle_password` cookies (remember-me), so the app never needs
+/// to persist the plaintext password.
 ///
 /// The values live in [storageService] (GetStorage) on the device only. They
 /// are as sensitive as the account password: they grant full access to the
@@ -23,6 +21,7 @@ class XlecxSessionService {
   static const String _phpsessidKey = 'xlecxCookiePHPSESSID';
   static const String _userIdKey = 'xlecxCookieDleUserId';
   static const String _passwordKey = 'xlecxCookieDlePassword';
+  static const String _usernameKey = 'xlecxUsername';
 
   /// Single-string storage from the first build, migrated into the fields.
   static const String _legacyKey = 'xlecxSessionCookie';
@@ -42,6 +41,11 @@ class XlecxSessionService {
   String? get dlePassword {
     _migrate();
     return _read(_passwordKey);
+  }
+
+  String? get username {
+    _migrate();
+    return _read(_usernameKey);
   }
 
   bool get hasCookie => phpsessid != null || dleUserId != null || dlePassword != null;
@@ -67,11 +71,15 @@ class XlecxSessionService {
     required String phpsessid,
     required String dleUserId,
     required String dlePassword,
+    String? username,
   }) async {
     _migrated = true;
     await storageService.write(_phpsessidKey, phpsessid.trim());
     await storageService.write(_userIdKey, dleUserId.trim());
     await storageService.write(_passwordKey, dlePassword.trim());
+    if (username != null) {
+      await storageService.write(_usernameKey, username.trim());
+    }
   }
 
   Future<void> clear() async {
@@ -79,6 +87,7 @@ class XlecxSessionService {
     await storageService.write(_phpsessidKey, '');
     await storageService.write(_userIdKey, '');
     await storageService.write(_passwordKey, '');
+    await storageService.write(_usernameKey, '');
     await storageService.write(_legacyKey, '');
   }
 
