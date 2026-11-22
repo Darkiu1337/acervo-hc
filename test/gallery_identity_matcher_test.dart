@@ -175,16 +175,51 @@ void main() {
     });
   });
 
+  group('GalleryIdentityMatcher — multi-language same-provider deduplication', () {
+    test('matches same work in different languages on the same provider', () {
+      final GalleryIdentity jp = GalleryIdentity.fromGallery(
+        _ehGallery(gid: 1, title: '[Dross] Roxy and the Devil', pageCount: 9),
+      );
+      final GalleryIdentity en = GalleryIdentity.fromGallery(
+        _ehGallery(gid: 2, title: '[Dross] Roxy and the Devil [English]', pageCount: 9),
+      );
+      final GalleryIdentity zh = GalleryIdentity.fromGallery(
+        _ehGallery(gid: 3, title: '[Dross] Roxy and the Devil [Chinese] [個人漢化]', pageCount: 10),
+      );
+      final GalleryIdentity pt = GalleryIdentity.fromGallery(
+        _ehGallery(gid: 4, title: '[Dross] Roxy and the Devil [Portuguese]', pageCount: 9),
+      );
+
+      expect(GalleryIdentityMatcher.match(jp, en), isNotNull);
+      expect(GalleryIdentityMatcher.match(en, zh), isNotNull);
+      expect(GalleryIdentityMatcher.match(en, pt), isNotNull);
+    });
+
+    test('matches translated title with Kanji vs Romaji artist via perceptual cover hash', () {
+      final CoverPerceptualHash? cover = CoverPerceptualHash.fromRgba9x9(_syntheticCoverRgba(seed: 55));
+      final GalleryIdentity jp = GalleryIdentity.fromGallery(
+        _ehGallery(gid: 10, title: '[八尋ぽち] 秘密のレッスン', pageCount: 24),
+        coverHash: cover,
+      );
+      final GalleryIdentity pt = GalleryIdentity.fromGallery(
+        _ehGallery(gid: 11, title: '[Yahiro Pochi] Aula Secreta [Portuguese]', pageCount: 24),
+        coverHash: cover,
+      );
+
+      expect(GalleryIdentityMatcher.match(jp, pt), isNotNull);
+    });
+  });
+
   group('GalleryIdentityMatcher — false-positive guards', () {
-    test('never matches same-provider galleries', () {
+    test('never self-matches the exact same gid', () {
       final GalleryIdentity a = GalleryIdentity.fromGallery(
         _ehGallery(gid: 1, title: '[Dross] Roxy and the Devil', pageCount: 9),
       );
-      final GalleryIdentity b = GalleryIdentity.fromGallery(
-        _ehGallery(gid: 2, title: '[Dross] Roxy and the Devil [English]', pageCount: 9),
+      final GalleryIdentity same = GalleryIdentity.fromGallery(
+        _ehGallery(gid: 1, title: '[Dross] Roxy and the Devil', pageCount: 9),
       );
 
-      expect(GalleryIdentityMatcher.match(a, b), isNull);
+      expect(GalleryIdentityMatcher.match(a, same), isNull);
     });
 
     test('strictly rejects sequels / different chapter numbers even with identical covers', () {

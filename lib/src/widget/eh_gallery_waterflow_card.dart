@@ -143,9 +143,11 @@ class EHGalleryWaterFlowCard extends StatelessWidget {
   Widget _buildCover(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        final double coverWidth = (gallery.cover.width != null && gallery.cover.width! > 0) ? gallery.cover.width! : 150.0;
+        final double coverHeight = (gallery.cover.height != null && gallery.cover.height! > 0) ? gallery.cover.height! : 200.0;
         FittedSizes fittedSizes = applyBoxFit(
           BoxFit.fitWidth,
-          Size(gallery.cover.width ?? 150.0, gallery.cover.height ?? 200.0),
+          Size(coverWidth, coverHeight),
           Size(
             constraints.maxWidth,
             min(
@@ -175,14 +177,15 @@ class EHGalleryWaterFlowCard extends StatelessWidget {
   }
 
   Widget _buildLanguageChip() {
+    final Color categoryColor = UIConfig.galleryCategoryColorOf(gallery.category);
     return Container(
-      decoration: BoxDecoration(color: UIConfig.galleryCategoryColor[gallery.category]!, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(color: categoryColor, borderRadius: BorderRadius.circular(12)),
       padding: const EdgeInsets.symmetric(horizontal: 4),
       constraints: const BoxConstraints(minWidth: 12),
       child: Center(
         child: Text(
           LocaleConsts.language2Abbreviation[gallery.language] ?? '',
-          style: TextStyle(fontSize: 9, color: UIConfig.waterFallFlowCardLanguageChipTextColor(UIConfig.galleryCategoryColor[gallery.category]!)),
+          style: TextStyle(fontSize: 9, color: UIConfig.waterFallFlowCardLanguageChipTextColor(categoryColor)),
         ),
       ),
     );
@@ -190,7 +193,7 @@ class EHGalleryWaterFlowCard extends StatelessWidget {
 
   Widget _buildDownloadIcon() => const Icon(Icons.download, size: 10);
 
-  Widget _buildFavoriteIcon() => Icon(Icons.favorite, size: 10, color: UIConfig.favoriteTagColor[gallery.favoriteTagIndex!]);
+  Widget _buildFavoriteIcon() => Icon(Icons.favorite, size: 10, color: UIConfig.favoriteTagColor[gallery.favoriteTagIndex ?? 0]);
 
   Widget _buildPageCount() => Text(gallery.pageCount.toString() + 'P', style: const TextStyle(fontSize: 9));
 

@@ -369,8 +369,18 @@ class NHentaiGalleryDetail {
     if (cats.isEmpty) {
       return 'nhentai';
     }
-    final String name = cats.first.name;
-    return name.isEmpty ? 'nhentai' : '${name[0].toUpperCase()}${name.substring(1)}';
+    return switch (cats.first.name.trim().toLowerCase()) {
+      'doujinshi' => 'Doujinshi',
+      'manga' => 'Manga',
+      'artistcg' || 'artist cg' => 'Artist CG',
+      'gamecg' || 'game cg' => 'Game CG',
+      'imageset' || 'image set' => 'Image Set',
+      'western' => 'Western',
+      'cosplay' => 'Cosplay',
+      'non-h' => 'Non-H',
+      'misc' => 'Misc',
+      _ => 'nhentai',
+    };
   }
 
   String get languageLabel {
@@ -385,11 +395,13 @@ class NHentaiGalleryDetail {
     if (uploadTimestamp <= 0) {
       return '';
     }
-    final DateTime dt = DateTime.fromMillisecondsSinceEpoch(uploadTimestamp * 1000, isUtc: true).toLocal();
+    final DateTime dt = DateTime.fromMillisecondsSinceEpoch(uploadTimestamp * 1000, isUtc: true);
     final String y = dt.year.toString().padLeft(4, '0');
     final String m = dt.month.toString().padLeft(2, '0');
     final String d = dt.day.toString().padLeft(2, '0');
-    return '$y-$m-$d';
+    final String hh = dt.hour.toString().padLeft(2, '0');
+    final String mm = dt.minute.toString().padLeft(2, '0');
+    return '$y-$m-$d $hh:$mm';
   }
 
   List<String> get pageUrls => pages.map((NHentaiPageImage p) => p.imageUrl).toList();

@@ -11,4 +11,10 @@ void main() {
     expect(DateUtil.transformUtc2LocalTimeString(sample), expected);
     expect(DateUtil.transformUtc2LocalTimeString(sample), expected);
   });
+
+  test('DateUtil.transformUtc2LocalTimeString safely handles empty and partial timestamps', () {
+    expect(DateUtil.transformUtc2LocalTimeString(''), '');
+    expect(DateUtil.transformUtc2LocalTimeString('   '), '');
+    expect(DateUtil.transformUtc2LocalTimeString('2026-11-22'), '2026-11-22');
+  });
 }

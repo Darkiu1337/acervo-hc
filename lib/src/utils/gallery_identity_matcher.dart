@@ -363,42 +363,75 @@ class GalleryIdentityMatcher {
     'chinese',
     'chi',
     'cn',
+    '中文',
+    '中国翻訳',
+    '中国翻译',
+    '漢化',
+    '汉化',
+    '翻譯',
+    '翻译',
+    '翻訳',
+    '英訳',
+    '英译',
+    '繁體',
+    '简体',
+    '繁体',
     'japanese',
     'jpn',
     'jp',
+    '日本語',
     'korean',
     'kor',
     'kr',
+    '한국어',
+    '번역',
     'portuguese',
+    'portugues',
     'pt',
     'pt br',
     'brazilian portuguese',
     'spanish',
+    'espanol',
     'esp',
     'es',
     'russian',
+    'русский',
     'rus',
     'ru',
     'french',
+    'francais',
     'fr',
     'german',
+    'deutsch',
     'de',
     'italian',
+    'italiano',
     'it',
     'ukrainian',
     'ua',
     'thai',
     'vietnamese',
+    'tieng viet',
     'polish',
     'indonesian',
     'translated',
+    'translation',
+    'ai translated',
+    'machine translated',
+    'mtl',
     'rewrite',
     'digital',
+    'デジタル',
     'dl',
     'dl版',
     'decensored',
     'uncensored',
     'censored',
+    '無修正',
+    '无修正',
+    '無修',
+    '无修',
+    '修正',
     'complete',
     'completed',
     'ongoing',
@@ -416,6 +449,11 @@ class GalleryIdentityMatcher {
     'raw',
     'scan',
     'original',
+    'reupload',
+    'fixed',
+    'v2',
+    'v3',
+    'final',
     'patreon',
     'fanbox',
     'fantia',
@@ -437,6 +475,13 @@ class GalleryIdentityMatcher {
     'unknown',
     'n a',
   };
+
+  static final RegExp _scanlatorGroupRegExp = RegExp(
+    r'(?:漢化|汉化|翻譯|翻译|翻訳|번역|\btranslations?\b|\bscanlations?\b|\bscans\b|\btl\b)',
+    caseSensitive: false,
+  );
+
+  static final RegExp _latinLetterRegExp = RegExp(r'[a-z]');
 
   static const Set<String> _chapterMarkerWords = <String>{
     'ep',
@@ -498,10 +543,11 @@ class GalleryIdentityMatcher {
     return diff <= allowedDiff;
   }
 
-  /// Evaluates whether two galleries from DIFFERENT providers represent the
-  /// same work. Returns `null` when they do not match.
+  /// Evaluates whether two distinct galleries (same or different provider, any
+  /// language edition) represent the same work. Returns `null` when they do not
+  /// match.
   static GalleryMatchResult? match(GalleryIdentity a, GalleryIdentity b) {
-    if (a.source == b.source) {
+    if (a.gid == b.gid) {
       return null;
     }
 
@@ -515,7 +561,8 @@ class GalleryIdentityMatcher {
     }
 
     final bool creatorMatch = _creatorsOverlap(a.creators, b.creators);
-    final bool creatorContradiction = a.creators.isNotEmpty && b.creators.isNotEmpty && !creatorMatch;
+    final bool creatorContradiction =
+        a.creators.isNotEmpty && b.creators.isNotEmpty && !creatorMatch && !_areScriptsDisjoint(a.creators, b.creators);
 
     final int? coverDistance =
         (a.coverHash != null && b.coverHash != null) ? a.coverHash!.hammingDistance(b.coverHash!) : null;
@@ -562,6 +609,15 @@ class GalleryIdentityMatcher {
     }
 
     return null;
+  }
+
+  /// True when one creator set only has Latin characters (e.g. Romaji) and the
+  /// other only has non-Latin characters (e.g. Kanji/Kana/Hanzi/Hangul), so a
+  /// transliterated artist name is not treated as a contradiction.
+  static bool _areScriptsDisjoint(Set<String> a, Set<String> b) {
+    final bool aHasLatin = a.any(_latinLetterRegExp.hasMatch);
+    final bool bHasLatin = b.any(_latinLetterRegExp.hasMatch);
+    return aHasLatin != bHasLatin;
   }
 
   static _ParsedTitle parseTitles(List<String> rawTitles) {
@@ -645,6 +701,9 @@ class GalleryIdentityMatcher {
       return false;
     }
     if (_noiseBracketTokens.contains(normalized)) {
+      return false;
+    }
+    if (_scanlatorGroupRegExp.hasMatch(normalized)) {
       return false;
     }
     if (_eventCodeRegExp.hasMatch(normalized)) {

@@ -41,7 +41,7 @@ class EHGalleryCategoryTag extends StatelessWidget {
         width: width,
         padding: padding,
         decoration: BoxDecoration(
-          color: enabled ? color ?? UIConfig.galleryCategoryColor[category] : UIConfig.galleryCategoryTagDisabledBackGroundColor(context),
+          color: enabled ? color ?? UIConfig.galleryCategoryColorOf(category) : UIConfig.galleryCategoryTagDisabledBackGroundColor(context),
           borderRadius: BorderRadius.circular(borderRadius),
         ),
         child: Text(

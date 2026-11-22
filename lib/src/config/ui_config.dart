@@ -56,8 +56,26 @@ class UIConfig {
     'Western': Color(0xff14e723),
     'Misc': Color(0xff9e9e9e),
     'Private': Color(0xff000000),
+    'Xlecx': Color(0xff4c8dff),
+    'nhentai': Color(0xffed2553),
     'other': Colors.white,
   };
+
+  /// Safe lookup for category badge color that never returns null for external
+  /// or unknown category labels.
+  static Color galleryCategoryColorOf(String category) {
+    final Color? direct = galleryCategoryColor[category];
+    if (direct != null) {
+      return direct;
+    }
+    final String lower = category.trim().toLowerCase();
+    for (final MapEntry<String, Color> entry in galleryCategoryColor.entries) {
+      if (entry.key.toLowerCase() == lower) {
+        return entry.value;
+      }
+    }
+    return const Color(0xff9e9e9e);
+  }
 
   /// color for category tag text
   static const Color tagNameSpaceTextColor = Colors.black;

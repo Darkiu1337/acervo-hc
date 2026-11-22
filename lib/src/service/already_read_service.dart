@@ -338,21 +338,17 @@ class AlreadyReadService {
     }
   }
 
-  Iterable<GallerySource> _opposingSources(GallerySource source) {
-    return GallerySource.values.where((GallerySource other) => other != source);
-  }
-
   int? _matchTier1(Gallery gallery) {
     return _matchTier1Identity(GalleryIdentity.fromGallery(gallery));
   }
 
   int? _matchTier1Identity(GalleryIdentity candidate) {
-    final Set<int> checked = <int>{};
+    final Set<int> checked = <int>{candidate.gid};
 
-    /// Fast path: check exact normalized title-variant hits across all other
-    /// providers first in O(1).
-    for (final GallerySource otherSource in _opposingSources(candidate.source)) {
-      final Map<String, List<GalleryIdentity>> titleIndex = _titleIndexBySource[otherSource]!;
+    /// Fast path: check exact normalized title-variant hits across ALL
+    /// providers (including other language editions on the same provider).
+    for (final GallerySource source in GallerySource.values) {
+      final Map<String, List<GalleryIdentity>> titleIndex = _titleIndexBySource[source]!;
       if (titleIndex.isEmpty) {
         continue;
       }
@@ -375,8 +371,8 @@ class AlreadyReadService {
     /// Fallback for fuzzy title + creator matches (only when candidate has
     /// creators; without creators, Tier 1 cannot accept fuzzy titles anyway).
     if (candidate.creators.isNotEmpty) {
-      for (final GallerySource otherSource in _opposingSources(candidate.source)) {
-        for (final GalleryIdentity entry in _identitiesBySource[otherSource]!) {
+      for (final GallerySource source in GallerySource.values) {
+        for (final GalleryIdentity entry in _identitiesBySource[source]!) {
           if (!checked.add(entry.gid) || entry.creators.isEmpty) {
             continue;
           }
@@ -392,9 +388,11 @@ class AlreadyReadService {
 
   bool _hasPotentialVisualCandidate(Gallery gallery) {
     final int? pages = (gallery.pageCount != null && gallery.pageCount! > 0) ? gallery.pageCount : null;
-    for (final GallerySource otherSource in _opposingSources(gallery.galleryUrl.source)) {
-      for (final GalleryIdentity entry in _identitiesBySource[otherSource]!) {
-        if (entry.coverHash != null && GalleryIdentityMatcher.arePageCountsCompatible(pages, entry.pageCount)) {
+    for (final GallerySource source in GallerySource.values) {
+      for (final GalleryIdentity entry in _identitiesBySource[source]!) {
+        if (entry.gid != gallery.gid &&
+            entry.coverHash != null &&
+            GalleryIdentityMatcher.arePageCountsCompatible(pages, entry.pageCount)) {
           return true;
         }
       }
@@ -431,16 +429,16 @@ class AlreadyReadService {
       }
 
       final GalleryIdentity candidate = GalleryIdentity.fromGallery(gallery, coverHash: coverHash);
-      for (final GallerySource otherSource in _opposingSources(candidate.source)) {
-        for (final GalleryIdentity entry in _identitiesBySource[otherSource]!) {
-          if (entry.coverHash == null) {
+      for (final GallerySource source in GallerySource.values) {
+        for (final GalleryIdentity entry in _identitiesBySource[source]!) {
+          if (entry.gid == gid || entry.coverHash == null) {
             continue;
           }
           final GalleryMatchResult? result = GalleryIdentityMatcher.match(candidate, entry);
           if (result != null) {
             _crossMatchedToSource[gid] = entry.gid;
             log.debug(
-              'Cross-provider already-read match (${result.reason.name}, dist=${result.coverDistance}): '
+              'Already-read match (${result.reason.name}, dist=${result.coverDistance}): '
               '${gallery.galleryUrl.url} <-> gid=${entry.gid}',
             );
             revision.value++;

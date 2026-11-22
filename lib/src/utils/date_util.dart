@@ -25,17 +25,22 @@ class DateUtil {
   }
 
   static String _convert(String utcTimeString) {
+    final String trimmed = utcTimeString.trim();
+    if (trimmed.isEmpty) {
+      return '';
+    }
+
     /// Fast path for canonical `yyyy-MM-dd HH:mm` (16 chars) without intl overhead.
-    if (utcTimeString.length == 16 &&
-        utcTimeString.codeUnitAt(4) == 0x2D &&
-        utcTimeString.codeUnitAt(7) == 0x2D &&
-        utcTimeString.codeUnitAt(10) == 0x20 &&
-        utcTimeString.codeUnitAt(13) == 0x3A) {
-      final int? year = int.tryParse(utcTimeString.substring(0, 4));
-      final int? month = int.tryParse(utcTimeString.substring(5, 7));
-      final int? day = int.tryParse(utcTimeString.substring(8, 10));
-      final int? hour = int.tryParse(utcTimeString.substring(11, 13));
-      final int? minute = int.tryParse(utcTimeString.substring(14, 16));
+    if (trimmed.length == 16 &&
+        trimmed.codeUnitAt(4) == 0x2D &&
+        trimmed.codeUnitAt(7) == 0x2D &&
+        trimmed.codeUnitAt(10) == 0x20 &&
+        trimmed.codeUnitAt(13) == 0x3A) {
+      final int? year = int.tryParse(trimmed.substring(0, 4));
+      final int? month = int.tryParse(trimmed.substring(5, 7));
+      final int? day = int.tryParse(trimmed.substring(8, 10));
+      final int? hour = int.tryParse(trimmed.substring(11, 13));
+      final int? minute = int.tryParse(trimmed.substring(14, 16));
       if (year != null && month != null && day != null && hour != null && minute != null) {
         final DateTime local = DateTime.utc(year, month, day, hour, minute).toLocal();
         return '${local.year.toString().padLeft(4, '0')}-'
@@ -46,7 +51,11 @@ class DateUtil {
       }
     }
 
-    final DateTime utcTime = _utcFormat.parseUtc(utcTimeString).toLocal();
-    return _localFormat.format(utcTime);
+    try {
+      final DateTime utcTime = _utcFormat.parseUtc(trimmed).toLocal();
+      return _localFormat.format(utcTime);
+    } catch (_) {
+      return trimmed;
+    }
   }
 }

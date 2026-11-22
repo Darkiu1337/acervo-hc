@@ -250,5 +250,44 @@ void main() {
       );
       expect(match, isNull);
     });
+
+    test('matches same work in different languages within nhentai (English vs Japanese/Chinese)', () {
+      final GalleryHistoryModel nhEnglish = GalleryHistoryModel(
+        galleryUrl: GalleryUrl.nhentaiGalleryUrl(678021),
+        title: '[nanohana] Bremerton Bikini (Azur Lane) [Digital] [English]',
+        altTitle: '[nanohana] ブレマートン ビキニ (アズールレーン)',
+        category: 'Doujinshi',
+        coverUrl: 'https://t1.nhentai.net/galleries/4156166/thumb.webp',
+        pageCount: 6,
+        rating: 0,
+        language: 'english',
+        uploader: 'nanohana',
+        publishTime: '2026-01-01 00:00',
+        isExpunged: false,
+        tags: <String>['artist:nanohana'],
+      );
+
+      final Gallery nhChinese = Gallery(
+        galleryUrl: GalleryUrl.nhentaiGalleryUrl(678999),
+        title: '[nanohana] ブレマートン ビキニ (アズールレーン) [中国翻訳]',
+        altTitle: '[nanohana] Bremerton Bikini (Azur Lane) [Chinese] [個人漢化]',
+        category: 'nhentai',
+        cover: GalleryImage(url: 'https://t1.nhentai.net/galleries/4159999/thumb.webp'),
+        pageCount: 6,
+        rating: 0,
+        hasRated: false,
+        publishTime: '',
+        isExpunged: false,
+        tags: LinkedHashMap<String, List<GalleryTag>>(),
+      );
+
+      expect(
+        GalleryIdentityMatcher.match(
+          GalleryIdentity.fromGallery(nhChinese),
+          GalleryIdentity.fromHistoryModel(nhEnglish),
+        ),
+        isNotNull,
+      );
+    });
   });
 }
