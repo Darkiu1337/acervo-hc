@@ -27,7 +27,15 @@ class HistoryService with JHLifeCircleBeanErrorCatch implements JHLifeCircleBean
 
   Future<List<GalleryHistoryModel>> getByPageIndex(int pageIndex) async {
     List<GalleryHistoryV2Data> historys = await GalleryHistoryDao.selectByPageIndex(pageIndex, pageSize);
-    return historys.map<GalleryHistoryModel>((h) => GalleryHistoryModel.fromJson(jsonDecode(h.jsonBody))).toList();
+    final List<GalleryHistoryModel> parsed = <GalleryHistoryModel>[];
+    for (final GalleryHistoryV2Data h in historys) {
+      try {
+        parsed.add(GalleryHistoryModel.fromJson(jsonDecode(h.jsonBody)));
+      } catch (e) {
+        log.warning('Skip unreadable history record gid=${h.gid}: $e');
+      }
+    }
+    return parsed;
   }
 
   Future<List<GalleryHistoryV2Data>> getLatest10000RawHistory() async {

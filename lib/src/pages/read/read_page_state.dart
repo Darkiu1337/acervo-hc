@@ -11,6 +11,7 @@ import '../../model/gallery_thumbnail.dart';
 import '../../service/gallery_download/gallery_download_service.dart';
 import '../../setting/read_setting.dart';
 import '../../widget/loading_state_indicator.dart';
+import 'spread_pages.dart';
 
 class ReadPageState with ScrollStatusListerState {
   /// gallery info
@@ -64,6 +65,12 @@ class ReadPageState with ScrollStatusListerState {
   FocusNode focusNode = FocusNode();
 
   late Size displayRegionSize;
+
+  /// Tracks images wider than tall for Split Wide Pages mode.
+  late final SpreadPages spreadPages = SpreadPages(
+    storageKey: readPageInfo.readProgressRecordStorageKey,
+    imageCount: readPageInfo.pageCount,
+  );
 
   final ItemPositionsListener thumbnailPositionsListener = ItemPositionsListener.create();
   final ItemScrollController thumbnailsScrollController = ItemScrollController();

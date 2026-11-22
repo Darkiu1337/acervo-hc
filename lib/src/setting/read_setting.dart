@@ -95,6 +95,8 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
           : true.obs;
   RxInt maxImageKilobyte = (1024 * 5).obs;
   RxBool autoDetectWebtoon = false.obs;
+  RxBool splitWidePages = false.obs;
+  RxBool reverseSplitWidePages = false.obs;
 
   static bool isListDirection(ReadDirection d) =>
       d == ReadDirection.top2bottomList ||
@@ -223,6 +225,8 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
     maxImageKilobyte.value = map['maxImageKilobyte'] ?? maxImageKilobyte.value;
     enableOrientationSpecificReadDirection.value = map['enableOrientationSpecificReadDirection'] ?? enableOrientationSpecificReadDirection.value;
     autoDetectWebtoon.value = map['autoDetectWebtoon'] ?? autoDetectWebtoon.value;
+    splitWidePages.value = map['splitWidePages'] ?? splitWidePages.value;
+    reverseSplitWidePages.value = map['reverseSplitWidePages'] ?? reverseSplitWidePages.value;
     /// On first load, migrate existing readDirection to both portrait and landscape
     portraitReadDirection.value = ReadDirection.values[map['portraitReadDirection'] ?? map['readDirection']];
     landscapeReadDirection.value = ReadDirection.values[map['landscapeReadDirection'] ?? map['readDirection']];
@@ -279,6 +283,8 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
       'maxImageKilobyte': maxImageKilobyte.value,
       'enableOrientationSpecificReadDirection': enableOrientationSpecificReadDirection.value,
       'autoDetectWebtoon': autoDetectWebtoon.value,
+      'splitWidePages': splitWidePages.value,
+      'reverseSplitWidePages': reverseSplitWidePages.value,
       'portraitReadDirection': portraitReadDirection.value.index,
       'landscapeReadDirection': landscapeReadDirection.value.index,
     });
@@ -620,6 +626,18 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
   Future<void> saveAutoDetectWebtoon(bool value) async {
     log.debug('saveAutoDetectWebtoon:$value');
     autoDetectWebtoon.value = value;
+    await saveBeanConfig();
+  }
+
+  Future<void> saveSplitWidePages(bool value) async {
+    log.debug('saveSplitWidePages:$value');
+    splitWidePages.value = value;
+    await saveBeanConfig();
+  }
+
+  Future<void> saveReverseSplitWidePages(bool value) async {
+    log.debug('saveReverseSplitWidePages:$value');
+    reverseSplitWidePages.value = value;
     await saveBeanConfig();
   }
 

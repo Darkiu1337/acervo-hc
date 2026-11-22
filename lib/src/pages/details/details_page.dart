@@ -884,9 +884,10 @@ class DetailsPage extends StatelessWidget with Scroll2TopPageMixin {
               _buildAlreadyReadButton(context),
               _buildRatingButton(context),
               _buildArchiveButton(context),
-              _buildHHButton(context),
               _buildSimilarButton(context),
+              _buildInWatchedButton(context),
               _buildTorrentButton(context),
+              _buildHHButton(context),
               // _buildStatisticButton(context),
             ],
           ).enableMouseDrag(withScrollBar: false),
@@ -1212,6 +1213,22 @@ class DetailsPage extends StatelessWidget with Scroll2TopPageMixin {
     );
   }
 
+  Widget _buildInWatchedButton(BuildContext context) {
+    return IconTextButton(
+      width: UIConfig.detailsPageActionExtent,
+      icon: Icon(Icons.subscriptions_outlined, color: UIConfig.detailsPageActionIconColor(context)),
+      text: Text(
+        'inWatched'.tr,
+        style: TextStyle(
+          fontSize: UIConfig.detailsPageActionTextSize,
+          color: UIConfig.detailsPageActionTextColor(context),
+          height: 1,
+        ),
+      ),
+      onPressed: logic.openInWatched,
+    );
+  }
+
   Widget _buildTorrentButton(BuildContext context) {
     return GetBuilder<DetailsPageLogic>(
       id: DetailsPageLogic.detailsId,
@@ -1302,36 +1319,81 @@ class DetailsPage extends StatelessWidget with Scroll2TopPageMixin {
 
   Widget buildTags() {
     return SliverToBoxAdapter(
-      child: GetBuilder<DetailsPageLogic>(
-        id: DetailsPageLogic.detailsId,
-        global: false,
-        init: logic,
-        builder: (_) {
-          if (state.galleryDetails?.tags.isEmpty ?? true) {
-            return const SizedBox();
-          }
+      child: Builder(
+        builder: (BuildContext context) => GetBuilder<DetailsPageLogic>(
+          id: DetailsPageLogic.detailsId,
+          global: false,
+          init: logic,
+          builder: (_) {
+            if (state.galleryDetails?.tags.isEmpty ?? true) {
+              return const SizedBox();
+            }
 
-          return Column(
-            children: state.galleryDetails!.tags.entries
-                .map(
-                  (entry) => Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildCategoryTag(entry.key),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Wrap(
-                          spacing: 5,
-                          runSpacing: 5,
-                          children: _buildSubTags(entry.value),
-                        ),
-                      ),
-                    ],
-                  ).marginOnly(top: 10),
-                )
-                .toList(),
-          ).fadeIn().marginSymmetric(horizontal: UIConfig.detailPagePadding);
-        },
+            return GetBuilder<DetailsPageLogic>(
+              id: DetailsPageLogic.tagSelectionId,
+              global: false,
+              init: logic,
+              builder: (_) {
+                final bool selecting = state.isTagSelectionMode;
+                final int selectedCount = state.selectedTags.length;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        if (selecting) ...[
+                          TextButton.icon(
+                            onPressed: selectedCount == 0 ? null : logic.copySelectedTags,
+                            icon: const Icon(Icons.copy, size: 16),
+                            label: Text('${'copy'.tr}${selectedCount > 0 ? ' ($selectedCount)' : ''}'),
+                            style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                          ),
+                          const SizedBox(width: 4),
+                          FilledButton.tonalIcon(
+                            onPressed: selectedCount == 0 ? null : logic.searchSelectedTags,
+                            icon: const Icon(Icons.search, size: 16),
+                            label: Text('${'search'.tr}${selectedCount > 0 ? ' ($selectedCount)' : ''}'),
+                            style: FilledButton.styleFrom(visualDensity: VisualDensity.compact),
+                          ),
+                          const SizedBox(width: 4),
+                          TextButton(
+                            onPressed: logic.toggleTagSelectionMode,
+                            style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                            child: Text('cancel'.tr),
+                          ),
+                        ] else
+                          TextButton.icon(
+                            onPressed: logic.toggleTagSelectionMode,
+                            icon: const Icon(Icons.checklist, size: 16),
+                            label: Text('selectTags'.tr),
+                            style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                          ),
+                      ],
+                    ),
+                    ...state.galleryDetails!.tags.entries.map(
+                      (entry) => Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildCategoryTag(entry.key),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Wrap(
+                              spacing: 5,
+                              runSpacing: 5,
+                              children: _buildSubTags(context, entry.value),
+                            ),
+                          ),
+                        ],
+                      ).marginOnly(top: 10),
+                    ),
+                  ],
+                ).fadeIn().marginSymmetric(horizontal: UIConfig.detailPagePadding);
+              },
+            );
+          },
+        ),
       ),
     );
   }
@@ -1349,18 +1411,32 @@ class DetailsPage extends StatelessWidget with Scroll2TopPageMixin {
     );
   }
 
-  List<Widget> _buildSubTags(List<GalleryTag> tags) {
-    return tags
-        .map(
-          (tag) => EHTag(
-            tag: tag,
-            onTap: (tag) => newSearch(keyword: '${tag.tagData.namespace}:"${tag.tagData.key}\$"', forceNewRoute: true),
-            onSecondaryTap: logic.showTagDialog,
-            onLongPress: logic.showTagDialog,
-            showTagStatus: preferenceSetting.showGalleryTagVoteStatus.isTrue,
+  List<Widget> _buildSubTags(BuildContext context, List<GalleryTag> tags) {
+    final bool selecting = state.isTagSelectionMode;
+    final Color selectedBorderColor = Theme.of(context).colorScheme.primary;
+
+    return tags.map((GalleryTag tag) {
+      final bool selected = selecting && logic.isTagSelected(tag);
+      Widget chip = EHTag(
+        tag: tag,
+        onTap: selecting
+            ? logic.toggleSelectedTag
+            : (tag) => newSearch(keyword: '${tag.tagData.namespace}:"${tag.tagData.key}\$"', forceNewRoute: true),
+        onSecondaryTap: logic.showTagDialog,
+        onLongPress: logic.showTagDialog,
+        showTagStatus: preferenceSetting.showGalleryTagVoteStatus.isTrue,
+      );
+      if (selected) {
+        chip = Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(7),
+            border: Border.all(color: selectedBorderColor, width: 2),
           ),
-        )
-        .toList();
+          child: chip,
+        );
+      }
+      return chip;
+    }).toList();
   }
 
   Widget buildComments() {

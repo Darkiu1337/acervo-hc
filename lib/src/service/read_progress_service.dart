@@ -79,4 +79,28 @@ class ReadProgressService extends GetxController with JHLifeCircleBeanErrorCatch
     );
     updateSafely(['$readProgressUpdateId::$recordKey']);
   }
+
+  /// When a newer version of an E-Hentai gallery has no reading progress yet
+  /// and its parent gallery does, copy the parent's progress clamped to the
+  /// new gallery's [pageCount]. Leaves the parent's progress untouched.
+  Future<bool> inheritProgressFromParent({
+    required int gid,
+    required int parentGid,
+    required int pageCount,
+  }) async {
+    if (gid == parentGid || pageCount <= 0) {
+      return false;
+    }
+    final int current = await getReadProgress(gid);
+    if (current > 0) {
+      return false;
+    }
+    final int parentProgress = await getReadProgress(parentGid);
+    if (parentProgress <= 0) {
+      return false;
+    }
+    final int clamped = parentProgress >= pageCount ? pageCount - 1 : parentProgress;
+    await updateReadProgress(gid.toString(), clamped);
+    return true;
+  }
 }

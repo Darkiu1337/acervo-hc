@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:acervo_hc/src/setting/read_setting.dart';
 import 'package:photo_view/photo_view.dart';
 
+import '../../spread_pages.dart';
 import '../base/base_layout_logic.dart';
 import 'horizontal_page_layout_state.dart';
 
@@ -33,20 +34,26 @@ class HorizontalPageLayoutLogic extends BaseLayoutLogic {
 
   Size? _lastViewportSize;
 
+  PageParts get pageParts => readSetting.splitWidePages.isTrue
+      ? PageParts(readPageState.spreadPages.flags)
+      : PageParts.unsplit(readPageState.readPageInfo.pageCount);
+
   int get currentPageIndex {
-    final int fallback = readPageState.readPageInfo.initialIndex;
+    final PageParts parts = pageParts;
+    final int fallback = parts.firstPageOf(readPageState.readPageInfo.currentImageIndex);
     final int index = pageController.hasClients && pageController.page != null ? pageController.page!.round() : fallback;
-    return index.clamp(0, readPageState.readPageInfo.pageCount - 1).toInt();
+    return index.clamp(0, max(0, parts.pageCount - 1)).toInt();
   }
 
   @override
   PhotoViewControllerBase? get activePhotoViewController => pageViewControllerFor(currentPageIndex);
 
   @override
-  Size? get activeContentSize => readPageState.imageContainerSizes[currentPageIndex];
+  Size? get activeContentSize => readPageState.imageContainerSizes[pageParts.imageOf(currentPageIndex)];
 
   @override
-  PhotoViewControllerBase? photoViewControllerForPlaceholder(int imageIndex) => pageViewControllerFor(imageIndex);
+  PhotoViewControllerBase? photoViewControllerForPlaceholder(int imageIndex) =>
+      pageViewControllerFor(pageParts.firstPageOf(imageIndex));
 
   /// Controller of [pageIndex], created with the zoom of the reading session
   /// already applied.
@@ -86,14 +93,35 @@ class HorizontalPageLayoutLogic extends BaseLayoutLogic {
   void onInit() {
     super.onInit();
 
-    pageController = PageController(initialPage: readPageState.readPageInfo.currentImageIndex);
+    final int initialPage = pageParts.firstPageOf(readPageState.readPageInfo.currentImageIndex);
+    pageController = PageController(initialPage: initialPage);
 
     /// record reading progress and sync thumbnails list index
     pageController.addListener(_readProgressListener);
 
     /// the initial page is built before any turn happens, so apply the session
     /// zoom to it here as well
-    _preparePage(readPageState.readPageInfo.currentImageIndex);
+    _preparePage(initialPage);
+  }
+
+  /// Ensures returning to paged layout from a scrolling layout lands on the
+  /// exact image the user scrolled to instead of the controller's stale initial
+  /// page.
+  void syncToCurrentImageIndex() {
+    final PageParts parts = pageParts;
+    final int target = parts.firstPageOf(readPageState.readPageInfo.currentImageIndex)
+        .clamp(0, max(0, parts.pageCount - 1))
+        .toInt();
+    if (!pageController.hasClients) {
+      if (pageController.initialPage != target) {
+        pageController.removeListener(_readProgressListener);
+        pageController.dispose();
+        pageController = PageController(initialPage: target);
+        pageController.addListener(_readProgressListener);
+        _lastPage = -1;
+        _preparePage(target);
+      }
+    }
   }
 
   @override
@@ -116,35 +144,56 @@ class HorizontalPageLayoutLogic extends BaseLayoutLogic {
 
   @override
   void toPrev() {
-    int targetIndex = (pageController.page! - 1).toInt();
-    toImageIndex(max(targetIndex, 0));
+    if (!pageController.hasClients || pageController.page == null) {
+      return;
+    }
+    final int targetPage = max(pageController.page!.round() - 1, 0);
+    _goToPage(targetPage);
   }
 
   @override
   void toNext() {
-    int targetIndex = (pageController.page! + 1).toInt();
-    toImageIndex(min(targetIndex, readPageState.readPageInfo.pageCount - 1));
+    if (!pageController.hasClients || pageController.page == null) {
+      return;
+    }
+    final int targetPage = min(pageController.page!.round() + 1, max(0, pageParts.pageCount - 1));
+    _goToPage(targetPage);
+  }
+
+  void _goToPage(int targetPage) {
+    _preparePage(targetPage);
+    if (readSetting.enablePageTurnAnime.isTrue) {
+      pageController.animateToPage(
+        targetPage,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.ease,
+      );
+    } else {
+      pageController.jumpToPage(targetPage);
+    }
   }
 
   @override
-  void jump2ImageIndex(int pageIndex) {
+  void jump2ImageIndex(int imageIndex) {
+    final int targetPage = pageParts.firstPageOf(imageIndex);
     /// seed the target page before the PageView jumps to it, so its first frame
     /// is already zoomed and top aligned
-    _preparePage(pageIndex);
-    pageController.jumpToPage(pageIndex);
-    super.jump2ImageIndex(pageIndex);
+    _preparePage(targetPage);
+    pageController.jumpToPage(targetPage);
+    super.jump2ImageIndex(imageIndex);
   }
 
   @override
-  void scroll2ImageIndex(int pageIndex, [Duration? duration]) {
+  void scroll2ImageIndex(int imageIndex, [Duration? duration]) {
+    final int targetPage = pageParts.firstPageOf(imageIndex);
     /// same as [jump2ImageIndex]: the page slides in already zoomed
-    _preparePage(pageIndex);
+    _preparePage(targetPage);
     pageController.animateToPage(
-      pageIndex,
+      targetPage,
       duration: duration ?? const Duration(milliseconds: 200),
       curve: Curves.ease,
     );
-    super.scroll2ImageIndex(pageIndex, duration);
+    super.scroll2ImageIndex(imageIndex, duration);
   }
 
   @override
@@ -207,7 +256,12 @@ class HorizontalPageLayoutLogic extends BaseLayoutLogic {
       return;
     }
 
-    final Size? contentSize = readPageState.imageContainerSizes[pendingPage];
+    final int pendingImage = pageParts.imageOf(pendingPage);
+    if (pendingImage != imageIndex) {
+      return;
+    }
+
+    final Size? contentSize = readPageState.imageContainerSizes[pendingImage];
     if (contentSize == null) {
       return;
     }
@@ -229,13 +283,15 @@ class HorizontalPageLayoutLogic extends BaseLayoutLogic {
       return;
     }
 
-    int currentPage = pageController.page!.toInt();
-    readPageLogic.recordReadProgress(currentPage);
-    readPageLogic.syncThumbnails(currentPage);
+    final PageParts parts = pageParts;
+    final int currentPage = pageController.page!.toInt().clamp(0, max(0, parts.pageCount - 1)).toInt();
+    final int currentImage = parts.imageOf(currentPage);
+    readPageLogic.recordReadProgress(currentImage);
+    readPageLogic.syncThumbnails(currentImage);
 
     /// `round()` flips as soon as the incoming page covers half of the viewport
     /// (during swipes too), instead of only at the end of the animation.
-    final int nearestPage = pageController.page!.round().clamp(0, readPageState.readPageInfo.pageCount - 1).toInt();
+    final int nearestPage = pageController.page!.round().clamp(0, max(0, parts.pageCount - 1)).toInt();
 
     if (nearestPage == _lastPage) {
       return;
@@ -264,14 +320,15 @@ class HorizontalPageLayoutLogic extends BaseLayoutLogic {
   /// Called before the page becomes visible (programmatic turns) and as soon as
   /// the incoming page covers half of the viewport (swipes).
   void _preparePage(int pageIndex) {
-    if (pageIndex < 0 || pageIndex >= readPageState.readPageInfo.pageCount) {
+    final PageParts parts = pageParts;
+    if (pageIndex < 0 || pageIndex >= parts.pageCount) {
       return;
     }
 
     final PhotoViewController controller = pageViewControllerFor(pageIndex);
     final PhotoViewScaleStateController scaleStateController = scaleStateControllerFor(pageIndex);
     final double scale = _desiredScale;
-    final Size? contentSize = readPageState.imageContainerSizes[pageIndex];
+    final Size? contentSize = readPageState.imageContainerSizes[parts.imageOf(pageIndex)];
 
     /// without the real content size the position is a viewport based guess;
     /// [onImageSizeKnown] applies the exact one when the image loads.
@@ -285,9 +342,10 @@ class HorizontalPageLayoutLogic extends BaseLayoutLogic {
   /// already zoomed page instead of popping from 1.0 when it reaches half of the
   /// viewport.
   void _syncNeighborZoom() {
+    final PageParts parts = pageParts;
     final int current = currentPageIndex;
     for (final int pageIndex in <int>[current - 1, current + 1]) {
-      if (pageIndex < 0 || pageIndex >= readPageState.readPageInfo.pageCount) {
+      if (pageIndex < 0 || pageIndex >= parts.pageCount) {
         continue;
       }
 
@@ -297,7 +355,7 @@ class HorizontalPageLayoutLogic extends BaseLayoutLogic {
         continue;
       }
 
-      _applyZoomTo(controller, _desiredScale, readPageState.imageContainerSizes[pageIndex]);
+      _applyZoomTo(controller, _desiredScale, readPageState.imageContainerSizes[parts.imageOf(pageIndex)]);
       state.photoViewScaleStateControllers[pageIndex]?.setInvisibly(_scaleStateFor(_desiredScale));
     }
   }
@@ -319,7 +377,7 @@ class HorizontalPageLayoutLogic extends BaseLayoutLogic {
     if (scale <= BaseLayoutLogic.maxZoomScaleEpsilon || readSetting.alignToTopWhenTurnPage.isFalse) {
       return Offset.zero;
     }
-    return computeTopAlignedPosition(scale, readPageState.imageContainerSizes[pageIndex]);
+    return computeTopAlignedPosition(scale, readPageState.imageContainerSizes[pageParts.imageOf(pageIndex)]);
   }
 
   PhotoViewScaleState _scaleStateFor(double scale) =>

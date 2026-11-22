@@ -181,6 +181,12 @@ mixin ArchiveDownloadPageLogicMixin on GetxController
       position: position,
       actions: [
         if (archiveDownloadInfo != null &&
+            archiveDownloadInfo.archiveStatus == ArchiveStatus.completed)
+          EHContextMenuAction(
+            text: 'preview'.tr,
+            onTap: () => toRoute(Routes.archivePreview, arguments: archive),
+          ),
+        if (archiveDownloadInfo != null &&
             archiveDownloadInfo.archiveStatus.code < ArchiveStatus.downloaded.code &&
             archiveDownloadInfo.parseSource == ArchiveParseSource.bot.code)
           EHContextMenuAction(

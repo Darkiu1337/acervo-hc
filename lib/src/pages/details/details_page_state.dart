@@ -1,6 +1,7 @@
 import 'package:acervo_hc/src/mixin/scroll_to_top_state_mixin.dart';
 import 'package:acervo_hc/src/model/gallery.dart';
 import 'package:acervo_hc/src/model/gallery_detail.dart';
+import 'package:acervo_hc/src/model/gallery_tag.dart';
 import 'package:acervo_hc/src/model/gallery_url.dart';
 import 'package:acervo_hc/src/widget/loading_state_indicator.dart';
 
@@ -29,6 +30,10 @@ class DetailsPageState with Scroll2TopStateMixin {
   LoadingState loadingThumbnailsState = LoadingState.idle;
   LoadingState favoriteState = LoadingState.idle;
   LoadingState ratingState = LoadingState.idle;
+
+  /// Multi-tag selection mode on the details page (search or copy combined tags).
+  bool isTagSelectionMode = false;
+  final List<GalleryTag> selectedTags = <GalleryTag>[];
 
   String? errorMessage;
 }

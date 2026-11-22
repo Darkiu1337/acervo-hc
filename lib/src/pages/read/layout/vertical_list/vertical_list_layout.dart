@@ -9,6 +9,7 @@ import 'package:zoom_view/zoom_view.dart';
 import '../../../../setting/read_setting.dart';
 import '../../../../utils/screen_size_util.dart';
 import '../../../../widget/eh_wheel_speed_controller_for_read_page.dart';
+import '../../spread_pages.dart';
 import '../base/base_layout.dart';
 import '../base/base_layout_logic.dart';
 import 'vertical_list_layout_logic.dart';
@@ -44,7 +45,7 @@ class VerticalListLayout extends BaseLayout {
               minCacheExtent: readPageState.readPageInfo.mode == ReadMode.online
                   ? readSetting.preloadDistance * screenHeight * 1
                   : readSetting.preloadDistanceLocal * screenHeight * 1,
-              initialScrollIndex: readPageState.readPageInfo.initialIndex,
+              initialScrollIndex: readPageState.readPageInfo.currentImageIndex,
               itemCount: readPageState.readPageInfo.pageCount,
               itemScrollController: state.itemScrollController,
               itemPositionsListener: state.itemPositionsListener,
@@ -58,7 +59,35 @@ class VerticalListLayout extends BaseLayout {
     );
   }
 
-  Widget _imageBuilder(context, index) {
+  Widget _imageBuilder(BuildContext context, int index) {
+    Widget buildPageWidget() => readPageState.readPageInfo.mode == ReadMode.online
+        ? buildItemInOnlineMode(context, index)
+        : buildItemInLocalMode(context, index);
+
+    Widget content;
+    if (readSetting.splitWidePages.isTrue && readPageState.spreadPages[index]) {
+      final bool rightFirst = showRightHalfFirst(
+        isRightToLeftOrVertical: true,
+        reverseOrder: readSetting.reverseSplitWidePages.isTrue,
+      );
+      content = Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FittedBox(
+            fit: BoxFit.fitWidth,
+            child: SplitHalfClipper(showRightHalf: rightFirst, child: buildPageWidget()),
+          ),
+          Obx(() => SizedBox(height: readSetting.imageSpace.value.toDouble())),
+          FittedBox(
+            fit: BoxFit.fitWidth,
+            child: SplitHalfClipper(showRightHalf: !rightFirst, child: buildPageWidget()),
+          ),
+        ],
+      );
+    } else {
+      content = buildPageWidget();
+    }
+
     Widget child = Row(
       children: [
         Expanded(
@@ -67,7 +96,7 @@ class VerticalListLayout extends BaseLayout {
         ),
         Expanded(
           flex: logic.readPageLogic.effectiveImageRegionWidthRatio * 2,
-          child: readPageState.readPageInfo.mode == ReadMode.online ? buildItemInOnlineMode(context, index) : buildItemInLocalMode(context, index),
+          child: content,
         ),
         Expanded(
           flex: 100 - logic.readPageLogic.effectiveImageRegionWidthRatio,

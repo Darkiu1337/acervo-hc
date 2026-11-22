@@ -109,6 +109,8 @@ class ReadPageLogic extends GetxController with WidgetsBindingObserver, GalleryI
   late Worker portraitDisplayFirstPageAloneListener;
   late Worker landscapeDisplayFirstPageAloneListener;
   late Worker autoDetectWebtoonListener;
+  late Worker splitWidePagesListener;
+  late Worker reverseSplitWidePagesListener;
   late Worker tapZoneConfigListener;
 
   /// Tracks the last known portrait state for orientation-specific read direction
@@ -201,6 +203,15 @@ class ReadPageLogic extends GetxController with WidgetsBindingObserver, GalleryI
       }
     });
     autoDetectWebtoonListener = ever(readSetting.autoDetectWebtoon, (_) => onEffectiveSettingChanged());
+    splitWidePagesListener = ever(readSetting.splitWidePages, (_) => updateSafely([layoutId]));
+    reverseSplitWidePagesListener = ever(readSetting.reverseSplitWidePages, (_) => updateSafely([layoutId]));
+    unawaited(
+      state.spreadPages.load().then((_) {
+        if (readSetting.splitWidePages.isTrue) {
+          updateSafely([layoutId]);
+        }
+      }),
+    );
     portraitImageRegionWidthRatioLister = ever(readSetting.portraitImageRegionWidthRatio, (_) {
       if (readSetting.enableOrientationSpecificReadDirection.isTrue && isPortrait) {
         updateSafely([layoutId]);
@@ -320,6 +331,8 @@ class ReadPageLogic extends GetxController with WidgetsBindingObserver, GalleryI
     portraitDisplayFirstPageAloneListener.dispose();
     landscapeDisplayFirstPageAloneListener.dispose();
     autoDetectWebtoonListener.dispose();
+    splitWidePagesListener.dispose();
+    reverseSplitWidePagesListener.dispose();
     tapZoneConfigListener.dispose();
 
     restoreVolumeListener();
@@ -363,6 +376,14 @@ class ReadPageLogic extends GetxController with WidgetsBindingObserver, GalleryI
     /// Remove external-viewer folders left behind by previous sessions when
     /// no viewer is still showing them.
     unawaited(externalViewerService.cleanupOrphans());
+  }
+
+  /// Marks [imageIndex] as wider than tall (`width > height`) and refreshes the
+  /// active reader layout when Split Wide Pages is enabled.
+  void markSpreadPage(int imageIndex) {
+    if (state.spreadPages.mark(imageIndex) && readSetting.splitWidePages.isTrue) {
+      updateSafely([layoutId]);
+    }
   }
 
   void beginToParseImageHref(int index) {

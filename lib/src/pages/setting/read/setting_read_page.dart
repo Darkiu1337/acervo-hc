@@ -104,6 +104,11 @@ class SettingReadPage extends StatelessWidget {
                   ],
                   if (!GetPlatform.isMobile || readSetting.enableOrientationSpecificReadDirection.isFalse)
                     if (readSetting.isInDoubleColumnReadDirection) _buildDisplayFirstPageAlone().fadeIn(const Key('displayFirstPageAloneGlobally')).center(),
+                  if (readSetting.isInSinglePageReadDirection || readSetting.readDirection.value == ReadDirection.top2bottomList)
+                    _buildSplitWidePages().fadeIn(const Key('splitWidePages')).center(),
+                  if (readSetting.splitWidePages.isTrue &&
+                      (readSetting.isInSinglePageReadDirection || readSetting.readDirection.value == ReadDirection.top2bottomList))
+                    _buildReverseSplitWidePages().fadeIn(const Key('reverseSplitWidePages')).center(),
                   if (readSetting.isInListReadDirection) _buildAutoModeStyle().fadeIn(const Key('autoModeStyle')).center(),
                   if (readSetting.isInListReadDirection) _buildTurnPageMode().fadeIn(const Key('turnPageMode')).center(),
                   _buildImageSpace().center(),
@@ -876,6 +881,24 @@ class SettingReadPage extends StatelessWidget {
       title: Text('displayFirstPageAloneGlobally'.tr),
       value: readSetting.displayFirstPageAlone.value,
       onChanged: readSetting.saveDisplayFirstPageAlone,
+    );
+  }
+
+  Widget _buildSplitWidePages() {
+    return SwitchListTile(
+      title: Text('splitWidePages'.tr),
+      subtitle: Text('splitWidePagesHint'.tr),
+      value: readSetting.splitWidePages.value,
+      onChanged: readSetting.saveSplitWidePages,
+    );
+  }
+
+  Widget _buildReverseSplitWidePages() {
+    return SwitchListTile(
+      title: Text('reverseSplitWidePages'.tr),
+      subtitle: Text('reverseSplitWidePagesHint'.tr),
+      value: readSetting.reverseSplitWidePages.value,
+      onChanged: readSetting.saveReverseSplitWidePages,
     );
   }
 

@@ -233,9 +233,14 @@ abstract class BaseLayout extends StatelessWidget {
       if (state.extendedImageInfo == null || logic.readPageState.imageContainerSizes[index] != null) {
         return;
       }
-      FittedSizes fittedSizes = logic.getImageFittedSize(
-        Size(state.extendedImageInfo!.image.width.toDouble(), state.extendedImageInfo!.image.height.toDouble()),
+      final Size rawSize = Size(
+        state.extendedImageInfo!.image.width.toDouble(),
+        state.extendedImageInfo!.image.height.toDouble(),
       );
+      if (rawSize.width > rawSize.height) {
+        readPageLogic.markSpreadPage(index);
+      }
+      FittedSizes fittedSizes = logic.getImageFittedSize(rawSize);
       logic.readPageState.imageContainerSizes[index] = fittedSizes.destination;
       logic.readPageLogic.updateSafely(['${readPageLogic.onlineImageId}::$index']);
       logic.onImageSizeKnown(index);
@@ -400,9 +405,14 @@ abstract class BaseLayout extends StatelessWidget {
       if (state.extendedImageInfo == null || logic.readPageState.imageContainerSizes[index] != null) {
         return;
       }
-      FittedSizes fittedSizes = logic.getImageFittedSize(
-        Size(state.extendedImageInfo!.image.width.toDouble(), state.extendedImageInfo!.image.height.toDouble()),
+      final Size rawSize = Size(
+        state.extendedImageInfo!.image.width.toDouble(),
+        state.extendedImageInfo!.image.height.toDouble(),
       );
+      if (rawSize.width > rawSize.height) {
+        readPageLogic.markSpreadPage(index);
+      }
+      FittedSizes fittedSizes = logic.getImageFittedSize(rawSize);
       logic.readPageState.imageContainerSizes[index] = fittedSizes.destination;
       galleryDownloadService.updateSafely(['${galleryDownloadService.downloadImageId}::${readPageState.readPageInfo.gid}::$index']);
       logic.onImageSizeKnown(index);

@@ -24,6 +24,7 @@ class HorizontalDoubleColumnLayout extends BaseLayout {
 
   @override
   Widget buildBody(BuildContext context) {
+    logic.syncToCurrentImageIndex();
     logic.onViewportChanged(readPageState.displayRegionSize);
 
     return EHWheelListener(

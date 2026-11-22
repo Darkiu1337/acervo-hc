@@ -22,6 +22,7 @@ import 'package:acervo_hc/src/model/gallery_url.dart';
 import 'package:acervo_hc/src/model/read_page_info.dart';
 import 'package:acervo_hc/src/network/eh_request.dart';
 import 'package:acervo_hc/src/pages/download/download_base_page.dart';
+import 'package:acervo_hc/src/pages/watched/watched_page_logic.dart';
 import 'package:acervo_hc/src/service/read_progress_service.dart';
 import 'package:acervo_hc/src/setting/download_setting.dart';
 import 'package:acervo_hc/src/setting/my_tags_setting.dart';
@@ -107,6 +108,7 @@ class DetailsPageLogic extends GetxController with LoginRequiredMixin, Scroll2To
   static const String thumbnailId = 'thumbnailId';
   static const String loadingStateId = 'fullPageLoadingStateId';
   static const String loadingThumbnailsStateId = 'loadingThumbnailsStateId';
+  static const String tagSelectionId = 'tagSelectionId';
 
   /// there may be more than one DetailsPages in route stack at same time, eg: tap a link in a comment.
   /// use this param as a 'tag' to get target [DetailsPageLogic] and [DetailsPageState].
@@ -255,6 +257,18 @@ class DetailsPageLogic extends GetxController with LoginRequiredMixin, Scroll2To
     _addColor2WatchedTags(state.galleryDetails!.tags);
 
     state.galleryDetails!.comments = await localBlockRuleService.executeRules(state.galleryDetails!.comments);
+
+    final GalleryUrl? parentUrl = state.galleryDetails!.parentGalleryUrl;
+    if (parentUrl != null) {
+      final bool inherited = await readProgressService.inheritProgressFromParent(
+        gid: state.galleryDetails!.galleryUrl.gid,
+        parentGid: parentUrl.gid,
+        pageCount: state.galleryDetails!.pageCount,
+      );
+      if (inherited) {
+        updateSafely([readButtonId]);
+      }
+    }
 
     state.loadingState = LoadingState.success;
     updateSafely(_judgeUpdateIds());
@@ -984,6 +998,81 @@ class DetailsPageLogic extends GetxController with LoginRequiredMixin, Scroll2To
 
     updateSafely([detailsId]);
     removeCache();
+  }
+
+  /// Formats [tags] into a space-separated E-Hentai search/copy query string.
+  static String formatSelectedTags(List<GalleryTag> tags, {bool exactSuffix = false}) {
+    final String suffix = exactSuffix ? r'$' : '';
+    return tags.map((GalleryTag tag) {
+      final String ns = tag.tagData.namespace.trim();
+      final String key = tag.tagData.key.trim();
+      if (ns.isEmpty) {
+        return '"$key$suffix"';
+      }
+      return '$ns:"$key$suffix"';
+    }).join(' ');
+  }
+
+  bool isTagSelected(GalleryTag tag) {
+    return state.selectedTags.any(
+      (GalleryTag t) => t.tagData.namespace == tag.tagData.namespace && t.tagData.key == tag.tagData.key,
+    );
+  }
+
+  void toggleTagSelectionMode() {
+    state.isTagSelectionMode = !state.isTagSelectionMode;
+    if (!state.isTagSelectionMode) {
+      state.selectedTags.clear();
+    }
+    updateSafely([tagSelectionId]);
+  }
+
+  void toggleSelectedTag(GalleryTag tag) {
+    final int idx = state.selectedTags.indexWhere(
+      (GalleryTag t) => t.tagData.namespace == tag.tagData.namespace && t.tagData.key == tag.tagData.key,
+    );
+    if (idx >= 0) {
+      state.selectedTags.removeAt(idx);
+    } else {
+      state.selectedTags.add(tag);
+    }
+    updateSafely([tagSelectionId]);
+  }
+
+  void clearSelectedTags() {
+    state.selectedTags.clear();
+    updateSafely([tagSelectionId]);
+  }
+
+  void searchSelectedTags() {
+    if (state.selectedTags.isEmpty) {
+      return;
+    }
+    final String keyword = formatSelectedTags(state.selectedTags, exactSuffix: true);
+    newSearch(keyword: keyword, forceNewRoute: true);
+  }
+
+  Future<void> copySelectedTags() async {
+    if (state.selectedTags.isEmpty) {
+      return;
+    }
+    final String formatted = formatSelectedTags(state.selectedTags, exactSuffix: false);
+    await FlutterClipboard.copy(formatted);
+    toast('hasCopiedToClipboard'.tr);
+  }
+
+  void openInWatched() {
+    if (!checkLogin()) {
+      return;
+    }
+    final int gid = state.galleryUrl.gid;
+    final WatchedPageLogic watchedLogic = Get.isRegistered<WatchedPageLogic>()
+        ? Get.find<WatchedPageLogic>()
+        : Get.put<WatchedPageLogic>(WatchedPageLogic(), permanent: true);
+    toRoute(Routes.watched);
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      watchedLogic.jumpToGid(gid);
+    });
   }
 
   Future<void> blockUser(GalleryComment comment) async {

@@ -126,12 +126,29 @@ class HorizontalDoubleColumnLayoutLogic extends BaseLayoutLogic {
 
     state.pageCount = computePageCount();
 
-    state.pageController = PageController(initialPage: computePageIndexOfImage(readPageState.readPageInfo.initialIndex));
+    state.pageController = PageController(initialPage: computePageIndexOfImage(readPageState.readPageInfo.currentImageIndex));
 
     /// record reading progress and sync thumbnails list index
     state.pageController.addListener(_readProgressListener);
 
     initCompleter.complete();
+  }
+
+  void syncToCurrentImageIndex() {
+    if (!initCompleter.isCompleted || state.pageCount <= 0) {
+      return;
+    }
+    final int target = computePageIndexOfImage(readPageState.readPageInfo.currentImageIndex)
+        .clamp(0, state.pageCount - 1)
+        .toInt();
+    if (!state.pageController.hasClients && state.pageController.initialPage != target) {
+      state.pageController.removeListener(_readProgressListener);
+      state.pageController.dispose();
+      state.pageController = PageController(initialPage: target);
+      state.pageController.addListener(_readProgressListener);
+      _lastPage = -1;
+      _preparePage(target);
+    }
   }
 
   @override
