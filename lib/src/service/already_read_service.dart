@@ -51,14 +51,18 @@ class AlreadyReadService {
   bool _restored = false;
   bool _backfillStarted = false;
 
-  /// Per-provider normalized identities for fast cross-provider checks.
-  final List<GalleryIdentity> _ehIdentities = <GalleryIdentity>[];
-  final List<GalleryIdentity> _xlecxIdentities = <GalleryIdentity>[];
+  /// Per-provider normalized identities for fast 3-way cross-provider checks
+  /// (E-Hentai/ExHentai <-> Xlecx <-> nhentai).
+  final Map<GallerySource, List<GalleryIdentity>> _identitiesBySource = <GallerySource, List<GalleryIdentity>>{
+    for (final GallerySource source in GallerySource.values) source: <GalleryIdentity>[],
+  };
 
-  /// Exact-variant lookup indexes (`variant.comparable -> identities`) to keep
-  /// Tier 1 matching near O(1) even with large already-read lists.
-  final Map<String, List<GalleryIdentity>> _ehTitleIndex = <String, List<GalleryIdentity>>{};
-  final Map<String, List<GalleryIdentity>> _xlecxTitleIndex = <String, List<GalleryIdentity>>{};
+  /// Exact-variant lookup indexes per provider (`variant.comparable -> identities`)
+  /// to keep Tier 1 matching near O(1) even with large already-read lists.
+  final Map<GallerySource, Map<String, List<GalleryIdentity>>> _titleIndexBySource =
+      <GallerySource, Map<String, List<GalleryIdentity>>>{
+    for (final GallerySource source in GallerySource.values) source: <String, List<GalleryIdentity>>{},
+  };
 
   /// Maps a cross-provider matched gallery's gid -> the gid of the stored
   /// already-read entry that matched it.
@@ -317,17 +321,15 @@ class AlreadyReadService {
   }
 
   void _rebuildIndexes() {
-    _ehIdentities.clear();
-    _xlecxIdentities.clear();
-    _ehTitleIndex.clear();
-    _xlecxTitleIndex.clear();
+    for (final GallerySource source in GallerySource.values) {
+      _identitiesBySource[source]!.clear();
+      _titleIndexBySource[source]!.clear();
+    }
 
     for (final GalleryHistoryModel entry in galleries) {
       final GalleryIdentity identity = GalleryIdentity.fromHistoryModel(entry);
-      final List<GalleryIdentity> list =
-          identity.source == GallerySource.eh ? _ehIdentities : _xlecxIdentities;
-      final Map<String, List<GalleryIdentity>> titleIndex =
-          identity.source == GallerySource.eh ? _ehTitleIndex : _xlecxTitleIndex;
+      final List<GalleryIdentity> list = _identitiesBySource[identity.source]!;
+      final Map<String, List<GalleryIdentity>> titleIndex = _titleIndexBySource[identity.source]!;
 
       list.add(identity);
       for (final TitleVariant variant in identity.titleVariants) {
@@ -336,32 +338,36 @@ class AlreadyReadService {
     }
   }
 
+  Iterable<GallerySource> _opposingSources(GallerySource source) {
+    return GallerySource.values.where((GallerySource other) => other != source);
+  }
+
   int? _matchTier1(Gallery gallery) {
     return _matchTier1Identity(GalleryIdentity.fromGallery(gallery));
   }
 
   int? _matchTier1Identity(GalleryIdentity candidate) {
-    final bool isEh = candidate.source == GallerySource.eh;
-    final List<GalleryIdentity> opposingList = isEh ? _xlecxIdentities : _ehIdentities;
-    if (opposingList.isEmpty) {
-      return null;
-    }
-
-    final Map<String, List<GalleryIdentity>> titleIndex = isEh ? _xlecxTitleIndex : _ehTitleIndex;
     final Set<int> checked = <int>{};
 
-    /// Fast path: check exact normalized title-variant hits first in O(1).
-    for (final TitleVariant variant in candidate.titleVariants) {
-      final List<GalleryIdentity>? bucket = titleIndex[variant.comparable];
-      if (bucket == null) {
+    /// Fast path: check exact normalized title-variant hits across all other
+    /// providers first in O(1).
+    for (final GallerySource otherSource in _opposingSources(candidate.source)) {
+      final Map<String, List<GalleryIdentity>> titleIndex = _titleIndexBySource[otherSource]!;
+      if (titleIndex.isEmpty) {
         continue;
       }
-      for (final GalleryIdentity entry in bucket) {
-        if (!checked.add(entry.gid)) {
+      for (final TitleVariant variant in candidate.titleVariants) {
+        final List<GalleryIdentity>? bucket = titleIndex[variant.comparable];
+        if (bucket == null) {
           continue;
         }
-        if (GalleryIdentityMatcher.match(candidate, entry) != null) {
-          return entry.gid;
+        for (final GalleryIdentity entry in bucket) {
+          if (!checked.add(entry.gid)) {
+            continue;
+          }
+          if (GalleryIdentityMatcher.match(candidate, entry) != null) {
+            return entry.gid;
+          }
         }
       }
     }
@@ -369,12 +375,14 @@ class AlreadyReadService {
     /// Fallback for fuzzy title + creator matches (only when candidate has
     /// creators; without creators, Tier 1 cannot accept fuzzy titles anyway).
     if (candidate.creators.isNotEmpty) {
-      for (final GalleryIdentity entry in opposingList) {
-        if (!checked.add(entry.gid) || entry.creators.isEmpty) {
-          continue;
-        }
-        if (GalleryIdentityMatcher.match(candidate, entry) != null) {
-          return entry.gid;
+      for (final GallerySource otherSource in _opposingSources(candidate.source)) {
+        for (final GalleryIdentity entry in _identitiesBySource[otherSource]!) {
+          if (!checked.add(entry.gid) || entry.creators.isEmpty) {
+            continue;
+          }
+          if (GalleryIdentityMatcher.match(candidate, entry) != null) {
+            return entry.gid;
+          }
         }
       }
     }
@@ -383,16 +391,12 @@ class AlreadyReadService {
   }
 
   bool _hasPotentialVisualCandidate(Gallery gallery) {
-    final List<GalleryIdentity> opposingList =
-        gallery.galleryUrl.source == GallerySource.eh ? _xlecxIdentities : _ehIdentities;
-    if (opposingList.isEmpty) {
-      return false;
-    }
-
     final int? pages = (gallery.pageCount != null && gallery.pageCount! > 0) ? gallery.pageCount : null;
-    for (final GalleryIdentity entry in opposingList) {
-      if (entry.coverHash != null && GalleryIdentityMatcher.arePageCountsCompatible(pages, entry.pageCount)) {
-        return true;
+    for (final GallerySource otherSource in _opposingSources(gallery.galleryUrl.source)) {
+      for (final GalleryIdentity entry in _identitiesBySource[otherSource]!) {
+        if (entry.coverHash != null && GalleryIdentityMatcher.arePageCountsCompatible(pages, entry.pageCount)) {
+          return true;
+        }
       }
     }
     return false;
@@ -427,22 +431,21 @@ class AlreadyReadService {
       }
 
       final GalleryIdentity candidate = GalleryIdentity.fromGallery(gallery, coverHash: coverHash);
-      final List<GalleryIdentity> opposingList =
-          candidate.source == GallerySource.eh ? _xlecxIdentities : _ehIdentities;
-
-      for (final GalleryIdentity entry in opposingList) {
-        if (entry.coverHash == null) {
-          continue;
-        }
-        final GalleryMatchResult? result = GalleryIdentityMatcher.match(candidate, entry);
-        if (result != null) {
-          _crossMatchedToSource[gid] = entry.gid;
-          log.debug(
-            'Cross-provider already-read match (${result.reason.name}, dist=${result.coverDistance}): '
-            '${gallery.galleryUrl.url} <-> gid=${entry.gid}',
-          );
-          revision.value++;
-          break;
+      for (final GallerySource otherSource in _opposingSources(candidate.source)) {
+        for (final GalleryIdentity entry in _identitiesBySource[otherSource]!) {
+          if (entry.coverHash == null) {
+            continue;
+          }
+          final GalleryMatchResult? result = GalleryIdentityMatcher.match(candidate, entry);
+          if (result != null) {
+            _crossMatchedToSource[gid] = entry.gid;
+            log.debug(
+              'Cross-provider already-read match (${result.reason.name}, dist=${result.coverDistance}): '
+              '${gallery.galleryUrl.url} <-> gid=${entry.gid}',
+            );
+            revision.value++;
+            return;
+          }
         }
       }
     } catch (e) {

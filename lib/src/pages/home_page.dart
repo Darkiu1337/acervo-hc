@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:acervo_hc/src/model/gallery_image_page_url.dart';
 import 'package:acervo_hc/src/model/gallery_source.dart';
 import 'package:acervo_hc/src/model/gallery_url.dart';
+import 'package:acervo_hc/src/model/nhentai_gallery.dart';
 import 'package:acervo_hc/src/pages/details/details_page_logic.dart';
 import 'package:acervo_hc/src/pages/gallery_image/gallery_image_page_logic.dart';
 import 'package:acervo_hc/src/pages/layout/desktop/desktop_layout_page.dart';
@@ -234,6 +235,16 @@ class _HomePageState extends State<HomePage> with LoginRequiredMixin, WindowList
       toRoute(
         Routes.xlecxDetails,
         arguments: XlecxParser.galleryFromUrl(galleryUrl),
+        offAllBefore: false,
+        preventDuplicates: false,
+      );
+      return;
+    }
+
+    if (galleryUrl.source == GallerySource.nhentai) {
+      toRoute(
+        Routes.nhentaiDetails,
+        arguments: nhentaiGalleryFromUrl(galleryUrl),
         offAllBefore: false,
         preventDuplicates: false,
       );

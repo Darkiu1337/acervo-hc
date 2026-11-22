@@ -10,10 +10,12 @@ import '../../../model/tab_bar_icon.dart';
 import '../../../routes/routes.dart';
 import '../../../setting/preference_setting.dart';
 import '../../../widget/xlecx_mark.dart';
+import '../../../widget/nhentai_mark.dart';
 import '../../download/download_base_page.dart';
 import '../../already_read/already_read_page.dart';
 import '../../already_read/already_read_page_logic.dart';
 import '../../xlecx/xlecx_page.dart';
+import '../../nhentai/nhentai_page.dart';
 import '../../favorite/favorite_page.dart';
 import '../../favorite/favorite_page_logic.dart';
 import '../../gallery/dashboard/dashboard_page.dart';
@@ -131,6 +133,14 @@ class MobileLayoutPageV2State with DoubleTapToRefreshStateMixin {
         selectedIcon: const XlecxMark(size: 22),
         unselectedIcon: const Opacity(opacity: 0.65, child: XlecxMark(size: 22)),
         page: () => const XlecxPage(),
+        shouldRender: false,
+      ),
+      TabBarIcon(
+        name: TabBarIconNameEnum.nhentai,
+        routeName: Routes.nhentai,
+        selectedIcon: const NHentaiMark(size: 22),
+        unselectedIcon: const Opacity(opacity: 0.65, child: NHentaiMark(size: 22)),
+        page: () => const NHentaiPage(),
         shouldRender: false,
       ),
       TabBarIcon(

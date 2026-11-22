@@ -1,11 +1,14 @@
 import 'package:get/get.dart';
 import 'package:acervo_hc/src/extension/widget_extension.dart';
+import 'package:acervo_hc/src/pages/archive_preview/archive_preview_page.dart';
 import 'package:acervo_hc/src/pages/details/details_page.dart';
 import 'package:acervo_hc/src/pages/details/thumbnails/thumbnails_page.dart';
 import 'package:acervo_hc/src/pages/download/download_base_page.dart';
 import 'package:acervo_hc/src/pages/download_search/download_search_page.dart';
 import 'package:acervo_hc/src/pages/xlecx/xlecx_details_page.dart';
 import 'package:acervo_hc/src/pages/xlecx/xlecx_page.dart';
+import 'package:acervo_hc/src/pages/nhentai/nhentai_details_page.dart';
+import 'package:acervo_hc/src/pages/nhentai/nhentai_page.dart';
 import 'package:acervo_hc/src/pages/already_read/already_read_page.dart';
 import 'package:acervo_hc/src/pages/gallery_image/gallery_image_page.dart';
 import 'package:acervo_hc/src/pages/gallery/dashboard/dashboard_page.dart';
@@ -87,10 +90,13 @@ class Routes {
   static const String mobileV2Search = "/mobile_v2_search";
   static const String downloadSearch = "/download_search";
   static const String xlecx = "/xlecx";
+  static const String nhentai = "/nhentai";
 
   /// right
   static const String details = "/details";
   static const String xlecxDetails = "/xlecx_details";
+  static const String nhentaiDetails = "/nhentai_details";
+  static const String archivePreview = "/archive_preview";
   static const String comment = "/comment";
   static const String thumbnails = "/thumbnails";
   static const String webview = "/webview";
@@ -275,6 +281,22 @@ class Routes {
     EHPage(
       name: xlecxDetails,
       page: () => const XlecxDetailsPage().withEscOrFifthButton2BackRightRoute(),
+      transition: defaultTransition,
+    ),
+    EHPage(
+      name: nhentai,
+      page: () => const NHentaiPage(),
+      transition: defaultTransition,
+      side: Side.left,
+    ),
+    EHPage(
+      name: nhentaiDetails,
+      page: () => const NHentaiDetailsPage().withEscOrFifthButton2BackRightRoute(),
+      transition: defaultTransition,
+    ),
+    EHPage(
+      name: archivePreview,
+      page: () => const ArchivePreviewPage().withEscOrFifthButton2BackRightRoute(),
       transition: defaultTransition,
     ),
     EHPage(

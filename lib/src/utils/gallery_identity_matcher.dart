@@ -230,13 +230,17 @@ class GalleryIdentity {
       _addNormalizedCreator(creators, tag);
     }
 
-    if (gallery.galleryUrl.source == GallerySource.xlecx && gallery.uploader != null && gallery.uploader!.isNotEmpty) {
+    if (gallery.galleryUrl.source != GallerySource.eh && gallery.uploader != null && gallery.uploader!.isNotEmpty) {
       for (final String part in gallery.uploader!.split(',')) {
         _addNormalizedCreator(creators, part);
       }
     }
 
-    final _ParsedTitle parsed = GalleryIdentityMatcher.parseTitles(<String>[gallery.title]);
+    final List<String> rawTitles = <String>[
+      gallery.title,
+      if (gallery.altTitle != null && gallery.altTitle!.trim().isNotEmpty) gallery.altTitle!,
+    ];
+    final _ParsedTitle parsed = GalleryIdentityMatcher.parseTitles(rawTitles);
     creators.addAll(parsed.creators);
 
     return GalleryIdentity(
@@ -263,7 +267,7 @@ class GalleryIdentity {
       }
     }
 
-    if (model.galleryUrl.source == GallerySource.xlecx && model.uploader.isNotEmpty) {
+    if (model.galleryUrl.source != GallerySource.eh && model.uploader.isNotEmpty) {
       for (final String part in model.uploader.split(',')) {
         _addNormalizedCreator(creators, part);
       }

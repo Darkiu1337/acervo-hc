@@ -31,6 +31,9 @@ class GalleryUrl {
   /// canonical one, so only the id is required here.
   static final RegExp _xlecxRegExp = RegExp(r'https?://(?:www\.)?xlecx\.one/(\d+)(?:-[^/?#]*)?\.html', caseSensitive: false);
 
+  /// nhentai gallery urls use `/g/<id>/`.
+  static final RegExp _nhentaiRegExp = RegExp(r'https?://(?:www\.)?nhentai\.net/g/(\d+)/?', caseSensitive: false);
+
   static GalleryUrl? tryParse(String url) {
     Match? match = _ehRegExp.firstMatch(url);
     if (match != null) {
@@ -44,6 +47,11 @@ class GalleryUrl {
     match = _xlecxRegExp.firstMatch(url);
     if (match != null) {
       return xlecxGalleryUrl(int.parse(match.group(1)!));
+    }
+
+    match = _nhentaiRegExp.firstMatch(url);
+    if (match != null) {
+      return nhentaiGalleryUrl(int.parse(match.group(1)!));
     }
 
     return null;
@@ -73,9 +81,23 @@ class GalleryUrl {
     );
   }
 
+  /// Build the url of an external nhentai gallery.
+  static GalleryUrl nhentaiGalleryUrl(int externalId) {
+    return GalleryUrl(
+      isEH: false,
+      source: GallerySource.nhentai,
+      gid: nhentaiGid(externalId),
+      token: externalId.toString(),
+      externalId: externalId,
+    );
+  }
+
   String get url {
     if (source == GallerySource.xlecx) {
       return 'https://xlecx.one/$externalId-x.html';
+    }
+    if (source == GallerySource.nhentai) {
+      return 'https://nhentai.net/g/$externalId/';
     }
     return isEH ? 'https://e-hentai.org/g/$gid/$token/' : 'https://exhentai.org/g/$gid/$token/';
   }

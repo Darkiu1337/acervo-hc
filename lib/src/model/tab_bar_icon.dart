@@ -12,6 +12,7 @@ enum TabBarIconNameEnum {
   setting,
   alreadyRead,
   xlecx,
+  nhentai,
 }
 
 class TabBarIcon {

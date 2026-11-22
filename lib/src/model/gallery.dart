@@ -38,6 +38,10 @@ class Gallery {
   /// site's search results do not carry genres (listing/tag pages do).
   List<String> externalTags;
 
+  /// Optional alternate title (e.g. Japanese title alongside English title on
+  /// nhentai) used by cross-provider already-read matching.
+  String? altTitle;
+
   bool blockedByLocalRules;
 
   int get gid => galleryUrl.gid;
@@ -62,6 +66,7 @@ class Gallery {
     required this.isExpunged,
     required this.tags,
     this.externalTags = const <String>[],
+    this.altTitle,
     this.blockedByLocalRules = false,
   });
 
@@ -85,6 +90,7 @@ class Gallery {
       'isExpunged': isExpunged,
       'tags': tags,
       'externalTags': externalTags,
+      if (altTitle != null && altTitle!.isNotEmpty) 'altTitle': altTitle,
     };
   }
 
@@ -112,6 +118,7 @@ class Gallery {
         ),
       ),
       externalTags: (map['externalTags'] as List?)?.map((e) => e.toString()).toList() ?? const <String>[],
+      altTitle: map['altTitle'] as String?,
     );
   }
 
@@ -136,6 +143,7 @@ class Gallery {
     bool? isExpunged,
     LinkedHashMap<String, List<GalleryTag>>? tags,
     List<String>? externalTags,
+    String? altTitle,
     bool? blockedByLocalRules,
   }) {
     return Gallery(
@@ -154,6 +162,7 @@ class Gallery {
       isExpunged: isExpunged ?? this.isExpunged,
       tags: tags ?? this.tags,
       externalTags: externalTags ?? this.externalTags,
+      altTitle: altTitle ?? this.altTitle,
       blockedByLocalRules: blockedByLocalRules ?? this.blockedByLocalRules,
     );
   }

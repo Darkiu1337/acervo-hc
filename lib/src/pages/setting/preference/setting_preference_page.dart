@@ -196,6 +196,10 @@ class SettingPreferencePage extends StatelessWidget {
             value: TabBarIconNameEnum.xlecx,
           ),
           DropdownMenuItem(
+            child: Text(TabBarIconNameEnum.nhentai.name.tr),
+            value: TabBarIconNameEnum.nhentai,
+          ),
+          DropdownMenuItem(
             child: Text(TabBarIconNameEnum.alreadyRead.name.tr),
             value: TabBarIconNameEnum.alreadyRead,
           ),

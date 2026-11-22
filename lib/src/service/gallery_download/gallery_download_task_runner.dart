@@ -166,6 +166,33 @@ class _GalleryDownloadTaskRunner {
         return _service._submitImageTask(gallery, serialNo, () => parseImageUrlTask(serialNo));
       }
 
+      if (sourceOfGid(gallery.gid) == GallerySource.nhentai) {
+        final GalleryUrl galleryUrl = GalleryUrl.parse(gallery.galleryUrl);
+        final List<String> pageUrls;
+        try {
+          pageUrls = await retry(
+            () => nhentaiRequest.requestPageUrls(galleryUrl),
+            retryIf: (e) => e is DioException && e.type != DioExceptionType.cancel,
+            onRetry: (e) => log.download('Parse nhentai page urls failed, retry. Reason: ${(e as DioException).toString()}'),
+            maxAttempts: _maxRetryTimes,
+          );
+        } on DioException catch (e) {
+          if (e.type == DioExceptionType.cancel) {
+            return;
+          }
+          return _service._submitImageTask(gallery, serialNo, () => parseImageHrefTask(serialNo));
+        }
+
+        if (serialNo >= pageUrls.length) {
+          log.download('nhentai page $serialNo is out of range (gallery has ${pageUrls.length} pages)');
+          return;
+        }
+
+        final String pageUrl = pageUrls[serialNo];
+        galleryDownloadInfo.imageHrefs[serialNo] = GalleryThumbnail(href: pageUrl, isLarge: true, thumbUrl: pageUrl);
+        return _service._submitImageTask(gallery, serialNo, () => parseImageUrlTask(serialNo));
+      }
+
       int requestPageIndex = serialNo ~/ galleryDownloadInfo.thumbnailsCountPerPage;
 
       DetailPageInfo detailPageInfo;
@@ -363,6 +390,13 @@ class _GalleryDownloadTaskRunner {
                 onReceiveProgress: (int count, int total) => galleryDownloadInfo.speedComputer.updateProgress(count, total, serialNo),
               ),
             GallerySource.xlecx => xlecxRequest.download(
+                url: downloadUrl,
+                path: path,
+                receiveTimeout: 3 * 60 * 1000,
+                cancelToken: galleryDownloadInfo.cancelToken,
+                onReceiveProgress: (int count, int total) => galleryDownloadInfo.speedComputer.updateProgress(count, total, serialNo),
+              ),
+            GallerySource.nhentai => nhentaiRequest.download(
                 url: downloadUrl,
                 path: path,
                 receiveTimeout: 3 * 60 * 1000,

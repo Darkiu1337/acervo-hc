@@ -31,6 +31,7 @@ GalleryHistoryModel gallery2GalleryHistoryModel(Gallery gallery) {
   return GalleryHistoryModel(
     galleryUrl: gallery.galleryUrl,
     title: gallery.title,
+    altTitle: gallery.altTitle,
     category: gallery.category,
     coverUrl: gallery.cover.url,
     pageCount: gallery.pageCount ?? 0,
@@ -51,6 +52,7 @@ Gallery galleryHistoryModel2Gallery(GalleryHistoryModel model) {
   return Gallery(
     galleryUrl: model.galleryUrl,
     title: model.title,
+    altTitle: model.altTitle,
     category: model.category,
     cover: GalleryImage(
       url: model.coverUrl,
@@ -65,9 +67,9 @@ Gallery galleryHistoryModel2Gallery(GalleryHistoryModel model) {
     publishTime: model.publishTime,
     isExpunged: model.isExpunged,
     tags: LinkedHashMap.from(
-      model.tags.map<GalleryTag>((str) {
-        List<String> tagDataSplit = str.split(':');
-        return GalleryTag(tagData: TagData(namespace: tagDataSplit[0], key: tagDataSplit[1]));
+      model.tags.where((str) => str.contains(':')).map<GalleryTag>((str) {
+        final int sep = str.indexOf(':');
+        return GalleryTag(tagData: TagData(namespace: str.substring(0, sep), key: str.substring(sep + 1)));
       }).groupListsBy((tag) => tag.tagData.namespace),
     ),
   );
