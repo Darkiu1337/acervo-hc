@@ -1040,6 +1040,12 @@ Example 2: Block comments with a score not exceeding 10————Comment Score
       'alreadyReadRemoved': '이미 읽음에서 제거됨',
       'noAlreadyRead': '이미 읽음으로 표시된 갤러리가 없습니다',
       'noAlreadyReadHint': '갤러리 상세 페이지나 카드 메뉴에서 "읽음 표시"를 사용하세요.',
+      'neuralModelDescSe': '균형 잡힌 기본 모델(2×/3×/4×), 노이즈 제거 강도 조절 가능.',
+      'neuralModelDescPro': '더 선명한 Real-CUGAN 선화(2×/3×), 과도한 부드러움 감소.',
+      'neuralModelDescSpanV2': '최신 SPAN 2× — 깔끔한 선화, 자연스러운 그라데이션, 최소 후광, 빠른 GPU 속도.',
+      'neuralModelDescAnimeJaNai': 'Compact 2× — 매우 선명한 애니메이션/만화 선화 및 디테일 복원, 매우 빠름.',
+      'neuralModelDescHfa2k': 'Compact 2× — 다중 JPEG 압축 스캔 이미지에 특화된 모델.',
+      'neuralModelDescAnimeVideoV3': '초고속 Real-ESRGAN Compact(2×/3×/4×), GPU 부하 최소.',
     };
   }
 }

@@ -6,9 +6,9 @@ import 'package:acervo_hc/src/service/log.dart';
 /// Builds a 2x upscaled copy of a decoded page image so zoomed pages stay
 /// crisp.
 ///
-/// Only the visible page (and its preloaded neighbour) is ever processed, and
-/// results are kept in a small LRU cache because every 2x RGBA texture is
-/// roughly four times the source size in bytes.
+/// Results are kept in a small LRU cache. Callers receive a cloned [ui.Image]
+/// handle (and must dispose it) so the service can deterministically dispose
+/// evicted textures and release GPU VRAM immediately.
 class UpscaleService {
   UpscaleService._();
 
@@ -16,7 +16,7 @@ class UpscaleService {
   static const String _casShader = 'assets/shaders/upscale/cas.frag';
 
   /// Never build a texture larger than this on any axis (VRAM guard).
-  static const int _maxOutputDimension = 4096;
+  static const int _maxOutputDimension = 6144;
 
   /// Rough budget for the cache of upscaled textures.
   static const int _maxCacheBytes = 192 * 1024 * 1024;
@@ -33,29 +33,39 @@ class UpscaleService {
   final List<String> _lru = <String>[];
   int _cacheBytes = 0;
 
-  /// Returns the cached 2x image for [key], if it is still around.
+  /// Returns a cloned handle of the cached 2x image for [key], if present.
+  /// The caller owns the returned handle and must dispose it when done.
   ui.Image? cached(String key) {
     final ui.Image? image = _cache[key];
     if (image == null) {
       return null;
     }
     _touch(key);
-    return image;
+    try {
+      return image.clone();
+    } catch (_) {
+      return null;
+    }
   }
 
-  /// Drops every cached texture. Called when the reading page closes; the
-  /// images themselves are released by the engine once nothing paints them.
+  /// Drops and disposes every cached texture. Safe because callers hold their
+  /// own cloned handles.
   void clearCache() {
+    for (final ui.Image image in _cache.values) {
+      try {
+        image.dispose();
+      } catch (_) {}
+    }
     _cache.clear();
     _lru.clear();
     _cacheBytes = 0;
   }
 
-  /// Returns a 2x upscaled copy of [source], cached by [key], or `null` when
-  /// the pipeline cannot run.
+  /// Returns a cloned 2x upscaled copy of [source], cached by [key], or `null`
+  /// when the pipeline cannot run. Caller must dispose the returned [ui.Image].
   ///
-  /// Calls are serialised: each chain keeps two textures alive until the final
-  /// read-back, so running several chains at once would multiply GPU memory.
+  /// Calls are serialised: each chain keeps two textures alive until the second
+  /// pass finishes, so running several chains at once would multiply GPU memory.
   Future<ui.Image?> upscale(ui.Image source, String key) {
     final ui.Image? hit = cached(key);
     if (hit != null) {
@@ -64,12 +74,23 @@ class UpscaleService {
 
     final Future<ui.Image?>? pending = _pending[key];
     if (pending != null) {
-      return pending;
+      return pending.then(_tryClone);
     }
 
     final Future<ui.Image?> future = _enqueue(source, key);
     _pending[key] = future;
-    return future.whenComplete(() => _pending.remove(key));
+    return future.whenComplete(() => _pending.remove(key)).then(_tryClone);
+  }
+
+  static ui.Image? _tryClone(ui.Image? image) {
+    if (image == null) {
+      return null;
+    }
+    try {
+      return image.clone();
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<ui.Image?> _enqueue(ui.Image source, String key) {
@@ -89,6 +110,12 @@ class UpscaleService {
   }
 
   Future<ui.Image?> _run(ui.Image source, String key) async {
+    final ui.Image? cachedHit = _cache[key];
+    if (cachedHit != null) {
+      _touch(key);
+      return cachedHit;
+    }
+
     final int width = source.width;
     final int height = source.height;
     if (width <= 0 || height <= 0) {
@@ -110,14 +137,13 @@ class UpscaleService {
     try {
       final List<ui.FragmentProgram> programs = await _ensurePrograms();
 
-      final ui.Image bicubic = _runBicubic(programs[0], source, outputWidth, outputHeight);
+      /// Async `picture.toImage` rasterises directly on the GPU without the
+      /// expensive GPU->CPU `toByteData(rawRgba)` readback that previously
+      /// stalled the raster thread for tens of megabytes per page.
+      final ui.Image bicubic = await _runBicubic(programs[0], source, outputWidth, outputHeight);
       intermediate = bicubic;
 
-      final ui.Image result = _runCas(programs[1], bicubic, outputWidth, outputHeight);
-
-      /// `Picture.toImageSync` is lazy: the read-back is what guarantees both
-      /// passes have actually been executed before the intermediate is freed.
-      await result.toByteData(format: ui.ImageByteFormat.rawRgba);
+      final ui.Image result = await _runCas(programs[1], bicubic, outputWidth, outputHeight);
 
       bicubic.dispose();
       intermediate = null;
@@ -136,7 +162,7 @@ class UpscaleService {
     }
   }
 
-  ui.Image _runBicubic(ui.FragmentProgram program, ui.Image source, int outputWidth, int outputHeight) {
+  Future<ui.Image> _runBicubic(ui.FragmentProgram program, ui.Image source, int outputWidth, int outputHeight) async {
     final ui.FragmentShader shader = program.fragmentShader();
     shader.setFloat(0, outputWidth.toDouble());
     shader.setFloat(1, outputHeight.toDouble());
@@ -144,24 +170,28 @@ class UpscaleService {
     shader.setFloat(3, source.height.toDouble());
     shader.setImageSampler(0, source);
 
-    final ui.Image image = _draw(shader, outputWidth, outputHeight);
-    shader.dispose();
-    return image;
+    try {
+      return await _draw(shader, outputWidth, outputHeight);
+    } finally {
+      shader.dispose();
+    }
   }
 
-  ui.Image _runCas(ui.FragmentProgram program, ui.Image source, int outputWidth, int outputHeight) {
+  Future<ui.Image> _runCas(ui.FragmentProgram program, ui.Image source, int outputWidth, int outputHeight) async {
     final ui.FragmentShader shader = program.fragmentShader();
     shader.setFloat(0, outputWidth.toDouble());
     shader.setFloat(1, outputHeight.toDouble());
     shader.setFloat(2, _sharpness);
     shader.setImageSampler(0, source);
 
-    final ui.Image image = _draw(shader, outputWidth, outputHeight);
-    shader.dispose();
-    return image;
+    try {
+      return await _draw(shader, outputWidth, outputHeight);
+    } finally {
+      shader.dispose();
+    }
   }
 
-  ui.Image _draw(ui.FragmentShader shader, int width, int height) {
+  Future<ui.Image> _draw(ui.FragmentShader shader, int width, int height) async {
     final ui.PictureRecorder recorder = ui.PictureRecorder();
     final ui.Canvas canvas = ui.Canvas(recorder);
     canvas.drawRect(
@@ -170,10 +200,11 @@ class UpscaleService {
     );
 
     final ui.Picture picture = recorder.endRecording();
-    final ui.Image image = picture.toImageSync(width, height);
-
-    picture.dispose();
-    return image;
+    try {
+      return await picture.toImage(width, height);
+    } finally {
+      picture.dispose();
+    }
   }
 
   Future<List<ui.FragmentProgram>> _ensurePrograms() {
@@ -186,18 +217,26 @@ class UpscaleService {
   }
 
   void _cachePut(String key, ui.Image image, int bytes) {
+    final ui.Image? old = _cache[key];
+    if (old != null) {
+      _cacheBytes -= old.width * old.height * 4;
+      try {
+        old.dispose();
+      } catch (_) {}
+    }
+
     _cache[key] = image;
     _cacheBytes += bytes;
     _touch(key);
 
-    /// Evicted images are not disposed here: a widget may still be painting
-    /// one. Dropping the reference is enough, the engine releases it once the
-    /// last reference is gone.
     while (_cacheBytes > _maxCacheBytes && _lru.length > 1) {
       final String oldest = _lru.removeAt(0);
       final ui.Image? evicted = _cache.remove(oldest);
       if (evicted != null) {
         _cacheBytes -= evicted.width * evicted.height * 4;
+        try {
+          evicted.dispose();
+        } catch (_) {}
       }
     }
   }

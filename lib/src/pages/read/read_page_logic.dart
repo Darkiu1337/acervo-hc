@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:math';
 
 import 'package:collection/collection.dart';
@@ -959,8 +959,7 @@ class ReadPageLogic extends GetxController with WidgetsBindingObserver, GalleryI
       /// Anything queued while the gallery opened with the default mode may be
       /// unwanted now, and the memory cache is cleared so the new mode decides
       /// from scratch.
-      neuralUpscaleService.cancelSession();
-      neuralUpscaleService.clearMemoryCache();
+      neuralUpscaleService.refreshSession();
       updateSafely([layoutId]);
     } catch (e) {
       log.warning('read gallery neural mode failed: $e');
@@ -975,8 +974,7 @@ class ReadPageLogic extends GetxController with WidgetsBindingObserver, GalleryI
     }
 
     galleryNeuralMode.value = mode;
-    neuralUpscaleService.cancelSession();
-    neuralUpscaleService.clearMemoryCache();
+    neuralUpscaleService.refreshSession();
     updateSafely([layoutId]);
 
     try {

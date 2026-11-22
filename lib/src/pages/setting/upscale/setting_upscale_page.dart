@@ -4,11 +4,12 @@ import 'package:get/get.dart';
 import 'package:acervo_hc/src/model/neural_gpu.dart';
 import 'package:acervo_hc/src/model/neural_upscale_config.dart';
 import 'package:acervo_hc/src/service/neural_model_manager.dart';
+import 'package:acervo_hc/src/service/neural_upscale_service.dart';
 import 'package:acervo_hc/src/setting/read_setting.dart';
 import 'package:acervo_hc/src/utils/toast_util.dart';
 
 /// All image-enhancement settings in one place: the on-demand neural upscaler
-/// (model, scale, denoise, preload, GPU) and the managed model install.
+/// (model, scale, denoise, preload, GPU) and the managed model installs.
 class SettingUpscalePage extends StatelessWidget {
   const SettingUpscalePage({Key? key}) : super(key: key);
 
@@ -18,15 +19,16 @@ class SettingUpscalePage extends StatelessWidget {
       appBar: AppBar(centerTitle: true, title: Text('upscale'.tr)),
       body: Obx(() {
         neuralModelManager.init();
-        final bool proModel =
-            readSetting.neuralUpscaleModel.value == NeuralUpscaleModel.pro;
+        final NeuralUpscaleModel selectedModel =
+            readSetting.neuralUpscaleModel.value;
+        final bool proModel = selectedModel == NeuralUpscaleModel.pro;
         final List<int> denoiseValues =
             proModel ? <int>[-1, 0, 3] : <int>[-1, 0, 1, 2, 3];
         final int denoise =
             denoiseValues.contains(readSetting.neuralUpscaleDenoise.value)
                 ? readSetting.neuralUpscaleDenoise.value
                 : 0;
-        final int maxScale = readSetting.neuralUpscaleModel.value.maxScale;
+        final int maxScale = selectedModel.maxScale;
         final List<NeuralUpscaleScale> scaleValues = NeuralUpscaleScale.values
             .where((NeuralUpscaleScale scale) =>
                 scale == NeuralUpscaleScale.auto || scale.numeric <= maxScale)
@@ -45,7 +47,8 @@ class SettingUpscalePage extends StatelessWidget {
               value: readSetting.enableNeuralUpscale.value,
               onChanged: (bool value) async {
                 if (value) {
-                  final bool ready = await neuralModelManager.ensureReady();
+                  final bool ready = await neuralModelManager
+                      .ensureModelReady(readSetting.neuralUpscaleModel.value);
                   if (!ready) {
                     toast('neuralUpscaleDownloadFailed'.tr);
                     return;
@@ -54,67 +57,56 @@ class SettingUpscalePage extends StatelessWidget {
                 readSetting.saveEnableNeuralUpscale(value);
               },
             ),
-            ValueListenableBuilder<NeuralModelStatus>(
-              valueListenable: neuralModelManager.status,
-              builder: (BuildContext context, NeuralModelStatus status,
-                  Widget? child) {
-                if (status == NeuralModelStatus.ready) {
-                  neuralModelManager.refreshGpus();
-                  return ListTile(
-                    leading:
-                        const Icon(Icons.check_circle, color: Colors.green),
-                    title: Text('neuralUpscaleModelReady'.tr),
-                    subtitle: Text('neuralUpscaleModelReadyHint'.tr),
-                  );
-                }
-                if (status == NeuralModelStatus.downloading) {
-                  return ValueListenableBuilder<double>(
-                    valueListenable: neuralModelManager.downloadProgress,
-                    builder:
-                        (BuildContext context, double progress, Widget? child) {
-                      return ListTile(
-                        leading: const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                        title: Text('neuralUpscaleDownloading'.tr),
-                        subtitle: LinearProgressIndicator(value: progress),
-                      );
-                    },
-                  );
-                }
+            _buildModelStatus(selectedModel),
+            ValueListenableBuilder<int>(
+              valueListenable: neuralModelManager.revision,
+              builder: (BuildContext context, int _, Widget? child) {
                 return ListTile(
-                  leading: const Icon(Icons.download),
-                  title: Text('neuralUpscaleDownloadModel'.tr),
-                  subtitle: Text('neuralUpscaleDownloadModelHint'.tr),
-                  trailing: TextButton(
-                    onPressed: () async {
-                      final bool ok = await neuralModelManager.ensureReady();
-                      if (!ok) {
-                        toast('neuralUpscaleDownloadFailed'.tr);
+                  title: Text('neuralUpscaleModel'.tr),
+                  subtitle: Text(selectedModel.descriptionKey.tr),
+                  trailing: DropdownButton<NeuralUpscaleModel>(
+                    value: selectedModel,
+                    onChanged: (NeuralUpscaleModel? value) async {
+                      if (value == null || value == selectedModel) {
+                        return;
+                      }
+                      await readSetting.saveNeuralUpscaleModel(value);
+                      if (readSetting.enableNeuralUpscale.value &&
+                          !neuralModelManager.isModelReady(value)) {
+                        final bool ok =
+                            await neuralModelManager.ensureModelReady(value);
+                        if (ok) {
+                          neuralUpscaleService.refreshSession();
+                        } else {
+                          toast('neuralUpscaleDownloadFailed'.tr);
+                        }
                       }
                     },
-                    child: Text('download'.tr),
+                    items: NeuralUpscaleModel.values
+                        .map((NeuralUpscaleModel model) {
+                      final bool installed =
+                          neuralModelManager.isModelReady(model);
+                      return DropdownMenuItem<NeuralUpscaleModel>(
+                        value: model,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(model.label),
+                            if (installed) ...[
+                              const SizedBox(width: 6),
+                              const Icon(
+                                Icons.check_circle,
+                                size: 14,
+                                color: Colors.green,
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    }).toList(),
                   ),
                 );
               },
-            ),
-            ListTile(
-              title: Text('neuralUpscaleModel'.tr),
-              trailing: DropdownButton<NeuralUpscaleModel>(
-                value: readSetting.neuralUpscaleModel.value,
-                onChanged: (NeuralUpscaleModel? value) {
-                  if (value != null) {
-                    readSetting.saveNeuralUpscaleModel(value);
-                  }
-                },
-                items: NeuralUpscaleModel.values
-                    .map((NeuralUpscaleModel model) =>
-                        DropdownMenuItem<NeuralUpscaleModel>(
-                            value: model, child: Text(model.label)))
-                    .toList(),
-              ),
             ),
             ListTile(
               title: Text('neuralUpscaleScale'.tr),
@@ -133,26 +125,27 @@ class SettingUpscalePage extends StatelessWidget {
                     .toList(),
               ),
             ),
-            ListTile(
-              title: Text('neuralUpscaleDenoise'.tr),
-              subtitle: Text('neuralUpscaleDenoiseHint'.tr),
-              trailing: DropdownButton<int>(
-                value: denoise,
-                onChanged: (int? value) {
-                  if (value != null) {
-                    readSetting.saveNeuralUpscaleDenoise(value);
-                  }
-                },
-                items: denoiseValues
-                    .map((int value) => DropdownMenuItem<int>(
-                          value: value,
-                          child: Text(value == -1
-                              ? 'neuralUpscaleDenoiseNone'.tr
-                              : '$value'),
-                        ))
-                    .toList(),
+            if (selectedModel.supportsDenoise)
+              ListTile(
+                title: Text('neuralUpscaleDenoise'.tr),
+                subtitle: Text('neuralUpscaleDenoiseHint'.tr),
+                trailing: DropdownButton<int>(
+                  value: denoise,
+                  onChanged: (int? value) {
+                    if (value != null) {
+                      readSetting.saveNeuralUpscaleDenoise(value);
+                    }
+                  },
+                  items: denoiseValues
+                      .map((int value) => DropdownMenuItem<int>(
+                            value: value,
+                            child: Text(value == -1
+                                ? 'neuralUpscaleDenoiseNone'.tr
+                                : '$value'),
+                          ))
+                      .toList(),
+                ),
               ),
-            ),
             ListTile(
               title: Text('neuralUpscalePreload'.tr),
               subtitle: Text('neuralUpscalePreloadHint'.tr),
@@ -190,6 +183,75 @@ class SettingUpscalePage extends StatelessWidget {
     );
   }
 
+  Widget _buildModelStatus(NeuralUpscaleModel selectedModel) {
+    return ValueListenableBuilder<int>(
+      valueListenable: neuralModelManager.revision,
+      builder: (BuildContext context, int _, Widget? child) {
+        return ValueListenableBuilder<NeuralModelStatus>(
+          valueListenable: neuralModelManager.status,
+          builder: (BuildContext context, NeuralModelStatus _, Widget? child) {
+            final NeuralModelStatus modelStatus =
+                neuralModelManager.statusFor(selectedModel);
+            final NeuralUpscaleModel? activeDownload =
+                neuralModelManager.downloadingModel.value;
+
+            if (modelStatus == NeuralModelStatus.ready) {
+              neuralModelManager.refreshGpus();
+              return ListTile(
+                leading: const Icon(Icons.check_circle, color: Colors.green),
+                title: Text('neuralUpscaleModelReady'.tr),
+                subtitle: Text(
+                  '${selectedModel.label} — ${selectedModel.descriptionKey.tr}',
+                ),
+              );
+            }
+            if (modelStatus == NeuralModelStatus.downloading ||
+                (neuralModelManager.status.value ==
+                        NeuralModelStatus.downloading &&
+                    activeDownload != null)) {
+              final String targetLabel =
+                  activeDownload?.label ?? selectedModel.label;
+              return ValueListenableBuilder<double>(
+                valueListenable: neuralModelManager.downloadProgress,
+                builder:
+                    (BuildContext context, double progress, Widget? child) {
+                  return ListTile(
+                    leading: const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    title: Text('${'neuralUpscaleDownloading'.tr} ($targetLabel)'),
+                    subtitle: LinearProgressIndicator(value: progress),
+                  );
+                },
+              );
+            }
+            return ListTile(
+              leading: const Icon(Icons.download),
+              title: Text('neuralUpscaleDownloadModel'.tr),
+              subtitle: Text(
+                '${selectedModel.label} (${selectedModel.downloadSizeHint}) — ${selectedModel.descriptionKey.tr}',
+              ),
+              trailing: TextButton(
+                onPressed: () async {
+                  final bool ok = await neuralModelManager
+                      .ensureModelReady(selectedModel);
+                  if (ok) {
+                    neuralUpscaleService.refreshSession();
+                  } else {
+                    toast('neuralUpscaleDownloadFailed'.tr);
+                  }
+                },
+                child: Text('download'.tr),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildGpu() {
     return ValueListenableBuilder<List<NeuralGpu>>(
       valueListenable: neuralModelManager.gpus,
@@ -209,7 +271,7 @@ class SettingUpscalePage extends StatelessWidget {
 
         final String subtitle = gpus.isNotEmpty
             ? selectedGpu!.name
-            : (neuralModelManager.isReady
+            : (neuralModelManager.isAnyReady
                 ? 'neuralUpscaleGpuHintReady'.tr
                 : 'neuralUpscaleGpuHint'.tr);
 

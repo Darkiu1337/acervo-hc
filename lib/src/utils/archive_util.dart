@@ -34,3 +34,23 @@ Future<List<int>> extractGZipArchive(String archivePath) {
     archivePath,
   );
 }
+
+Future<bool> extractTarGzArchive(String archivePath, String extractPath) {
+  return compute(
+    (List<String> path) async {
+      InputFileStream? inputStream;
+      try {
+        inputStream = InputFileStream(path[0]);
+        final List<int> tarBytes = GZipDecoder().decodeBuffer(inputStream);
+        final Archive archive = TarDecoder().decodeBytes(tarBytes);
+        await extractArchiveToDisk(archive, path[1]);
+      } on Exception catch (_) {
+        return false;
+      } finally {
+        inputStream?.close();
+      }
+      return true;
+    },
+    [archivePath, extractPath],
+  );
+}

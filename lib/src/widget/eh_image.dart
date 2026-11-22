@@ -346,7 +346,11 @@ class _EHImageState extends State<EHImage> {
       fit: widget.fit,
       height: widget.containerHeight,
       width: widget.containerWidth,
-      enableLoadState: widget.loadingWidgetBuilder != null || widget.failedWidgetBuilder != null || widget.completedWidgetBuilder != null,
+      enableLoadState: widget.loadingWidgetBuilder != null ||
+          widget.failedWidgetBuilder != null ||
+          widget.completedWidgetBuilder != null ||
+          widget.enableUpscale ||
+          widget.enableNeuralUpscale,
       enableSlideOutPage: widget.enableSlideOutPage,
       borderRadius: widget.borderRadius,
       shape: BoxShape.rectangle,
@@ -433,9 +437,16 @@ class _EHImageState extends State<EHImage> {
     );
 
     if (widget.enableNeuralUpscale) {
+      final String? sourcePath = widget.galleryImage.path != null
+          ? DownloadPathResolver.computeImageDownloadAbsolutePathFromRelativePath(widget.galleryImage.path!)
+          : null;
+      final String? sourceUrl = widget.galleryImage.path == null ? _replaceEXUrl(widget.galleryImage.url) : null;
+
       return NeuralUpscaledImage(
         source: image,
         cacheKey: cacheKey,
+        sourcePath: sourcePath,
+        sourceUrl: sourceUrl,
         frameCount: EHImageFrameCountRegistry.frameCountFor(cacheKey),
         index: widget.neuralIndex,
         forceGrayscale: widget.neuralForceGrayscale,

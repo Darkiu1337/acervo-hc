@@ -36,8 +36,14 @@ void main() {
       expect(neuralScaleFor(1280, 1800, NeuralUpscaleScale.x4, 3), 3);
     });
 
+    test('allows 2x for tall webtoon and wide hi-res comic pages within 36MP budget', () {
+      expect(neuralScaleFor(1280, 3600, NeuralUpscaleScale.auto), 2);
+      expect(neuralScaleFor(2000, 3200, NeuralUpscaleScale.x2), 2);
+    });
+
     test('returns 1 when even 2x does not fit, so the caller skips', () {
       expect(neuralScaleFor(4000, 4000, NeuralUpscaleScale.x2), 1);
+      expect(neuralScaleFor(1280, 4500, NeuralUpscaleScale.x2), 1);
     });
   });
 
@@ -128,6 +134,129 @@ void main() {
     test('changes with source and dimensions', () {
       expect(key(), isNot(key(source: 'https://example.test/other.jpg')));
       expect(key(), isNot(key(width: 1200)));
+    });
+
+    test('produces distinct keys for every neural model', () {
+      final Set<String> keys = NeuralUpscaleModel.values
+          .map((NeuralUpscaleModel m) => key(model: m))
+          .toSet();
+      expect(keys.length, NeuralUpscaleModel.values.length);
+    });
+
+    test('ignores Real-CUGAN denoise setting for non-denoise models', () {
+      expect(
+        key(model: NeuralUpscaleModel.modernSpanimationV2, denoise: -1),
+        key(model: NeuralUpscaleModel.modernSpanimationV2, denoise: 3),
+      );
+      expect(
+        key(model: NeuralUpscaleModel.animeJaNaiV3Compact, denoise: 0),
+        key(model: NeuralUpscaleModel.animeJaNaiV3Compact, denoise: 2),
+      );
+    });
+  });
+
+  group('NeuralUpscaleModel metadata & CLI args', () {
+    test('preserves legacy enum indices for Real-CUGAN SE and Pro', () {
+      expect(NeuralUpscaleModel.se.index, 0);
+      expect(NeuralUpscaleModel.pro.index, 1);
+    });
+
+    test('maps engines, denoise support, and max scales accurately', () {
+      expect(NeuralUpscaleModel.se.engine, NeuralUpscaleEngine.realcugan);
+      expect(NeuralUpscaleModel.se.supportsDenoise, isTrue);
+      expect(NeuralUpscaleModel.se.maxScale, 4);
+
+      expect(NeuralUpscaleModel.pro.engine, NeuralUpscaleEngine.realcugan);
+      expect(NeuralUpscaleModel.pro.supportsDenoise, isTrue);
+      expect(NeuralUpscaleModel.pro.maxScale, 3);
+
+      for (final NeuralUpscaleModel m in const <NeuralUpscaleModel>[
+        NeuralUpscaleModel.modernSpanimationV2,
+        NeuralUpscaleModel.animeJaNaiV3Compact,
+        NeuralUpscaleModel.hfa2kMultiJpgCompact,
+      ]) {
+        expect(m.engine, NeuralUpscaleEngine.upscayl);
+        expect(m.supportsDenoise, isFalse);
+        expect(m.maxScale, 2);
+        expect(m.supportedScales, const <int>[2]);
+      }
+
+      expect(NeuralUpscaleModel.animeVideoV3.engine, NeuralUpscaleEngine.upscayl);
+      expect(NeuralUpscaleModel.animeVideoV3.supportsDenoise, isFalse);
+      expect(NeuralUpscaleModel.animeVideoV3.maxScale, 4);
+      expect(NeuralUpscaleModel.animeVideoV3.ncnnModelNameForScale(2),
+          'realesr-animevideov3-x2');
+      expect(NeuralUpscaleModel.animeVideoV3.ncnnModelNameForScale(3),
+          'realesr-animevideov3-x3');
+      expect(NeuralUpscaleModel.animeVideoV3.ncnnModelNameForScale(4),
+          'realesr-animevideov3-x4');
+    });
+
+    test('builds Real-CUGAN args with denoise flag and safe tiling', () {
+      final List<String> args = buildNeuralProcessArgs(
+        model: NeuralUpscaleModel.se,
+        inputPath: '/tmp/in.jpg',
+        outputPath: '/tmp/out.png',
+        modelDir: '/models/models-se',
+        scale: 2,
+        denoise: 1,
+        gpuId: 0,
+        tileSize: 200,
+      );
+      expect(args, <String>[
+        '-i', '/tmp/in.jpg',
+        '-o', '/tmp/out.png',
+        '-s', '2',
+        '-n', '1',
+        '-m', '/models/models-se',
+        '-g', '0',
+        '-f', 'png',
+        '-t', '200',
+        '-j', '1:1:1',
+      ]);
+    });
+
+    test('builds Upscayl args with model scale (-z) and ncnn model name (-n)', () {
+      final List<String> spanArgs = buildNeuralProcessArgs(
+        model: NeuralUpscaleModel.modernSpanimationV2,
+        inputPath: '/tmp/in.jpg',
+        outputPath: '/tmp/out.png',
+        modelDir: '/models/2x_ModernSpanimationV2',
+        scale: 2,
+        denoise: 0,
+        gpuId: 0,
+        tileSize: 200,
+      );
+      expect(spanArgs, <String>[
+        '-i', '/tmp/in.jpg',
+        '-o', '/tmp/out.png',
+        '-s', '2',
+        '-z', '2',
+        '-m', '/models/2x_ModernSpanimationV2',
+        '-n', '2x_ModernSpanimationV2',
+        '-g', '0',
+        '-f', 'png',
+        '-t', '200',
+        '-j', '1:1:1',
+      ]);
+
+      final List<String> av3Args = buildNeuralProcessArgs(
+        model: NeuralUpscaleModel.animeVideoV3,
+        inputPath: '/tmp/in.jpg',
+        outputPath: '/tmp/out.png',
+        modelDir: '/models/realesr-animevideov3',
+        scale: 3,
+        denoise: 0,
+        gpuId: 1,
+        tileSize: 200,
+      );
+      expect(av3Args, containsAllInOrder(<String>[
+        '-s', '3',
+        '-z', '3',
+        '-m', '/models/realesr-animevideov3',
+        '-n', 'realesr-animevideov3-x3',
+        '-g', '1',
+      ]));
     });
   });
 }

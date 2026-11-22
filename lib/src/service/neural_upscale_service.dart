@@ -3,11 +3,11 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:extended_image/extended_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:acervo_hc/src/model/gray_metrics.dart';
-import 'package:acervo_hc/src/model/neural_pixels.dart';
 import 'package:acervo_hc/src/model/neural_upscale_config.dart';
 import 'package:acervo_hc/src/service/gray_sampler.dart';
 import 'package:acervo_hc/src/service/log.dart';
@@ -15,6 +15,7 @@ import 'package:acervo_hc/src/service/neural_model_manager.dart';
 import 'package:acervo_hc/src/service/neural_queue.dart';
 import 'package:acervo_hc/src/service/path_service.dart';
 import 'package:acervo_hc/src/setting/read_setting.dart';
+import 'package:acervo_hc/src/utils/cover_hash_util.dart';
 
 /// One page to be enhanced by the neural upscaler.
 class NeuralRequest {
@@ -33,11 +34,17 @@ class NeuralRequest {
   final int frameCount;
 
   /// Process the page even when the grayscale probe says it is black and
-  /// white. Set when the user forces the neural pass for the whole gallery.
+  /// white, and bypass the automatic wide-source skip. Set when the user
+  /// explicitly forces the neural pass ON for the gallery.
   final bool forceGrayscale;
 
-  /// Optional local file, used to avoid re-encoding the decoded bitmap.
+  /// Optional local file path (for downloaded galleries) to pass directly to
+  /// `realcugan-ncnn-vulkan` without re-encoding a PNG on the raster thread.
   final String? sourcePath;
+
+  /// Optional network URL (for online galleries) so the service can reuse the
+  /// already-cached file from `extended_image` instead of PNG-encoding pixels.
+  final String? sourceUrl;
 
   const NeuralRequest({
     required this.source,
@@ -46,7 +53,44 @@ class NeuralRequest {
     this.frameCount = 1,
     this.forceGrayscale = false,
     this.sourcePath,
+    this.sourceUrl,
   });
+}
+
+/// Result returned to widgets. Callers own [image] (a cloned handle) and must
+/// dispose it when replaced or unmounted.
+class NeuralOutput {
+  final ui.Image image;
+
+  /// True when the original page was strict grayscale; the widget applies a
+  /// zero-cost GPU grayscale [ColorFilter] so Real-CUGAN never leaves a tint,
+  /// without stalling the UI thread on a 20M-pixel CPU desaturation + PNG
+  /// re-encode pass.
+  final bool grayscale;
+
+  const NeuralOutput({
+    required this.image,
+    this.grayscale = false,
+  });
+}
+
+class _CachedNeuralEntry {
+  final ui.Image image;
+  final bool grayscale;
+  final int bytes;
+
+  const _CachedNeuralEntry({
+    required this.image,
+    required this.grayscale,
+    required this.bytes,
+  });
+}
+
+class _PreparedInput {
+  final File file;
+  final bool deleteWhenDone;
+
+  const _PreparedInput(this.file, {required this.deleteWhenDone});
 }
 
 /// The job was interrupted on purpose (focus moved away or the session was
@@ -59,7 +103,7 @@ class _NeuralJob {
   final NeuralRequest request;
   final String key;
   final int generation;
-  final Completer<ui.Image?> completer = Completer<ui.Image?>();
+  final Completer<NeuralOutput?> completer = Completer<NeuralOutput?>();
 
   /// Starts when the page asks for the neural pass, so the log reports the
   /// time the user actually waited (queue included).
@@ -75,19 +119,30 @@ class NeuralUpscaleService {
 
   static final NeuralUpscaleService instance = NeuralUpscaleService._();
 
-  static const int _memoryCacheBytes = 192 * 1024 * 1024;
   static const int _diskCacheBytes = 4 * 1024 * 1024 * 1024;
-  static const int _maxOutputDimension = neuralMaxOutputDimension;
 
   /// Quiet time after a page change before pruning the queue and interrupting
   /// a job that fell outside the window. Without it, fast page turns would
   /// restart the GPU process on every frame.
   static const int _settleDelayMs = 250;
 
-  /// Sources at or above this width already look fine with the shader.
-  static const int _skipSourceWidth = 1800;
+  /// Short breathing gap between consecutive background preload jobs (never
+  /// applied to the visible focus page) so Vulkan command queues drain and the
+  /// desktop compositor / Flutter UI never freeze during 5-page preloads.
+  static const int _preloadBreatherMs = 150;
 
-  final Map<String, ui.Image> _memory = <String, ui.Image>{};
+  /// Explicit tile size passed to `realcugan-ncnn-vulkan` (`-t`). Auto-tiling
+  /// (`-t 0`) can submit huge single-dispatch Vulkan workloads on desktop GPUs
+  /// that starve Windows DWM / trigger TDR freezes. `200` preserves identical
+  /// quality (Real-CUGAN uses built-in tile overlap) while keeping each GPU
+  /// chunk short and VRAM bounded.
+  static const int _tileSize = 200;
+
+  /// In `auto` mode only, skip already very high-resolution sources (>= 2400px
+  /// wide). Explicit manual scales (2x/3x/4x) or gallery forced ON bypass this.
+  static const int _autoSkipSourceWidth = 2400;
+
+  final Map<String, _CachedNeuralEntry> _memory = <String, _CachedNeuralEntry>{};
   final List<String> _lru = <String>[];
   int _memoryBytes = 0;
 
@@ -109,15 +164,30 @@ class NeuralUpscaleService {
   /// whether they are inside it.
   final ValueNotifier<int> windowRevision = ValueNotifier<int>(0);
 
+  /// Bumped when model/scale/denoise/GPU/gallery-mode changes, so mounted
+  /// widgets discard stale textures and re-request with the new settings.
+  final ValueNotifier<int> configRevision = ValueNotifier<int>(0);
+
   bool _running = false;
   _NeuralJob? _runningJob;
   bool _abortRequested = false;
+  bool _lastJobRanGpu = false;
   Timer? _settleTimer;
   int _generation = 0;
   int _writesSincePrune = 0;
   Process? _process;
 
   Future<void>? _initFuture;
+
+  /// Scales memory cache budget with the configured preload window so all
+  /// preloaded pages (e.g. 5 ahead + visible + 2 behind) stay hot in RAM
+  /// instead of evicting page +1 before the user turns to it.
+  int get _memoryCacheBudgetBytes {
+    final int preload = readSetting.neuralUpscalePreload.value;
+    final int slots = preload + 3;
+    final int desired = slots * 72 * 1024 * 1024;
+    return desired.clamp(256 * 1024 * 1024, 640 * 1024 * 1024);
+  }
 
   Directory get _cacheDirPath =>
       Directory(p.join(pathService.getCacheDir().path, 'neural_upscale'));
@@ -137,20 +207,25 @@ class NeuralUpscaleService {
     unawaited(_pruneDisk());
   }
 
-  /// Returns the cached neural texture for [key], if still around.
-  ui.Image? cached(String key) {
-    final ui.Image? image = _memory[key];
-    if (image == null) {
+  /// Returns a cloned handle of the cached neural texture for [key], if still
+  /// around. Caller owns the returned handle and must dispose it when done.
+  NeuralOutput? cached(String key) {
+    final _CachedNeuralEntry? entry = _memory[key];
+    if (entry == null) {
       return null;
     }
     _touch(key);
-    return image;
+    try {
+      return NeuralOutput(image: entry.image.clone(), grayscale: entry.grayscale);
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Synchronous cache lookup for a decoded page, using the same key the
   /// request would compute. Lets a revisited page swap to the neural texture
   /// on its first frame instead of waiting for a queue round trip.
-  ui.Image? cachedFor({
+  NeuralOutput? cachedFor({
     required String sourceKey,
     required int width,
     required int height,
@@ -187,9 +262,22 @@ class NeuralUpscaleService {
   }
 
   void clearMemoryCache() {
+    for (final _CachedNeuralEntry entry in _memory.values) {
+      try {
+        entry.image.dispose();
+      } catch (_) {}
+    }
     _memory.clear();
     _lru.clear();
     _memoryBytes = 0;
+  }
+
+  /// Cancels queued work, drops the memory cache, and notifies mounted widgets
+  /// to re-request under the new model/scale/denoise/gallery mode.
+  void refreshSession() {
+    cancelSession();
+    clearMemoryCache();
+    configRevision.value++;
   }
 
   /// Cancels queued work and kills the current process. The disk cache stays.
@@ -230,7 +318,7 @@ class NeuralUpscaleService {
     }
   }
 
-  Future<ui.Image?> upscale(NeuralRequest request) async {
+  Future<NeuralOutput?> upscale(NeuralRequest request) async {
     await init();
 
     final int scale = _scaleFor(request.source.width, request.source.height);
@@ -240,7 +328,7 @@ class NeuralUpscaleService {
       height: request.source.height,
       scale: scale,
     );
-    final ui.Image? hit = cached(key);
+    final NeuralOutput? hit = cached(key);
     if (hit != null) {
       return hit;
     }
@@ -260,7 +348,8 @@ class NeuralUpscaleService {
 
     final _NeuralJob? existing = _queued[key];
     if (existing != null) {
-      return existing.completer.future;
+      final NeuralOutput? output = await existing.completer.future;
+      return _cloneOutput(output);
     }
 
     /// Outside the window the GPU would only waste time. The widget asks again
@@ -273,7 +362,19 @@ class NeuralUpscaleService {
     _queued[key] = job;
     _jobs.add(job);
     unawaited(_pump());
-    return job.completer.future;
+    final NeuralOutput? output = await job.completer.future;
+    return _cloneOutput(output);
+  }
+
+  static NeuralOutput? _cloneOutput(NeuralOutput? output) {
+    if (output == null) {
+      return null;
+    }
+    try {
+      return NeuralOutput(image: output.image.clone(), grayscale: output.grayscale);
+    } catch (_) {
+      return null;
+    }
   }
 
   int _scaleFor(int width, int height) => neuralScaleFor(
@@ -364,10 +465,10 @@ class NeuralUpscaleService {
     return _jobs.removeAt(position);
   }
 
-  void _finish(_NeuralJob job, ui.Image? image) {
+  void _finish(_NeuralJob job, NeuralOutput? output) {
     _queued.remove(job.key);
     if (!job.completer.isCompleted) {
-      job.completer.complete(image);
+      job.completer.complete(output);
     }
   }
 
@@ -384,20 +485,27 @@ class NeuralUpscaleService {
     if (request.source.width <= 0 || request.source.height <= 0) {
       return false;
     }
-    if (request.source.width >= _skipSourceWidth) {
+
+    /// Only skip very wide sources when running purely in Auto mode. When the
+    /// user explicitly forces the gallery ON or picks a manual scale, honour
+    /// their request as long as the texture budget allows it.
+    final bool isAutoScale =
+        readSetting.neuralUpscaleScale.value == NeuralUpscaleScale.auto;
+    if (!request.forceGrayscale &&
+        isAutoScale &&
+        request.source.width >= _autoSkipSourceWidth) {
       return false;
     }
-    if (request.source.width * scale > _maxOutputDimension ||
-        request.source.height * scale > _maxOutputDimension) {
-      return false;
-    }
-    return neuralModelManager.isReady;
+    return neuralModelManager.isModelReady(readSetting.neuralUpscaleModel.value);
   }
 
   int get _denoise {
+    final NeuralUpscaleModel model = readSetting.neuralUpscaleModel.value;
+    if (!model.supportsDenoise) {
+      return 0;
+    }
     int value = readSetting.neuralUpscaleDenoise.value;
-    if (readSetting.neuralUpscaleModel.value == NeuralUpscaleModel.pro &&
-        (value == 1 || value == 2)) {
+    if (model == NeuralUpscaleModel.pro && (value == 1 || value == 2)) {
       value = 0;
     }
     if (value < -1) {
@@ -426,15 +534,32 @@ class NeuralUpscaleService {
           continue;
         }
 
+        /// Give the GPU & desktop compositor a short breather between
+        /// background preloads (never delay the visible focus page).
+        if (_lastJobRanGpu && job.request.index != _queue.focus) {
+          await Future<void>.delayed(
+            const Duration(milliseconds: _preloadBreatherMs),
+          );
+          if (job.generation != _generation) {
+            _finish(job, null);
+            continue;
+          }
+          if (!inWindow(job.request.index)) {
+            _finish(job, null);
+            continue;
+          }
+        }
+
         _runningJob = job;
         _abortRequested = false;
+        _lastJobRanGpu = false;
         try {
-          final ui.Image? image = await _run(job);
+          final NeuralOutput? output = await _run(job);
           log.info(
             'Neural upscale: page ${job.request.index} ready '
             '(queue=${_jobs.length}, waited=${job.queued.elapsedMilliseconds}ms)',
           );
-          _finish(job, image);
+          _finish(job, output);
         } on _NeuralAborted {
           /// The page left the window while it was running. Keep the job
           /// queued so the widget keeps waiting instead of falling back
@@ -456,10 +581,11 @@ class NeuralUpscaleService {
     }
   }
 
-  Future<ui.Image?> _run(_NeuralJob job) async {
-    final ui.Image? memoryHit = cached(job.key);
+  Future<NeuralOutput?> _run(_NeuralJob job) async {
+    final _CachedNeuralEntry? memoryHit = _memory[job.key];
     if (memoryHit != null) {
-      return memoryHit;
+      _touch(job.key);
+      return NeuralOutput(image: memoryHit.image, grayscale: memoryHit.grayscale);
     }
     if (_abortRequested) {
       throw const _NeuralAborted();
@@ -485,30 +611,24 @@ class NeuralUpscaleService {
     final bool grayscale = metrics?.strictGray ?? false;
 
     final File output = File(p.join(_cacheDir.path, '${job.key}.png'));
-    if (output.existsSync() && output.lengthSync() > 0) {
+    if (await output.exists() && (await output.length()) > 0) {
       final ui.Image? decoded = await _decode(output);
       if (decoded != null) {
-        final ui.Image normalized = grayscale
-            ? (await _desaturate(decoded, output)) ?? decoded
-            : decoded;
-        if (normalized != decoded) {
-          decoded.dispose();
-        }
-        _memoryPut(job.key, normalized);
-        return normalized;
+        _memoryPut(job.key, decoded, grayscale: grayscale);
+        return NeuralOutput(image: decoded, grayscale: grayscale);
       }
       // A partial/corrupt file from an interrupted run: drop it so the next
       // request retries the process.
       try {
-        output.deleteSync();
+        await output.delete();
       } catch (_) {}
     }
 
-    if (!neuralModelManager.isReady) {
+    final NeuralUpscaleModel model = readSetting.neuralUpscaleModel.value;
+    final NeuralModelPaths? paths = neuralModelManager.pathsFor(model);
+    if (paths == null) {
       return null;
     }
-    final NeuralModelPaths paths = neuralModelManager.paths!;
-    final NeuralUpscaleModel model = readSetting.neuralUpscaleModel.value;
     final String modelDir = paths.modelsDir(model);
     if (!Directory(modelDir).existsSync()) {
       log.warning('Neural upscale: missing model directory $modelDir');
@@ -523,25 +643,20 @@ class NeuralUpscaleService {
     if (!tmpDir.existsSync()) {
       tmpDir.createSync(recursive: true);
     }
-    final File input = File(
-        p.join(tmpDir.path, '${DateTime.now().microsecondsSinceEpoch}.png'));
 
-    final ui.Image source = job.request.source.clone();
+    final _PreparedInput? prepared = await _prepareInputFile(job.request, tmpDir);
+    if (prepared == null) {
+      return null;
+    }
+
     try {
-      final ByteData? data =
-          await source.toByteData(format: ui.ImageByteFormat.png);
-      if (data == null) {
-        return null;
-      }
-      await input.writeAsBytes(
-          data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
-          flush: true);
-
-      final bool ok = await _runProcess(input, output, paths, modelDir, scale);
+      _lastJobRanGpu = true;
+      final bool ok =
+          await _runProcess(prepared.file, output, paths, model, modelDir, scale);
       if (_abortRequested) {
         try {
-          if (output.existsSync()) {
-            output.deleteSync();
+          if (await output.exists()) {
+            await output.delete();
           }
         } catch (_) {}
         throw const _NeuralAborted();
@@ -550,62 +665,161 @@ class NeuralUpscaleService {
         return null;
       }
 
-      ui.Image? decoded = await _decode(output);
+      final ui.Image? decoded = await _decode(output);
       if (decoded != null) {
-        if (grayscale) {
-          final ui.Image? gray = await _desaturate(decoded, output);
-          if (gray != null && gray != decoded) {
-            decoded.dispose();
-            decoded = gray;
-          }
-        }
-        _memoryPut(job.key, decoded);
+        _memoryPut(job.key, decoded, grayscale: grayscale);
         if (++_writesSincePrune >= 8) {
           _writesSincePrune = 0;
           unawaited(_pruneDisk());
         }
+        return NeuralOutput(image: decoded, grayscale: grayscale);
       } else {
         try {
-          output.deleteSync();
+          await output.delete();
         } catch (_) {}
       }
-      return decoded;
+      return null;
+    } finally {
+      if (prepared.deleteWhenDone) {
+        try {
+          if (await prepared.file.exists()) {
+            await prepared.file.delete();
+          }
+        } catch (_) {}
+      }
+    }
+  }
+
+  /// Avoids the expensive raster-thread `source.toByteData(png)` stall whenever
+  /// the original JPG/PNG/WebP file is already on disk (local download or
+  /// `extended_image` disk cache).
+  Future<_PreparedInput?> _prepareInputFile(
+    NeuralRequest request,
+    Directory tmpDir,
+  ) async {
+    final bool canUseDiskOriginal = !readSetting.enableMaxImageKilobyte.value;
+
+    if (canUseDiskOriginal && request.sourcePath != null && request.sourcePath!.isNotEmpty) {
+      final File localFile = File(request.sourcePath!);
+      if (await localFile.exists()) {
+        final String? ext = await _detectSupportedImageExt(localFile);
+        if (ext != null) {
+          final String lowerPath = localFile.path.toLowerCase();
+          if (lowerPath.endsWith('.$ext') || (ext == 'jpg' && lowerPath.endsWith('.jpeg'))) {
+            return _PreparedInput(localFile, deleteWhenDone: false);
+          }
+          final File copy = File(
+            p.join(tmpDir.path, '${DateTime.now().microsecondsSinceEpoch}.$ext'),
+          );
+          await localFile.copy(copy.path);
+          return _PreparedInput(copy, deleteWhenDone: true);
+        }
+      }
+    }
+
+    if (canUseDiskOriginal && request.sourceUrl != null && request.sourceUrl!.isNotEmpty) {
+      try {
+        final String normalizedUrl = CoverHashUtil.normalizeCoverUrl(request.sourceUrl!);
+        final File? cachedFile = await getCachedImageFile(normalizedUrl);
+        if (cachedFile != null && await cachedFile.exists()) {
+          final String? ext = await _detectSupportedImageExt(cachedFile);
+          if (ext != null) {
+            final File copy = File(
+              p.join(tmpDir.path, '${DateTime.now().microsecondsSinceEpoch}.$ext'),
+            );
+            await cachedFile.copy(copy.path);
+            return _PreparedInput(copy, deleteWhenDone: true);
+          }
+        }
+      } catch (_) {
+        // Fall through to PNG encode fallback.
+      }
+    }
+
+    /// Fallback: encode the decoded image to a temporary PNG (no fsync).
+    final ui.Image source = request.source.clone();
+    try {
+      final ByteData? data = await source.toByteData(format: ui.ImageByteFormat.png);
+      if (data == null) {
+        return null;
+      }
+      final File tempPng = File(
+        p.join(tmpDir.path, '${DateTime.now().microsecondsSinceEpoch}.png'),
+      );
+      await tempPng.writeAsBytes(
+        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+        flush: false,
+      );
+      return _PreparedInput(tempPng, deleteWhenDone: true);
     } finally {
       source.dispose();
+    }
+  }
+
+  /// Detects JPEG, PNG, or WebP from the first 12 bytes (`realcugan-ncnn-vulkan`
+  /// decodes all three natively). Returns `null` for unsupported formats.
+  static Future<String?> _detectSupportedImageExt(File file) async {
+    RandomAccessFile? raf;
+    try {
+      raf = await file.open();
+      final Uint8List header = await raf.read(12);
+      if (header.length < 4) {
+        return null;
+      }
+      // JPEG: FF D8 FF
+      if (header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF) {
+        return 'jpg';
+      }
+      // PNG: 89 50 4E 47
+      if (header[0] == 0x89 && header[1] == 0x50 && header[2] == 0x4E && header[3] == 0x47) {
+        return 'png';
+      }
+      // WebP: RIFF....WEBP
+      if (header.length >= 12 &&
+          header[0] == 0x52 &&
+          header[1] == 0x49 &&
+          header[2] == 0x46 &&
+          header[3] == 0x46 &&
+          header[8] == 0x57 &&
+          header[9] == 0x45 &&
+          header[10] == 0x42 &&
+          header[11] == 0x50) {
+        return 'webp';
+      }
+      return null;
+    } catch (_) {
+      return null;
+    } finally {
       try {
-        if (input.existsSync()) {
-          input.deleteSync();
-        }
+        await raf?.close();
       } catch (_) {}
     }
   }
 
-  Future<bool> _runProcess(File input, File output, NeuralModelPaths paths,
-      String modelDir, int scale) async {
-    if (output.existsSync()) {
+  Future<bool> _runProcess(
+    File input,
+    File output,
+    NeuralModelPaths paths,
+    NeuralUpscaleModel model,
+    String modelDir,
+    int scale,
+  ) async {
+    if (await output.exists()) {
       try {
-        output.deleteSync();
+        await output.delete();
       } catch (_) {}
     }
 
-    final List<String> args = <String>[
-      '-i',
-      input.path,
-      '-o',
-      output.path,
-      '-s',
-      '$scale',
-      '-n',
-      '$_denoise',
-      '-m',
-      modelDir,
-      '-g',
-      '${readSetting.neuralUpscaleGpuId.value}',
-      '-f',
-      'png',
-      '-t',
-      '0',
-    ];
+    final List<String> args = buildNeuralProcessArgs(
+      model: model,
+      inputPath: input.path,
+      outputPath: output.path,
+      modelDir: modelDir,
+      scale: scale,
+      denoise: _denoise,
+      gpuId: readSetting.neuralUpscaleGpuId.value,
+      tileSize: _tileSize,
+    );
 
     final Stopwatch stopwatch = Stopwatch()..start();
     try {
@@ -636,27 +850,30 @@ class NeuralUpscaleService {
         if (_abortRequested) {
           log.info('Neural upscale: interrupted (focus moved)');
         } else {
-          log.error('Neural upscale process exited with $exitCode: $stderr');
+          log.error(
+            'Neural upscale (${model.name}) exited with $exitCode: $stderr',
+          );
         }
         return false;
       }
-      if (!output.existsSync() || output.lengthSync() == 0) {
-        log.error('Neural upscale process produced no output');
+      if (!await output.exists() || await output.length() == 0) {
+        log.error('Neural upscale (${model.name}) produced no output');
         return false;
       }
 
       log.info(
-        'Neural upscale: ${input.path} -> ${output.path} in ${stopwatch.elapsedMilliseconds}ms (scale=$scale, denoise=$_denoise)',
+        'Neural upscale: ${input.path} -> ${output.path} in ${stopwatch.elapsedMilliseconds}ms '
+        '(model=${model.name}, scale=$scale, denoise=$_denoise, tile=$_tileSize)',
       );
       return true;
     } on TimeoutException {
       _process?.kill();
       _process = null;
-      log.error('Neural upscale process timed out');
+      log.error('Neural upscale (${model.name}) timed out');
       return false;
     } catch (e, s) {
       _process = null;
-      log.error('Neural upscale process failed: $e\n$s');
+      log.error('Neural upscale (${model.name}) failed: $e\n$s');
       return false;
     }
   }
@@ -689,68 +906,28 @@ class NeuralUpscaleService {
     return metrics;
   }
 
-  Future<ui.Image?> _desaturate(ui.Image image, File output) async {
-    try {
-      final ByteData? data =
-          await image.toByteData(format: ui.ImageByteFormat.rawRgba);
-      if (data == null) {
-        return null;
-      }
-      final Uint8List raw =
-          data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
-      // Already neutral (e.g. a v2 cache hit): keep the decoded image and
-      // avoid rewriting the file.
-      if (isGrayscaleRgba(raw, saturatedDelta: 3, maxColoredRatio: 0.001)) {
-        return image;
-      }
-      final Uint8List rgba = desaturateRgba(raw);
-      final ui.Image gray =
-          await _imageFromPixels(rgba, image.width, image.height);
-      final ByteData? png =
-          await gray.toByteData(format: ui.ImageByteFormat.png);
-      if (png != null) {
-        await output.writeAsBytes(
-          png.buffer.asUint8List(png.offsetInBytes, png.lengthInBytes),
-          flush: true,
-        );
-      }
-      return gray;
-    } catch (e, s) {
-      log.warning('Neural upscale: desaturate failed: $e\n$s');
-      return null;
-    }
-  }
-
-  Future<ui.Image> _imageFromPixels(Uint8List rgba, int width, int height) {
-    final Completer<ui.Image> completer = Completer<ui.Image>();
-    ui.decodeImageFromPixels(
-      rgba,
-      width,
-      height,
-      ui.PixelFormat.rgba8888,
-      completer.complete,
-    );
-    return completer.future;
-  }
-
-  void _memoryPut(String key, ui.Image image) {
+  void _memoryPut(String key, ui.Image image, {required bool grayscale}) {
     final int bytes = image.width * image.height * 4;
-    final ui.Image? old = _memory[key];
+    final _CachedNeuralEntry? old = _memory[key];
     if (old != null) {
-      _memoryBytes -= old.width * old.height * 4;
+      _memoryBytes -= old.bytes;
+      try {
+        old.image.dispose();
+      } catch (_) {}
     }
-    _memory[key] = image;
+    _memory[key] = _CachedNeuralEntry(image: image, grayscale: grayscale, bytes: bytes);
     _memoryBytes += bytes;
     _touch(key);
 
-    // Evicted textures are not disposed here: a widget may still be painting
-    // one. Dropping the reference is enough; the engine releases it when the
-    // last reference is gone.
-    while (_memoryBytes > _memoryCacheBytes && _lru.length > 1) {
+    final int budget = _memoryCacheBudgetBytes;
+    while (_memoryBytes > budget && _lru.length > 1) {
       final String oldest = _lru.removeAt(0);
-      final ui.Image? evicted = _memory.remove(oldest);
+      final _CachedNeuralEntry? evicted = _memory.remove(oldest);
       if (evicted != null) {
-        _memoryBytes -= evicted.width * evicted.height * 4;
+        _memoryBytes -= evicted.bytes;
+        try {
+          evicted.image.dispose();
+        } catch (_) {}
       }
     }
   }
@@ -763,11 +940,12 @@ class NeuralUpscaleService {
   Future<void> _pruneDisk() async {
     try {
       final Directory dir = _cacheDir;
-      final List<File> files = dir
-          .listSync()
-          .whereType<File>()
-          .where((File file) => file.path.endsWith('.png'))
-          .toList();
+      final List<File> files = <File>[];
+      await for (final FileSystemEntity entity in dir.list(followLinks: false)) {
+        if (entity is File && entity.path.endsWith('.png')) {
+          files.add(entity);
+        }
+      }
       if (files.isEmpty) {
         return;
       }

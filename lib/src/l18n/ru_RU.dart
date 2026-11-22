@@ -1050,6 +1050,12 @@ class ru_RU {
       'alreadyReadRemoved': 'Убрано из прочитанных',
       'noAlreadyRead': 'Нет галерей, отмеченных как прочитанные',
       'noAlreadyReadHint': 'Используйте «Отметить» на странице галереи или в меню карточки.',
+      'neuralModelDescSe': 'Сбалансированная база (2×/3×/4×) с настраиваемым шумоподавлением.',
+      'neuralModelDescPro': 'Более чёткие линии Real-CUGAN (2×/3×) с меньшим размытием.',
+      'neuralModelDescSpanV2': 'Современный SPAN 2× — чёткие линии, естественные градиенты, минимум ореолов, быстрый на GPU.',
+      'neuralModelDescAnimeJaNai': 'Compact 2× — максимально чёткий лайнарт и детали для аниме/манги, очень быстрый.',
+      'neuralModelDescHfa2k': 'Compact 2× — обучен специально для сильно сжатых JPEG-сканов.',
+      'neuralModelDescAnimeVideoV3': 'Сверхбыстрый Real-ESRGAN Compact (2×/3×/4×) с минимальной нагрузкой на GPU.',
     };
   }
 }

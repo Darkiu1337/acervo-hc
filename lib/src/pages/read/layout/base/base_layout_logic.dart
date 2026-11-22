@@ -63,6 +63,8 @@ abstract class BaseLayoutLogic extends GetxController with GetTickerProviderStat
   Worker? upscaleListener;
   Worker? neuralUpscaleListener;
   Worker? neuralPreloadListener;
+  Worker? neuralGalleryModeListener;
+  Worker? neuralConfigListener;
   Worker? zoomStepListener;
 
   @override
@@ -84,10 +86,29 @@ abstract class BaseLayoutLogic extends GetxController with GetTickerProviderStat
     neuralUpscaleListener = ever(readSetting.enableNeuralUpscale, (value) {
       if (value == false) {
         neuralUpscaleService.cancelSession();
+      } else {
+        neuralUpscaleService.refreshSession();
       }
       updateSafely([pageId]);
     });
     neuralPreloadListener = ever(readSetting.neuralUpscalePreload, (value) => neuralUpscaleService.refreshWindow());
+    neuralGalleryModeListener = ever(readPageLogic.galleryNeuralMode, (_) {
+      updateSafely([pageId]);
+    });
+    neuralConfigListener = everAll(
+      <RxInterface<dynamic>>[
+        readSetting.neuralUpscaleModel,
+        readSetting.neuralUpscaleScale,
+        readSetting.neuralUpscaleDenoise,
+        readSetting.neuralUpscaleGpuId,
+      ],
+      (_) {
+        if (readSetting.enableNeuralUpscale.isTrue) {
+          neuralUpscaleService.refreshSession();
+        }
+        updateSafely([pageId]);
+      },
+    );
     zoomStepListener = ever(readSetting.zoomStepPercent, (value) => updateSafely([pageId]));
     super.onInit();
   }
@@ -102,6 +123,8 @@ abstract class BaseLayoutLogic extends GetxController with GetTickerProviderStat
     upscaleListener?.dispose();
     neuralUpscaleListener?.dispose();
     neuralPreloadListener?.dispose();
+    neuralGalleryModeListener?.dispose();
+    neuralConfigListener?.dispose();
     zoomStepListener?.dispose();
     super.onClose();
   }

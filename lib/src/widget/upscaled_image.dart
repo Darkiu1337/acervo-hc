@@ -32,7 +32,7 @@ class UpscaledImage extends StatefulWidget {
 }
 
 class _UpscaledImageState extends State<UpscaledImage> {
-  /// Cached by [UpscaleService]; this state never disposes it.
+  /// Owned clone returned by [UpscaleService]; disposed on replace/unmount.
   ui.Image? _upscaled;
   int _generation = 0;
 
@@ -46,16 +46,34 @@ class _UpscaledImageState extends State<UpscaledImage> {
   void didUpdateWidget(UpscaledImage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.cacheKey != widget.cacheKey || oldWidget.source != widget.source) {
-      _upscaled = null;
+      _replaceUpscaled(null);
       _start();
     }
+  }
+
+  @override
+  void dispose() {
+    _generation++;
+    _replaceUpscaled(null);
+    super.dispose();
+  }
+
+  void _replaceUpscaled(ui.Image? next) {
+    if (identical(_upscaled, next)) {
+      return;
+    }
+    try {
+      _upscaled?.dispose();
+    } catch (_) {}
+    _upscaled = next;
   }
 
   Future<void> _start() async {
     final int generation = ++_generation;
 
-    _upscaled = upscaleService.cached(widget.cacheKey);
-    if (_upscaled != null) {
+    final ui.Image? hit = upscaleService.cached(widget.cacheKey);
+    if (hit != null) {
+      _replaceUpscaled(hit);
       return;
     }
 
@@ -73,11 +91,14 @@ class _UpscaledImageState extends State<UpscaledImage> {
     source.dispose();
 
     if (!mounted || generation != _generation) {
+      try {
+        result?.dispose();
+      } catch (_) {}
       return;
     }
 
     if (result != null) {
-      setState(() => _upscaled = result);
+      setState(() => _replaceUpscaled(result));
     }
   }
 

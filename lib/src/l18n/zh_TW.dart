@@ -1047,6 +1047,12 @@ favnote：配對收藏備註
       'alreadyReadRemoved': '已從已讀中移除',
       'noAlreadyRead': '尚無標記為已讀的畫廊',
       'noAlreadyReadHint': '在畫廊詳細資料頁或卡片選單中選擇「標記已讀」。',
+      'neuralModelDescSe': '均衡基準模型（2×/3×/4×），支援可調降噪等級。',
+      'neuralModelDescPro': '線條更銳利的 Real-CUGAN（2×/3×），減少過度塗抹。',
+      'neuralModelDescSpanV2': '現代 SPAN 2× — 線條清晰、漸層自然、幾乎無光暈且 GPU 速度快。',
+      'neuralModelDescAnimeJaNai': 'Compact 2× — 極銳利的動漫/漫畫線條與細節還原，速度極快。',
+      'neuralModelDescHfa2k': 'Compact 2× — 專為多次重壓縮 JPEG 掃描圖訓練。',
+      'neuralModelDescAnimeVideoV3': '超快 Real-ESRGAN Compact（2×/3×/4×），GPU 負載最低。',
     };
   }
 }

@@ -1046,6 +1046,12 @@ favnote：匹配收藏备注
       'alreadyReadRemoved': '已从已读中移除',
       'noAlreadyRead': '还没有标记为已读的画廊',
       'noAlreadyReadHint': '在画廊详情页或卡片菜单中选择“标记已读”。',
+      'neuralModelDescSe': '均衡基准模型（2×/3×/4×），支持可调降噪等级。',
+      'neuralModelDescPro': '线条更锐利的 Real-CUGAN（2×/3×），减少过度涂抹。',
+      'neuralModelDescSpanV2': '现代 SPAN 2× — 线条清晰、渐变自然、几乎无光晕且 GPU 速度快。',
+      'neuralModelDescAnimeJaNai': 'Compact 2× — 极锐利的动漫/漫画线条与细节还原，速度极快。',
+      'neuralModelDescHfa2k': 'Compact 2× — 专为多次重压缩 JPEG 扫描图训练。',
+      'neuralModelDescAnimeVideoV3': '超快 Real-ESRGAN Compact（2×/3×/4×），GPU 负载最低。',
     };
   }
 }

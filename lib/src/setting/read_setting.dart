@@ -520,11 +520,16 @@ class ReadSetting with JHLifeCircleBeanWithConfigStorage implements JHLifeCircle
     }
   }
 
-  /// Pro only ships 2x/3x weights.
+  /// Clamp manual scale choices to the selected model's native maximum scale.
   void _normalizeNeuralScale() {
-    if (neuralUpscaleModel.value == NeuralUpscaleModel.pro &&
-        neuralUpscaleScale.value == NeuralUpscaleScale.x4) {
-      neuralUpscaleScale.value = NeuralUpscaleScale.x3;
+    final int maxScale = neuralUpscaleModel.value.maxScale;
+    if (neuralUpscaleScale.value != NeuralUpscaleScale.auto &&
+        neuralUpscaleScale.value.numeric > maxScale) {
+      neuralUpscaleScale.value = switch (maxScale) {
+        2 => NeuralUpscaleScale.x2,
+        3 => NeuralUpscaleScale.x3,
+        _ => NeuralUpscaleScale.x4,
+      };
     }
   }
 
