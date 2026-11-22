@@ -619,7 +619,7 @@ class en_US {
       'neuralUpscaleGpuRefresh': 'Refresh GPU list',
       'neuralUpscaleHelp': 'The first view of each page takes about 3-4 s at 2x; 3x/4x cost more. After that the result comes from cache. Upscaling improves lines, texture and JPEG artifacts, but it cannot recover information that is not there. Black-and-white pages stay gray even if the model tries to add color.',
       'galleryNeuralMode': 'Neural enhancement in this gallery',
-      'galleryNeuralModeHint': 'Auto skips black-and-white pages; On forces the model on every page; Off disables it for this gallery.',
+      'galleryNeuralModeHint': 'On runs the neural model on every page of this gallery; Off disables it for this gallery.',
       'galleryNeuralAuto': 'Auto',
       'galleryNeuralOn': 'On',
       'galleryNeuralOff': 'Off',

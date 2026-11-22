@@ -129,9 +129,9 @@ class ReadPageLogic extends GetxController with WidgetsBindingObserver, GalleryI
   Completer<void> delayInitCompleter = Completer<void>();
 
   /// Neural upscale behavior for the gallery being read. Persisted per gallery:
-  /// [GalleryNeuralMode.auto] skips black-and-white pages, [on] forces them and
-  /// [off] disables the neural pass for the whole gallery.
-  final Rx<GalleryNeuralMode> galleryNeuralMode = GalleryNeuralMode.auto.obs;
+  /// [GalleryNeuralMode.on] runs on every page and [off] disables the neural
+  /// pass for the whole gallery.
+  final Rx<GalleryNeuralMode> galleryNeuralMode = GalleryNeuralMode.on.obs;
 
   @override
   void onReady() {
@@ -970,7 +970,7 @@ class ReadPageLogic extends GetxController with WidgetsBindingObserver, GalleryI
       }
       final GalleryNeuralMode saved = GalleryNeuralMode.values.firstWhere(
         (GalleryNeuralMode mode) => mode.name == raw,
-        orElse: () => GalleryNeuralMode.auto,
+        orElse: () => GalleryNeuralMode.on,
       );
       if (saved == galleryNeuralMode.value) {
         return;

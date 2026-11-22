@@ -69,10 +69,6 @@ class EHImage extends StatefulWidget {
   /// Page index inside the gallery, used to schedule the neural queue.
   final int neuralIndex;
 
-  /// Force the neural pass on grayscale pages (the user enabled it for the
-  /// whole gallery).
-  final bool neuralForceGrayscale;
-
   const EHImage({
     Key? key,
     required this.galleryImage,
@@ -93,7 +89,6 @@ class EHImage extends StatefulWidget {
     this.enableUpscale = false,
     this.enableNeuralUpscale = false,
     this.neuralIndex = 0,
-    this.neuralForceGrayscale = false,
     this.loadingProgressWidgetBuilder,
     this.failedWidgetBuilder,
     this.downloadingWidgetBuilder,
@@ -122,7 +117,6 @@ class EHImage extends StatefulWidget {
     this.enableUpscale = false,
     this.enableNeuralUpscale = false,
     this.neuralIndex = 0,
-    this.neuralForceGrayscale = false,
     this.loadingProgressWidgetBuilder,
     this.failedWidgetBuilder,
     this.downloadingWidgetBuilder,
@@ -449,7 +443,6 @@ class _EHImageState extends State<EHImage> {
         sourceUrl: sourceUrl,
         frameCount: EHImageFrameCountRegistry.frameCountFor(cacheKey),
         index: widget.neuralIndex,
-        forceGrayscale: widget.neuralForceGrayscale,
         useShaderFallback: widget.enableUpscale,
         width: fittedSizes.destination.width == 0 ? null : fittedSizes.destination.width,
         height: fittedSizes.destination.height == 0 ? null : fittedSizes.destination.height,

@@ -425,7 +425,7 @@ class _ReadPageState extends State<ReadPage> with ScrollStatusListener, WindowLi
     );
   }
 
-  /// Quick neural toggle for the gallery: auto -> on -> off -> auto.
+  /// Quick neural toggle for the gallery: on <-> off.
   ///
   /// Lives in the top menu so the user does not need the settings submenu to
   /// compare the page with and without the neural pass. Hidden while the
@@ -437,11 +437,9 @@ class _ReadPageState extends State<ReadPage> with ScrollStatusListener, WindowLi
       }
       final GalleryNeuralMode mode = logic.galleryNeuralMode.value;
       final bool active = mode == GalleryNeuralMode.on;
-      final Color color = mode == GalleryNeuralMode.off
-          ? UIConfig.readPageButtonColor.withOpacity(0.35)
-          : active
-              ? UIConfig.readPageActiveButtonColor(context)
-              : UIConfig.readPageButtonColor;
+      final Color color = active
+          ? UIConfig.readPageActiveButtonColor(context)
+          : UIConfig.readPageButtonColor.withOpacity(0.35);
       return Tooltip(
         message: mode.labelKey.tr,
         child: ElevatedButton(

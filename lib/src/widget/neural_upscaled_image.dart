@@ -28,9 +28,6 @@ class NeuralUpscaledImage extends StatefulWidget {
   /// Absolute page index inside the gallery.
   final int index;
 
-  /// Process the page even when it looks black and white, and bypass auto width skip.
-  final bool forceGrayscale;
-
   final int frameCount;
   final bool useShaderFallback;
   final double? width;
@@ -45,7 +42,6 @@ class NeuralUpscaledImage extends StatefulWidget {
     this.sourcePath,
     this.sourceUrl,
     this.index = 0,
-    this.forceGrayscale = false,
     this.frameCount = 1,
     this.useShaderFallback = false,
     this.width,
@@ -59,16 +55,6 @@ class NeuralUpscaledImage extends StatefulWidget {
 }
 
 class _NeuralUpscaledImageState extends State<NeuralUpscaledImage> {
-  /// ITU-R BT.601 neutral grayscale color matrix applied on the GPU when the
-  /// source page was strict grayscale, removing any slight tint from Real-CUGAN
-  /// at zero CPU/memory cost.
-  static const ColorFilter _grayscaleFilter = ColorFilter.matrix(<double>[
-    0.299, 0.587, 0.114, 0, 0,
-    0.299, 0.587, 0.114, 0, 0,
-    0.299, 0.587, 0.114, 0, 0,
-    0,     0,     0,     1, 0,
-  ]);
-
   /// Owned clone returned by [NeuralUpscaleService]; disposed on replace/unmount.
   NeuralOutput? _neural;
   int _generation = 0;
@@ -93,7 +79,6 @@ class _NeuralUpscaledImageState extends State<NeuralUpscaledImage> {
     if (oldWidget.cacheKey != widget.cacheKey ||
         oldWidget.source != widget.source ||
         oldWidget.index != widget.index ||
-        oldWidget.forceGrayscale != widget.forceGrayscale ||
         oldWidget.sourcePath != widget.sourcePath ||
         oldWidget.sourceUrl != widget.sourceUrl) {
       _replaceNeural(null);
@@ -209,7 +194,6 @@ class _NeuralUpscaledImageState extends State<NeuralUpscaledImage> {
             cacheKey: widget.cacheKey,
             index: widget.index,
             frameCount: widget.frameCount,
-            forceGrayscale: widget.forceGrayscale,
             sourcePath: widget.sourcePath,
             sourceUrl: widget.sourceUrl,
           ),
@@ -237,7 +221,7 @@ class _NeuralUpscaledImageState extends State<NeuralUpscaledImage> {
   Widget build(BuildContext context) {
     final NeuralOutput? neural = _neural;
     if (neural != null) {
-      Widget image = RawImage(
+      return RawImage(
         image: neural.image,
         width: widget.width,
         height: widget.height,
@@ -245,10 +229,6 @@ class _NeuralUpscaledImageState extends State<NeuralUpscaledImage> {
         scale: widget.scale,
         filterQuality: FilterQuality.medium,
       );
-      if (neural.grayscale) {
-        image = ColorFiltered(colorFilter: _grayscaleFilter, child: image);
-      }
-      return image;
     }
 
     /// Only the currently visible page pays for the 2x shader fallback while

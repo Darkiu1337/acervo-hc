@@ -7,9 +7,7 @@ import 'package:extended_image/extended_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
-import 'package:acervo_hc/src/model/gray_metrics.dart';
 import 'package:acervo_hc/src/model/neural_upscale_config.dart';
-import 'package:acervo_hc/src/service/gray_sampler.dart';
 import 'package:acervo_hc/src/service/log.dart';
 import 'package:acervo_hc/src/service/neural_model_manager.dart';
 import 'package:acervo_hc/src/service/neural_queue.dart';
@@ -33,11 +31,6 @@ class NeuralRequest {
   /// Decoded frame count. Multi-frame images (GIF/animated WebP) are skipped.
   final int frameCount;
 
-  /// Process the page even when the grayscale probe says it is black and
-  /// white, and bypass the automatic wide-source skip. Set when the user
-  /// explicitly forces the neural pass ON for the gallery.
-  final bool forceGrayscale;
-
   /// Optional local file path (for downloaded galleries) to pass directly to
   /// `realcugan-ncnn-vulkan` without re-encoding a PNG on the raster thread.
   final String? sourcePath;
@@ -51,7 +44,6 @@ class NeuralRequest {
     required this.cacheKey,
     this.index = 0,
     this.frameCount = 1,
-    this.forceGrayscale = false,
     this.sourcePath,
     this.sourceUrl,
   });
@@ -62,26 +54,17 @@ class NeuralRequest {
 class NeuralOutput {
   final ui.Image image;
 
-  /// True when the original page was strict grayscale; the widget applies a
-  /// zero-cost GPU grayscale [ColorFilter] so Real-CUGAN never leaves a tint,
-  /// without stalling the UI thread on a 20M-pixel CPU desaturation + PNG
-  /// re-encode pass.
-  final bool grayscale;
-
   const NeuralOutput({
     required this.image,
-    this.grayscale = false,
   });
 }
 
 class _CachedNeuralEntry {
   final ui.Image image;
-  final bool grayscale;
   final int bytes;
 
   const _CachedNeuralEntry({
     required this.image,
-    required this.grayscale,
     required this.bytes,
   });
 }
@@ -145,10 +128,6 @@ class NeuralUpscaleService {
   final Map<String, _CachedNeuralEntry> _memory = <String, _CachedNeuralEntry>{};
   final List<String> _lru = <String>[];
   int _memoryBytes = 0;
-
-  /// Grayscale classification by source identity. The page content never
-  /// changes, so the sample survives retries and focus changes.
-  final Map<String, GrayMetrics> _grayBySource = <String, GrayMetrics>{};
 
   /// Every job that is queued or running, by computed cache key. Used to
   /// deduplicate requests and to keep the widget attached to the waiting job.
@@ -216,7 +195,7 @@ class NeuralUpscaleService {
     }
     _touch(key);
     try {
-      return NeuralOutput(image: entry.image.clone(), grayscale: entry.grayscale);
+      return NeuralOutput(image: entry.image.clone());
     } catch (_) {
       return null;
     }
@@ -337,15 +316,6 @@ class NeuralUpscaleService {
       return null;
     }
 
-    /// Already classified as black and white: skip the queue entirely instead
-    /// of enqueueing a job that would return right away.
-    if (!request.forceGrayscale) {
-      final GrayMetrics? known = _grayBySource[request.cacheKey];
-      if (known != null && known.lenientGray) {
-        return null;
-      }
-    }
-
     final _NeuralJob? existing = _queued[key];
     if (existing != null) {
       final NeuralOutput? output = await existing.completer.future;
@@ -371,7 +341,7 @@ class NeuralUpscaleService {
       return null;
     }
     try {
-      return NeuralOutput(image: output.image.clone(), grayscale: output.grayscale);
+      return NeuralOutput(image: output.image.clone());
     } catch (_) {
       return null;
     }
@@ -486,14 +456,12 @@ class NeuralUpscaleService {
       return false;
     }
 
-    /// Only skip very wide sources when running purely in Auto mode. When the
-    /// user explicitly forces the gallery ON or picks a manual scale, honour
-    /// their request as long as the texture budget allows it.
+    /// Only skip very wide sources when running purely in Auto scale mode.
+    /// When the user picks a manual scale, honour their request as long as
+    /// the texture budget allows it.
     final bool isAutoScale =
         readSetting.neuralUpscaleScale.value == NeuralUpscaleScale.auto;
-    if (!request.forceGrayscale &&
-        isAutoScale &&
-        request.source.width >= _autoSkipSourceWidth) {
+    if (isAutoScale && request.source.width >= _autoSkipSourceWidth) {
       return false;
     }
     return neuralModelManager.isModelReady(readSetting.neuralUpscaleModel.value);
@@ -585,37 +553,18 @@ class NeuralUpscaleService {
     final _CachedNeuralEntry? memoryHit = _memory[job.key];
     if (memoryHit != null) {
       _touch(job.key);
-      return NeuralOutput(image: memoryHit.image, grayscale: memoryHit.grayscale);
+      return NeuralOutput(image: memoryHit.image);
     }
     if (_abortRequested) {
       throw const _NeuralAborted();
     }
-
-    /// Runs before the disk-cache lookup: a page skipped as grayscale must not
-    /// be served from a texture cached while the user had the gallery forced on.
-    final GrayMetrics? metrics = await _metricsFor(
-      job.request.source,
-      job.request.cacheKey,
-    );
-    if (metrics != null && metrics.lenientGray && !job.request.forceGrayscale) {
-      log.info(
-        'Neural upscale: page ${job.request.index} skipped '
-        '(grayscale, ${(metrics.lenientColoredRatio * 100).toStringAsFixed(2)}% color)',
-      );
-      return null;
-    }
-    if (_abortRequested) {
-      throw const _NeuralAborted();
-    }
-
-    final bool grayscale = metrics?.strictGray ?? false;
 
     final File output = File(p.join(_cacheDir.path, '${job.key}.png'));
     if (await output.exists() && (await output.length()) > 0) {
       final ui.Image? decoded = await _decode(output);
       if (decoded != null) {
-        _memoryPut(job.key, decoded, grayscale: grayscale);
-        return NeuralOutput(image: decoded, grayscale: grayscale);
+        _memoryPut(job.key, decoded);
+        return NeuralOutput(image: decoded);
       }
       // A partial/corrupt file from an interrupted run: drop it so the next
       // request retries the process.
@@ -667,12 +616,12 @@ class NeuralUpscaleService {
 
       final ui.Image? decoded = await _decode(output);
       if (decoded != null) {
-        _memoryPut(job.key, decoded, grayscale: grayscale);
+        _memoryPut(job.key, decoded);
         if (++_writesSincePrune >= 8) {
           _writesSincePrune = 0;
           unawaited(_pruneDisk());
         }
-        return NeuralOutput(image: decoded, grayscale: grayscale);
+        return NeuralOutput(image: decoded);
       } else {
         try {
           await output.delete();
@@ -891,22 +840,7 @@ class NeuralUpscaleService {
     }
   }
 
-  Future<GrayMetrics?> _metricsFor(ui.Image source, String sourceKey) async {
-    final GrayMetrics? known = _grayBySource[sourceKey];
-    if (known != null) {
-      return known;
-    }
-    final GrayMetrics? metrics = await sampleGray(source);
-    if (metrics != null) {
-      if (_grayBySource.length >= 512) {
-        _grayBySource.clear();
-      }
-      _grayBySource[sourceKey] = metrics;
-    }
-    return metrics;
-  }
-
-  void _memoryPut(String key, ui.Image image, {required bool grayscale}) {
+  void _memoryPut(String key, ui.Image image) {
     final int bytes = image.width * image.height * 4;
     final _CachedNeuralEntry? old = _memory[key];
     if (old != null) {
@@ -915,7 +849,7 @@ class NeuralUpscaleService {
         old.image.dispose();
       } catch (_) {}
     }
-    _memory[key] = _CachedNeuralEntry(image: image, grayscale: grayscale, bytes: bytes);
+    _memory[key] = _CachedNeuralEntry(image: image, bytes: bytes);
     _memoryBytes += bytes;
     _touch(key);
 

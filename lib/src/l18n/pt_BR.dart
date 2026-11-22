@@ -619,7 +619,7 @@ class pt_BR {
       'neuralUpscaleGpuRefresh': 'Atualizar lista de GPUs',
       'neuralUpscaleHelp': 'A primeira exibição de cada página leva cerca de 3 a 4 s em 2×; 3×/4× custam mais. Depois disso o resultado vem do cache. O upscale melhora traço, textura e artefatos de JPEG, mas não recupera informação que não existe. Páginas em preto e branco são mantidas em cinza, mesmo que o modelo tente colorir.',
       'galleryNeuralMode': 'Melhoria neural nesta galeria',
-      'galleryNeuralModeHint': 'Automática pula páginas preto e branco; Ligada força o modelo em todas as páginas; Desligada não usa o neural nesta galeria.',
+      'galleryNeuralModeHint': 'Ligada aplica o modelo neural em todas as páginas desta galeria; Desligada desativa o neural nesta galeria.',
       'galleryNeuralAuto': 'Automática',
       'galleryNeuralOn': 'Ligada',
       'galleryNeuralOff': 'Desligada',
