@@ -19,7 +19,6 @@ import 'package:acervo_hc/src/utils/toast_util.dart';
 import 'package:acervo_hc/src/widget/loading_state_indicator.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-import '../../../../exception/eh_site_exception.dart';
 import '../../../../setting/eh_setting.dart';
 import '../../../../utils/cookie_util.dart';
 import '../../../../service/log.dart';
@@ -40,7 +39,7 @@ class LoginPageLogic extends GetxController with GetSingleTickerProviderStateMix
   @override
   void onInit() {
     super.onInit();
-    tabController = TabController(length: 3, vsync: this);
+    tabController = TabController(length: LoginType.values.length, vsync: this);
     tabController.addListener(_onTabChanged);
   }
 
@@ -54,6 +53,8 @@ class LoginPageLogic extends GetxController with GetSingleTickerProviderStateMix
   void onClose() {
     tabController.removeListener(_onTabChanged);
     tabController.dispose();
+    state.ipbPassHashFocusNode.dispose();
+    state.igneousFocusNode.dispose();
     super.onClose();
   }
 
@@ -124,8 +125,8 @@ class LoginPageLogic extends GetxController with GetSingleTickerProviderStateMix
       return;
     }
 
-    if (state.loginType == LoginType.password) {
-      _handlePasswordLogin();
+    if (state.loginType == LoginType.web) {
+      handleWebLogin();
     } else if (state.loginType == LoginType.cookie && state.cookieVerificationType == CookieVerificationType.normal) {
       _handleCookieLoginNormal();
     } else if (state.loginType == LoginType.cookie && state.cookieVerificationType == CookieVerificationType.webview) {
@@ -133,77 +134,6 @@ class LoginPageLogic extends GetxController with GetSingleTickerProviderStateMix
     } else if (state.loginType == LoginType.cookie && state.cookieVerificationType == CookieVerificationType.skip) {
       _handleCookieLoginWithoutVerification();
     }
-  }
-
-  Future<void> _handlePasswordLogin() async {
-    if (state.userName == null || state.password == null || state.userName!.isEmpty || state.password!.isEmpty) {
-      toast('userNameOrPasswordMismatch'.tr);
-      return;
-    }
-
-    /// control mobile keyboard
-    Get.focusScope?.unfocus();
-
-    state.loginState = LoadingState.loading;
-    update([loadingStateId]);
-
-    Map<String, dynamic> userInfoOrErrorMsg;
-    try {
-      userInfoOrErrorMsg = await ehRequest.requestLogin(
-        state.userName!,
-        state.password!,
-        EHSpiderParser.loginPage2UserInfoOrErrorMsg,
-      );
-    } on DioException catch (e) {
-      log.error('loginFail'.tr, e.errorMsg);
-      snack('loginFail'.tr, e.errorMsg ?? '');
-      state.loginState = LoadingState.error;
-      update([loadingStateId]);
-      return;
-    } on EHSiteException catch (e) {
-      log.error('loginFail'.tr, e.message);
-      snack('loginFail'.tr, e.message);
-      state.loginState = LoadingState.error;
-      update([loadingStateId]);
-      return;
-    }
-
-    if (userInfoOrErrorMsg['errorMsg'] != null) {
-      log.info('Login failed by password.');
-      snack('loginFail'.tr, (userInfoOrErrorMsg['errorMsg'] as String).tr, isShort: true);
-
-      state.loginState = LoadingState.error;
-      update([loadingStateId]);
-
-      return ehRequest.requestLogout();
-    }
-
-    log.info('Login success by password.');
-
-    userSetting.saveUserInfo(
-      userName: state.userName!,
-      ipbMemberId: userInfoOrErrorMsg['ipbMemberId'],
-      ipbPassHash: userInfoOrErrorMsg['ipbPassHash'],
-    );
-
-    ehRequest
-        .requestForum(
-      userInfoOrErrorMsg['ipbMemberId'],
-      EHSpiderParser.profilePage2UserInfo,
-    )
-        .then((userInfo) {
-      userSetting.saveUserNameAndAvatarAndNickName(
-        userName: userInfo!['userName']!,
-        avatarImgUrl: userInfo['avatarImgUrl'],
-        nickName: userInfo['nickName']!,
-      );
-    });
-
-    state.loginState = LoadingState.success;
-    update([loadingStateId]);
-
-    toast('loginSuccess'.tr);
-    backRoute(currentRoute: Routes.login);
   }
 
   Future<void> _handleCookieLoginNormal() async {
@@ -362,22 +292,16 @@ class LoginPageLogic extends GetxController with GetSingleTickerProviderStateMix
   }
 
   Future<void> _onDesktopPageLoaded4CookieVerification(Webview webview) async {
-    String href = await webview.evaluateJavaScript('window.location.href') as String;
-    if (!href.contains(EHConsts.EForums)) {
+    String? href = await webview.evaluateJavaScript('window.location.href');
+    if (href == null || !href.contains(EHConsts.EForums)) {
       return;
     }
 
     String? rawGuestHint = await webview.evaluateJavaScript('''
     document.querySelector('#userlinksguest')?.innerText ?? ""
     ''');
-    
-    String guestHint;
-    try {
-      guestHint = jsonDecode(rawGuestHint!);
-    } catch (e) {
-      guestHint = rawGuestHint!;
-    }
 
+    String guestHint = _decodeJsString(rawGuestHint);
     bool loginFailed = !isEmptyOrNull(guestHint) && guestHint != 'null';
     if (loginFailed) {
       log.info('Login failed by cookie via webview.');
@@ -393,12 +317,7 @@ class LoginPageLogic extends GetxController with GetSingleTickerProviderStateMix
     document.querySelector('.home > b > a')?.innerText ?? ""
     ''');
 
-    String username;
-    try {
-      username = jsonDecode(rawUsername!);
-    } catch (e) {
-      username = rawUsername!;
-    }
+    String username = _decodeJsString(rawUsername);
     if (isEmptyOrNull(username) || username == 'null') {
       return;
     }
@@ -440,13 +359,7 @@ class LoginPageLogic extends GetxController with GetSingleTickerProviderStateMix
     document.querySelector('#userlinksguest')?.innerText ?? ""
     ''') as String?;
 
-    String guestHint;
-    try {
-      guestHint = jsonDecode(rawGuestHint!);
-    } catch (e) {
-      guestHint = rawGuestHint!;
-    }
-    
+    String guestHint = _decodeJsString(rawGuestHint);
     bool loginFailed = !isEmptyOrNull(guestHint) && guestHint != 'null';
     if (loginFailed) {
       log.info('Login failed by cookie via webview.');
@@ -462,16 +375,11 @@ class LoginPageLogic extends GetxController with GetSingleTickerProviderStateMix
     document.querySelector('.home > b > a')?.innerText ?? ""
     ''') as String?;
 
-    String username;
-    try {
-      username = jsonDecode(rawUsername!);
-    } catch (e) {
-      username = rawUsername!;
-    }
+    String username = _decodeJsString(rawUsername);
     if (isEmptyOrNull(username) || username == 'null') {
       return;
     }
-    
+
     await ehRequest.storeEHCookies(cookies);
     if (useExSite) {
       ehSetting.site.value = 'EX';
@@ -498,14 +406,14 @@ class LoginPageLogic extends GetxController with GetSingleTickerProviderStateMix
       return;
     }
 
-    ehRequest.storeEHCookies([
+    await ehRequest.storeEHCookies([
       Cookie('ipb_member_id', state.ipbMemberId!),
       Cookie('ipb_pass_hash', state.ipbPassHash!),
     ]);
 
     bool useEXSite = false;
     if (state.igneous != null && state.igneous != '' && state.igneous != 'null' && state.igneous != 'mystery' && state.igneous != 'deleted') {
-      ehRequest.storeEHCookies([
+      await ehRequest.storeEHCookies([
         Cookie('igneous', state.igneous!),
       ]);
       useEXSite = true;
@@ -522,7 +430,7 @@ class LoginPageLogic extends GetxController with GetSingleTickerProviderStateMix
     if (useEXSite) {
       ehSetting.site.value = 'EX';
     }
-    userSetting.saveUserInfo(
+    await userSetting.saveUserInfo(
       userName: 'EHUser'.tr,
       ipbMemberId: int.parse(state.ipbMemberId!),
       ipbPassHash: state.ipbPassHash!,
@@ -549,7 +457,12 @@ class LoginPageLogic extends GetxController with GetSingleTickerProviderStateMix
         ),
       );
       webview.addOnUrlRequestCallback((url) {
-        _onDesktopPageStarted4WebLogin(webview, url);
+        _onDesktopWebLoginCheck(webview);
+      });
+      webview.isNavigating.addListener(() {
+        if (!webview.isNavigating.value) {
+          _onDesktopWebLoginCheck(webview);
+        }
       });
       webview.launch(EHConsts.ELogin);
     } else {
@@ -564,14 +477,31 @@ class LoginPageLogic extends GetxController with GetSingleTickerProviderStateMix
     }
   }
 
-  Future<void> _onDesktopPageStarted4WebLogin(Webview webview, String url) async {
+  Future<void> _onDesktopWebLoginCheck(Webview webview) async {
     if (state.cookieLoginLoadingState != LoadingState.idle) {
       return;
     }
 
-    String cookieString = await webview.evaluateJavaScript('document.cookie') as String;
-    cookieString = cookieString.replaceAll('"', '');
+    String? rawCookies;
+    try {
+      rawCookies = await webview.evaluateJavaScript('document.cookie');
+    } catch (_) {
+      return;
+    }
+    if (isEmptyOrNull(rawCookies)) {
+      return;
+    }
+
+    String cookieString = _decodeJsString(rawCookies).replaceAll('"', '');
     if (!CookieUtil.validateCookiesString(cookieString)) {
+      return;
+    }
+
+    List<Cookie> cookies = CookieUtil.parse2Cookies(cookieString);
+    Cookie? memberIdCookie = cookies.firstWhereOrNull((cookie) => cookie.name == 'ipb_member_id');
+    Cookie? passHashCookie = cookies.firstWhereOrNull((cookie) => cookie.name == 'ipb_pass_hash');
+    int? ipbMemberId = memberIdCookie == null ? null : int.tryParse(memberIdCookie.value);
+    if (ipbMemberId == null || passHashCookie == null || passHashCookie.value.isEmpty) {
       return;
     }
 
@@ -579,14 +509,22 @@ class LoginPageLogic extends GetxController with GetSingleTickerProviderStateMix
     state.cookieLoginLoadingState = LoadingState.loading;
 
     try {
-      List<Cookie> cookies = CookieUtil.parse2Cookies(cookieString);
-      ehRequest.storeEHCookies(CookieUtil.parse2Cookies(cookieString));
+      String webUsername = '';
+      try {
+        String? rawUsername = await webview.evaluateJavaScript('''
+        document.querySelector('.home > b > a')?.innerText ?? ""
+        ''');
+        webUsername = _decodeJsString(rawUsername).trim();
+      } catch (_) {}
 
-      int ipbMemberId = int.parse(cookies.firstWhere((cookie) => cookie.name == 'ipb_member_id').value);
-      String ipbPassHash = cookies.firstWhere((cookie) => cookie.name == 'ipb_pass_hash').value;
+      await ehRequest.storeEHCookies(cookies);
 
-      /// temporary name
-      userSetting.saveUserInfo(userName: 'EHUser'.tr, ipbMemberId: ipbMemberId, ipbPassHash: ipbPassHash);
+      String initialName = (webUsername.isNotEmpty && webUsername != 'null') ? webUsername : 'EHUser'.tr;
+      await userSetting.saveUserInfo(
+        userName: initialName,
+        ipbMemberId: ipbMemberId,
+        ipbPassHash: passHashCookie.value,
+      );
 
       webview.close();
       toast('loginSuccess'.tr);
@@ -595,14 +533,7 @@ class LoginPageLogic extends GetxController with GetSingleTickerProviderStateMix
         predicate: (route) => route.settings.name == Routes.settingAccount || route.settings.name == Routes.blank || route.settings.name == Routes.home,
       );
 
-      /// get username and avatar
-      Map<String, String?>? userInfo = await ehRequest.requestForum(ipbMemberId, EHSpiderParser.profilePage2UserInfo);
-      userSetting.saveUserNameAndAvatarAndNickName(
-        userName: userInfo!['userName']!,
-        avatarImgUrl: userInfo['avatarImgUrl'],
-        nickName: userInfo['nickName']!,
-      );
-
+      await _refreshForumProfileBestEffort(ipbMemberId);
       state.cookieLoginLoadingState = LoadingState.success;
     } finally {
       state.cookieLoginLoadingState = LoadingState.idle;
@@ -614,9 +545,26 @@ class LoginPageLogic extends GetxController with GetSingleTickerProviderStateMix
       return;
     }
 
-    String cookieString = await controller.runJavaScriptReturningResult('document.cookie') as String;
-    cookieString = cookieString.replaceAll('"', '');
+    String? rawCookies;
+    try {
+      rawCookies = await controller.runJavaScriptReturningResult('document.cookie') as String?;
+    } catch (_) {
+      return;
+    }
+    if (isEmptyOrNull(rawCookies)) {
+      return;
+    }
+
+    String cookieString = _decodeJsString(rawCookies).replaceAll('"', '');
     if (!CookieUtil.validateCookiesString(cookieString)) {
+      return;
+    }
+
+    List<Cookie> cookies = CookieUtil.parse2Cookies(cookieString);
+    Cookie? memberIdCookie = cookies.firstWhereOrNull((cookie) => cookie.name == 'ipb_member_id');
+    Cookie? passHashCookie = cookies.firstWhereOrNull((cookie) => cookie.name == 'ipb_pass_hash');
+    int? ipbMemberId = memberIdCookie == null ? null : int.tryParse(memberIdCookie.value);
+    if (ipbMemberId == null || passHashCookie == null || passHashCookie.value.isEmpty) {
       return;
     }
 
@@ -624,14 +572,14 @@ class LoginPageLogic extends GetxController with GetSingleTickerProviderStateMix
     state.cookieLoginLoadingState = LoadingState.loading;
 
     try {
-      List<Cookie> cookies = CookieUtil.parse2Cookies(cookieString);
-      ehRequest.storeEHCookies(CookieUtil.parse2Cookies(cookieString));
+      await ehRequest.storeEHCookies(cookies);
 
-      int ipbMemberId = int.parse(cookies.firstWhere((cookie) => cookie.name == 'ipb_member_id').value);
-      String ipbPassHash = cookies.firstWhere((cookie) => cookie.name == 'ipb_pass_hash').value;
-
-      /// temporary name
-      userSetting.saveUserInfo(userName: 'EHUser'.tr, ipbMemberId: ipbMemberId, ipbPassHash: ipbPassHash);
+      /// temporary name until forum profile resolves
+      await userSetting.saveUserInfo(
+        userName: 'EHUser'.tr,
+        ipbMemberId: ipbMemberId,
+        ipbPassHash: passHashCookie.value,
+      );
 
       toast('loginSuccess'.tr);
       untilRoute(
@@ -639,17 +587,47 @@ class LoginPageLogic extends GetxController with GetSingleTickerProviderStateMix
         predicate: (route) => route.settings.name == Routes.settingAccount || route.settings.name == Routes.home,
       );
 
-      /// get username and avatar
-      Map<String, String?>? userInfo = await ehRequest.requestForum(ipbMemberId, EHSpiderParser.profilePage2UserInfo);
-      userSetting.saveUserNameAndAvatarAndNickName(
-        userName: userInfo!['userName']!,
-        avatarImgUrl: userInfo['avatarImgUrl'],
-        nickName: userInfo['nickName']!,
-      );
-
+      await _refreshForumProfileBestEffort(ipbMemberId);
       state.cookieLoginLoadingState = LoadingState.success;
     } finally {
       state.cookieLoginLoadingState = LoadingState.idle;
+    }
+  }
+
+  /// Fetches username/avatar from the forum profile without crashing if
+  /// `forums.e-hentai.org` challenges direct HTTP requests with Cloudflare.
+  Future<void> _refreshForumProfileBestEffort(int ipbMemberId) async {
+    try {
+      Map<String, String?>? userInfo = await ehRequest.requestForum(
+        ipbMemberId,
+        EHSpiderParser.profilePage2UserInfo,
+      );
+      if (userInfo == null) {
+        return;
+      }
+      String? userName = userInfo['userName'];
+      if (userName == null || userName.isEmpty) {
+        return;
+      }
+      await userSetting.saveUserNameAndAvatarAndNickName(
+        userName: userName,
+        avatarImgUrl: userInfo['avatarImgUrl'],
+        nickName: userInfo['nickName'] ?? userName,
+      );
+    } catch (e) {
+      log.warning('Could not fetch forum profile after web login: $e');
+    }
+  }
+
+  String _decodeJsString(String? raw) {
+    if (raw == null || raw.isEmpty) {
+      return '';
+    }
+    try {
+      final dynamic decoded = jsonDecode(raw);
+      return decoded == null ? '' : decoded.toString();
+    } catch (_) {
+      return raw;
     }
   }
 }

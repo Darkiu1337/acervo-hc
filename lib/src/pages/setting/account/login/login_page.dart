@@ -15,16 +15,24 @@ class LoginPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GetBuilder<LoginPageLogic>( 
+    return GetBuilder<LoginPageLogic>(
       builder: (_) => Scaffold(
         /// set false to deal with keyboard
         resizeToAvoidBottomInset: false,
         backgroundColor: UIConfig.loginPageBackgroundColor(context),
-        appBar: AppBar(backgroundColor: UIConfig.loginPageBackgroundColor(context), leading: BackButton(color: UIConfig.loginPageForegroundColor(context))),
+        appBar: AppBar(
+          backgroundColor: UIConfig.loginPageBackgroundColor(context),
+          leading: BackButton(color: UIConfig.loginPageForegroundColor(context)),
+        ),
         body: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Center(child: Text('EHenTai', style: TextStyle(color: UIConfig.loginPageForegroundColor(context), fontSize: 60))),
+            Center(
+              child: Text(
+                'EHenTai',
+                style: TextStyle(color: UIConfig.loginPageForegroundColor(context), fontSize: 60),
+              ),
+            ),
             _buildTabBar(context).marginOnly(top: 24),
             Expanded(child: _buildTabBarView(context).marginOnly(top: 8)),
           ],
@@ -40,9 +48,8 @@ class LoginPage extends StatelessWidget {
       unselectedLabelColor: UIConfig.loginPageForegroundColor(context).withValues(alpha: 0.5),
       indicatorColor: UIConfig.loginPageForegroundColor(context),
       tabs: [
-        Tab(text: 'passwordTab'.tr),
-        Tab(text: 'cookieTab'.tr),
         Tab(text: 'webTab'.tr),
+        Tab(text: 'cookieTab'.tr),
       ],
     );
   }
@@ -51,19 +58,18 @@ class LoginPage extends StatelessWidget {
     return TabBarView(
       controller: logic.tabController,
       children: [
-        _PasswordTabBody(logic: logic, state: state),
-        _CookieTabBody(logic: logic, state: state),
         _WebTabBody(logic: logic, state: state),
+        _CookieTabBody(logic: logic, state: state),
       ],
     );
   }
 }
 
-class _PasswordTabBody extends StatelessWidget {
+class _WebTabBody extends StatelessWidget {
   final LoginPageLogic logic;
   final LoginPageState state;
 
-  const _PasswordTabBody({required this.logic, required this.state, Key? key}) : super(key: key);
+  const _WebTabBody({required this.logic, required this.state, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -81,82 +87,31 @@ class _PasswordTabBody extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildUsernameField(context),
-              _buildPasswordField(context).marginOnly(top: 16),
-              _buildLoginButton(context).marginOnly(top: 24),
+              Icon(Icons.public, size: 48, color: UIConfig.loginPagePrefixIconColor(context)),
+              const SizedBox(height: 20),
+              Text(
+                'webTabHint'.tr,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: UIConfig.loginPageFormHintColor(context), fontSize: 13),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 44,
+                child: ElevatedButton(
+                  onPressed: logic.handleWebLogin,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: UIConfig.loginPageFormIconColor(context),
+                    foregroundColor: UIConfig.loginPageBackgroundColor(context),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
+                  ),
+                  child: Text(
+                    'launchWebLogin'.tr,
+                    style: TextStyle(color: UIConfig.loginPageBackgroundColor(context), fontSize: 16),
+                  ),
+                ),
+              ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUsernameField(BuildContext context) {
-    return Container(
-      height: 48,
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(40)),
-      child: TextFormField(
-        onEditingComplete: state.passwordFocusNode.requestFocus,
-        onChanged: (userName) => state.userName = userName,
-        decoration: InputDecoration(
-          hintText: 'userName'.tr,
-          hintStyle: TextStyle(color: UIConfig.loginPageTextHintColor(context), fontSize: UIConfig.loginPageTextHintSize, height: 1),
-          prefixIcon: Icon(Icons.account_circle, size: 22, color: UIConfig.loginPagePrefixIconColor(context)),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPasswordField(BuildContext context) {
-    return GetBuilder<LoginPageLogic>(
-      builder: (_) => Container(
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(40)),
-        height: 48,
-        child: TextFormField(
-          focusNode: state.passwordFocusNode,
-          obscureText: state.obscureText,
-          onChanged: (password) => state.password = password,
-          onFieldSubmitted: (v) => logic.handleLogin(),
-          decoration: InputDecoration(
-            hintText: 'password'.tr,
-            hintStyle: TextStyle(color: UIConfig.loginPageTextHintColor(context), fontSize: UIConfig.loginPageTextHintSize, height: 1),
-            prefixIcon: Icon(Icons.key, size: 22, color: UIConfig.loginPagePrefixIconColor(context)),
-            suffixIcon: InkWell(
-              child: state.obscureText
-                  ? Icon(Icons.visibility, size: 22, color: UIConfig.loginPagePrefixIconColor(context))
-                  : Icon(Icons.visibility_off, size: 22, color: UIConfig.loginPagePrefixIconColor(context)),
-              onTap: () {
-                state.obscureText = !state.obscureText;
-                logic.update();
-              },
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLoginButton(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 44,
-      child: ElevatedButton(
-        onPressed: logic.handleLogin,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: UIConfig.loginPageFormIconColor(context),
-          foregroundColor: UIConfig.loginPageBackgroundColor(context),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
-        ),
-        child: GetBuilder<LoginPageLogic>(
-          id: LoginPageLogic.loadingStateId,
-          builder: (_) => LoadingStateIndicator(
-            useCupertinoIndicator: true,
-            loadingState: state.loginState,
-            indicatorRadius: 10,
-            indicatorColor: UIConfig.loginPageIndicatorColor(context),
-            idleWidgetBuilder: () => Text('login'.tr, style: TextStyle(color: UIConfig.loginPageBackgroundColor(context), fontSize: 16)),
-            successWidgetBuilder: () => const Icon(Icons.check),
-            errorWidgetSameWithIdle: true,
           ),
         ),
       ),
@@ -207,7 +162,7 @@ class _CookieTabBody extends StatelessWidget {
       decoration: BoxDecoration(borderRadius: BorderRadius.circular(40)),
       child: TextFormField(
         key: const Key('ipbMemberId'),
-        onEditingComplete: state.passwordFocusNode.requestFocus,
+        onEditingComplete: state.ipbPassHashFocusNode.requestFocus,
         controller: TextEditingController(text: state.ipbMemberId ?? ''),
         decoration: InputDecoration(
           hintText: 'ipb_member_id',
@@ -339,57 +294,6 @@ class _CookieTabBody extends StatelessWidget {
             idleWidgetBuilder: () => Text('verifyAndLogin'.tr, style: TextStyle(color: UIConfig.loginPageBackgroundColor(context), fontSize: 16)),
             successWidgetBuilder: () => const Icon(Icons.check),
             errorWidgetSameWithIdle: true,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _WebTabBody extends StatelessWidget {
-  final LoginPageLogic logic;
-  final LoginPageState state;
-
-  const _WebTabBody({required this.logic, required this.state, Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.topCenter,
-      child: Padding(
-        padding: const EdgeInsets.only(top: 24),
-        child: Container(
-          width: 320,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: UIConfig.loginPageForegroundColor(context), width: 2),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.public, size: 48, color: UIConfig.loginPagePrefixIconColor(context)),
-              const SizedBox(height: 20),
-              Text(
-                'webTabHint'.tr,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: UIConfig.loginPageFormHintColor(context), fontSize: 13),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 44,
-                child: ElevatedButton(
-                  onPressed: logic.handleWebLogin,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: UIConfig.loginPageFormIconColor(context),
-                    foregroundColor: UIConfig.loginPageBackgroundColor(context),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
-                  ),
-                  child: Text('launchWebLogin'.tr, style: TextStyle(color: UIConfig.loginPageBackgroundColor(context), fontSize: 16)),
-                ),
-              ),
-            ],
           ),
         ),
       ),

@@ -1,22 +1,17 @@
 import 'package:flutter/cupertino.dart';
 import 'package:acervo_hc/src/widget/loading_state_indicator.dart';
 
-enum LoginType { password, cookie, web }
+enum LoginType { web, cookie }
 
 enum CookieVerificationType { normal, webview, skip }
 
 class LoginPageState {
-  LoginType loginType = LoginType.password;
+  LoginType loginType = LoginType.web;
   CookieVerificationType cookieVerificationType = CookieVerificationType.normal;
 
-  FocusNode passwordFocusNode = FocusNode();
   FocusNode ipbPassHashFocusNode = FocusNode();
   FocusNode igneousFocusNode = FocusNode();
 
-  bool obscureText = true;
-
-  String? userName;
-  String? password;
   String? ipbMemberId;
   String? ipbPassHash;
   String? igneous;
