@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:acervo_hc/src/pages/popular/popular_page_logic.dart';
@@ -17,6 +16,7 @@ class PopularPage extends BasePage {
           showMenuButton: showMenuButton,
           showTitle: showTitle,
           showJumpButton: false,
+          showFilterButton: true,
           showScroll2TopButton: true,
           name: name,
         );
@@ -26,4 +26,20 @@ class PopularPage extends BasePage {
 
   @override
   PopularPageState get state => Get.find<PopularPageLogic>().state;
+
+  @override
+  List<Widget> buildAppBarActions() {
+    final bool active = state.clientFilter.isActive;
+    return [
+      IconButton(
+        tooltip: 'clientFilter'.tr,
+        icon: Icon(
+          active ? Icons.filter_alt : Icons.filter_alt_outlined,
+          size: 26,
+          color: active ? Get.theme.colorScheme.primary : null,
+        ),
+        onPressed: logic.handleTapFilterButton,
+      ),
+    ];
+  }
 }

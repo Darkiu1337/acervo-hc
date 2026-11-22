@@ -24,7 +24,15 @@ Widget EHGalleryCollection({
   CardContextMenuCallback? handleLongPressCard,
   CardContextMenuCallback? handleSecondaryTapCard,
   VoidCallback? handleLoadMore,
+  bool Function(Gallery gallery)? isDimmed,
 }) {
+  Widget _maybeDim(Gallery gallery, Widget child) {
+    if (isDimmed != null && isDimmed(gallery)) {
+      return Opacity(opacity: 0.52, child: child);
+    }
+    return child;
+  }
+
   Widget _buildGalleryList() {
     /// use FlutterSliverList to [keepPosition] when insert items at top
     return FlutterSliverList(
@@ -34,6 +42,7 @@ Widget EHGalleryCollection({
           if (index == galleries.length - 1 && loadingState == LoadingState.idle && handleLoadMore != null) {
             SchedulerBinding.instance.addPostFrameCallback((_) => handleLoadMore());
           }
+          final Gallery gallery = galleries[index];
           return Container(
             decoration: listMode == ListMode.flat || listMode == ListMode.flatWithoutTags
                 ? BoxDecoration(
@@ -42,14 +51,17 @@ Widget EHGalleryCollection({
                   )
                 : null,
             padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-            child: EHGalleryListCard(
-              gallery: galleries[index],
-              downloaded: galleryDownloadService.containGallery(galleries[index].gid) || archiveDownloadService.containArchive(galleries[index].gid),
-              listMode: listMode,
-              handleTapCard: (gallery) => handleTapCard(gallery),
-              handleLongPressCard: handleLongPressCard == null ? null : (gallery, position) => handleLongPressCard(gallery, position),
-              handleSecondaryTapCard: handleSecondaryTapCard == null ? null : (gallery, position) => handleSecondaryTapCard(gallery, position),
-              withTags: listMode == ListMode.listWithTags || listMode == ListMode.flat,
+            child: _maybeDim(
+              gallery,
+              EHGalleryListCard(
+                gallery: gallery,
+                downloaded: galleryDownloadService.containGallery(gallery.gid) || archiveDownloadService.containArchive(gallery.gid),
+                listMode: listMode,
+                handleTapCard: (gallery) => handleTapCard(gallery),
+                handleLongPressCard: handleLongPressCard == null ? null : (gallery, position) => handleLongPressCard(gallery, position),
+                handleSecondaryTapCard: handleSecondaryTapCard == null ? null : (gallery, position) => handleSecondaryTapCard(gallery, position),
+                withTags: listMode == ListMode.listWithTags || listMode == ListMode.flat,
+              ),
             ),
           );
         },
@@ -83,13 +95,17 @@ Widget EHGalleryCollection({
               SchedulerBinding.instance.addPostFrameCallback((_) => handleLoadMore());
             }
 
-            return EHGalleryWaterFlowCard(
-              gallery: galleries[index],
-              downloaded: galleryDownloadService.containGallery(galleries[index].gid) || archiveDownloadService.containArchive(galleries[index].gid),
-              listMode: listMode,
-              handleTapCard: handleTapCard,
-              handleLongPressCard: handleLongPressCard == null ? null : (gallery, position) => handleLongPressCard(gallery, position),
-              handleSecondaryTapCard: handleSecondaryTapCard == null ? null : (gallery, position) => handleSecondaryTapCard(gallery, position),
+            final Gallery gallery = galleries[index];
+            return _maybeDim(
+              gallery,
+              EHGalleryWaterFlowCard(
+                gallery: gallery,
+                downloaded: galleryDownloadService.containGallery(gallery.gid) || archiveDownloadService.containArchive(gallery.gid),
+                listMode: listMode,
+                handleTapCard: handleTapCard,
+                handleLongPressCard: handleLongPressCard == null ? null : (gallery, position) => handleLongPressCard(gallery, position),
+                handleSecondaryTapCard: handleSecondaryTapCard == null ? null : (gallery, position) => handleSecondaryTapCard(gallery, position),
+              ),
             );
           },
           childCount: galleries.length,

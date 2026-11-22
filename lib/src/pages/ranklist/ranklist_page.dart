@@ -15,6 +15,7 @@ class RanklistPage extends BasePage {
           showMenuButton: showMenuButton,
           showTitle: showTitle,
           showJumpButton: true,
+          showFilterButton: true,
           showScroll2TopButton: showScroll2TopButton,
         );
 
@@ -26,12 +27,23 @@ class RanklistPage extends BasePage {
 
   @override
   AppBar? buildAppBar(BuildContext context) {
+    final bool active = state.clientFilter.isActive;
     return AppBar(
       title: Text('${state.ranklistType.name.tr} ${'ranklist'.tr}'),
       centerTitle: true,
       leading: showMenuButton ? super.buildAppBarMenuButton(context) : null,
       actions: [
-        ...super.buildAppBarActions(),
+        if (showJumpButton && state.galleries.isNotEmpty)
+          IconButton(icon: const Icon(Icons.send, size: 20), onPressed: logic.handleTapJumpButton),
+        IconButton(
+          tooltip: 'clientFilter'.tr,
+          icon: Icon(
+            active ? Icons.filter_alt : Icons.filter_alt_outlined,
+            size: 26,
+            color: active ? Theme.of(context).colorScheme.primary : null,
+          ),
+          onPressed: logic.handleTapFilterButton,
+        ),
         PopupMenuButton(
           tooltip: '',
           initialValue: state.ranklistType,

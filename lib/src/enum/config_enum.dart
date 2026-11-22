@@ -58,6 +58,7 @@ enum ConfigEnum {
   isSpreadPage('isSpreadPage'),
   galleryImageHash('galleryImageHash'),
   galleryNeuralMode('galleryNeuralMode'),
+  watchedProgress('watchedProgress'),
   ;
 
   final String key;
