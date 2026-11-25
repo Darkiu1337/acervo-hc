@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -6,12 +7,15 @@ import 'package:get/get.dart';
 import 'package:acervo_hc/src/config/ui_config.dart';
 import 'package:acervo_hc/src/extension/dio_exception_extension.dart';
 import 'package:acervo_hc/src/extension/get_logic_extension.dart';
+import 'package:acervo_hc/src/model/gallery_client_filter.dart';
 import 'package:acervo_hc/src/model/gallery_page.dart';
+import 'package:acervo_hc/src/model/gallery_source.dart';
 import 'package:acervo_hc/src/network/eh_request.dart';
 import 'package:acervo_hc/src/service/local_favorite_service.dart';
 import 'package:acervo_hc/src/setting/user_setting.dart';
 import 'package:acervo_hc/src/utils/toast_util.dart';
 import 'package:acervo_hc/src/widget/eh_alert_dialog.dart';
+import 'package:acervo_hc/src/widget/eh_client_filter_dialog.dart';
 import 'package:acervo_hc/src/widget/eh_context_menu.dart';
 import 'package:acervo_hc/src/widget/eh_favorite_sort_order_dialog.dart';
 import 'package:acervo_hc/src/widget/loading_state_indicator.dart';
@@ -33,6 +37,7 @@ class FavoritePageLogic extends BasePageLogic {
   final FavoritePageState state = FavoritePageState();
 
   Worker? _favoritesWorker;
+  Timer? _localSearchDebounce;
 
   /// Bumped on every mode switch so an online response that arrives after the
   /// user moved to the local list is discarded instead of polluting it.
@@ -61,10 +66,13 @@ class FavoritePageLogic extends BasePageLogic {
 
     await super.onInit();
 
-    /// Keep the local list in sync when a gallery is favorited/unfavorited from
-    /// another page (e.g. the Xlecx details page on desktop).
-    _favoritesWorker = ever(localFavoriteService.favorites, (_) {
+    /// Keep the local list in sync when favorites or collections mutate from
+    /// any page.
+    _favoritesWorker = ever(localFavoriteService.revision, (_) {
       if (state.localMode) {
+        if (state.selectedCollection != null && !localFavoriteService.collections.contains(state.selectedCollection)) {
+          state.selectedCollection = null;
+        }
         _loadLocalFavorites(scrollToTop: false);
       }
     });
@@ -76,7 +84,9 @@ class FavoritePageLogic extends BasePageLogic {
 
   @override
   void onClose() {
+    _localSearchDebounce?.cancel();
     _favoritesWorker?.dispose();
+    state.localSearchController.dispose();
     super.onClose();
   }
 
@@ -110,16 +120,19 @@ class FavoritePageLogic extends BasePageLogic {
   }
 
   void _loadLocalFavorites({bool scrollToTop = true}) {
-    final List<Gallery> favorites = List<Gallery>.of(localFavoriteService.favorites);
+    final List<Gallery> allInScope = localFavoriteService.favoritesInCollection(state.selectedCollection);
+    state.totalLocalCount = localFavoriteService.favorites.length;
+
+    final List<Gallery> filtered = state.localFilter.apply(allInScope);
 
     state.galleries
       ..clear()
-      ..addAll(favorites);
+      ..addAll(filtered);
 
     state.totalCount = null;
     state.prevGid = null;
     state.nextGid = null;
-    state.loadingState = favorites.isEmpty ? LoadingState.noData : LoadingState.noMore;
+    state.loadingState = filtered.isEmpty ? LoadingState.noData : LoadingState.noMore;
     state.galleryCollectionKey = Key(newUUID());
 
     if (scrollToTop) {
@@ -127,6 +140,285 @@ class FavoritePageLogic extends BasePageLogic {
     }
 
     updateSafely();
+  }
+
+  void selectLocalCollection(String? collectionName) {
+    if (state.selectedCollection == collectionName) {
+      return;
+    }
+    state.selectedCollection = collectionName;
+    _loadLocalFavorites();
+  }
+
+  void onLocalSearchChanged(String value) {
+    _localSearchDebounce?.cancel();
+    _localSearchDebounce = Timer(const Duration(milliseconds: 180), () {
+      if (isClosed) {
+        return;
+      }
+      state.localFilter = state.localFilter.copyWith(keyword: value.trim());
+      _loadLocalFavorites();
+    });
+  }
+
+  void clearLocalSearch() {
+    _localSearchDebounce?.cancel();
+    state.localSearchController.clear();
+    state.localFilter = state.localFilter.copyWith(keyword: '');
+    _loadLocalFavorites();
+  }
+
+  void selectLocalSource(GallerySource? source) {
+    final Set<GallerySource> next = source == null
+        ? const <GallerySource>{}
+        : (state.localFilter.sources.length == 1 && state.localFilter.sources.contains(source)
+            ? const <GallerySource>{}
+            : <GallerySource>{source});
+    state.localFilter = state.localFilter.copyWith(sources: next);
+    _loadLocalFavorites();
+  }
+
+  void setLocalSortOrder(GallerySortOption order) {
+    if (state.localFilter.sortOrder == order) {
+      return;
+    }
+    state.localFilter = state.localFilter.copyWith(sortOrder: order);
+    _loadLocalFavorites();
+  }
+
+  Future<void> handleTapLocalFilterButton() async {
+    final GalleryClientFilter? result = await Get.dialog<GalleryClientFilter>(
+      EHClientFilterDialog(
+        initialFilter: state.localFilter,
+        showSourceFilter: true,
+        showSortOption: true,
+      ),
+    );
+    if (result == null) {
+      return;
+    }
+    state.localFilter = result;
+    if (state.localSearchController.text != result.keyword) {
+      state.localSearchController.text = result.keyword;
+    }
+    _loadLocalFavorites();
+  }
+
+  void clearLocalFilters() {
+    _localSearchDebounce?.cancel();
+    state.localSearchController.clear();
+    state.selectedCollection = null;
+    state.localFilter = const GalleryClientFilter();
+    _loadLocalFavorites();
+  }
+
+  Future<void> handleCreateCollection() async {
+    final TextEditingController controller = TextEditingController();
+    final String? name = await Get.dialog<String>(
+      AlertDialog(
+        title: Text('createCollection'.tr),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: 'collectionNameHint'.tr,
+            isDense: true,
+          ),
+          onSubmitted: (String value) => Navigator.of(Get.context!).pop(value.trim()),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(Get.context!).pop(), child: Text('cancel'.tr)),
+          FilledButton(
+            onPressed: () => Navigator.of(Get.context!).pop(controller.text.trim()),
+            child: Text('OK'.tr),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+
+    if (name == null || name.isEmpty) {
+      return;
+    }
+
+    final bool created = await localFavoriteService.createCollection(name);
+    if (!created) {
+      toast('collectionAlreadyExists'.tr);
+    }
+  }
+
+  Future<void> handleManageCollectionMenu(BuildContext context, String collectionName, {Offset? position}) async {
+    showEHContextMenu(
+      context,
+      position: position,
+      actions: [
+        EHContextMenuAction(
+          text: 'rename'.tr,
+          icon: const Icon(Icons.edit_outlined, size: 18),
+          onTap: () => _handleRenameCollection(collectionName),
+        ),
+        EHContextMenuAction(
+          text: 'delete'.tr,
+          icon: const Icon(Icons.delete_outline, size: 18),
+          color: UIConfig.alertColor(context),
+          onTap: () => _handleDeleteCollection(collectionName),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _handleRenameCollection(String oldName) async {
+    final TextEditingController controller = TextEditingController(text: oldName);
+    final String? newName = await Get.dialog<String>(
+      AlertDialog(
+        title: Text('renameCollection'.tr),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(isDense: true, hintText: 'collectionNameHint'.tr),
+          onSubmitted: (String value) => Navigator.of(Get.context!).pop(value.trim()),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(Get.context!).pop(), child: Text('cancel'.tr)),
+          FilledButton(
+            onPressed: () => Navigator.of(Get.context!).pop(controller.text.trim()),
+            child: Text('OK'.tr),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+
+    if (newName == null || newName.isEmpty || newName == oldName) {
+      return;
+    }
+
+    final bool renamed = await localFavoriteService.renameCollection(oldName, newName);
+    if (renamed) {
+      if (state.selectedCollection == oldName) {
+        state.selectedCollection = newName;
+      }
+      _loadLocalFavorites(scrollToTop: false);
+    } else {
+      toast('collectionAlreadyExists'.tr);
+    }
+  }
+
+  Future<void> _handleDeleteCollection(String name) async {
+    final bool? confirmed = await Get.dialog<bool>(
+      EHDialog(title: '${'delete'.tr} "$name"?'),
+    );
+    if (confirmed != true) {
+      return;
+    }
+
+    if (state.selectedCollection == name) {
+      state.selectedCollection = null;
+    }
+    await localFavoriteService.deleteCollection(name);
+  }
+
+  Future<void> handleAssignGalleryCollections(Gallery gallery) async {
+    final Set<String> selected = Set<String>.from(localFavoriteService.collectionsOf(gallery.gid));
+    final TextEditingController newColController = TextEditingController();
+
+    final Set<String>? result = await Get.dialog<Set<String>>(
+      StatefulBuilder(
+        builder: (BuildContext context, void Function(void Function()) setState) {
+          final List<String> allCollections = List<String>.of(localFavoriteService.collections);
+          for (final String col in selected) {
+            if (!allCollections.contains(col)) {
+              allCollections.add(col);
+            }
+          }
+
+          return AlertDialog(
+            title: Text('manageCollections'.tr),
+            content: SizedBox(
+              width: 380,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: newColController,
+                            decoration: InputDecoration(
+                              hintText: 'createCollection'.tr,
+                              isDense: true,
+                            ),
+                            onSubmitted: (String value) {
+                              final String trimmed = value.trim();
+                              if (trimmed.isNotEmpty) {
+                                setState(() {
+                                  selected.add(trimmed);
+                                  newColController.clear();
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'createCollection'.tr,
+                          icon: const Icon(Icons.add),
+                          onPressed: () {
+                            final String trimmed = newColController.text.trim();
+                            if (trimmed.isNotEmpty) {
+                              setState(() {
+                                selected.add(trimmed);
+                                newColController.clear();
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    if (allCollections.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Text('noCollectionsYet'.tr, style: Theme.of(context).textTheme.bodySmall),
+                      )
+                    else
+                      ...allCollections.map(
+                        (String col) => CheckboxListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(col),
+                          value: selected.contains(col),
+                          onChanged: (bool? checked) {
+                            setState(() {
+                              if (checked ?? false) {
+                                selected.add(col);
+                              } else {
+                                selected.remove(col);
+                              }
+                            });
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.of(context).pop(), child: Text('cancel'.tr)),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(Set<String>.from(selected)),
+                child: Text('OK'.tr),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    newColController.dispose();
+
+    if (result != null) {
+      await localFavoriteService.setGalleryCollections(gallery.gid, result);
+    }
   }
 
   @override
@@ -205,6 +497,11 @@ class FavoritePageLogic extends BasePageLogic {
       context,
       position: position,
       actions: [
+        EHContextMenuAction(
+          text: 'manageCollections'.tr,
+          icon: const Icon(Icons.folder_outlined, size: 18),
+          onTap: () => handleAssignGalleryCollections(gallery),
+        ),
         EHContextMenuAction(
           text: 'removeFromLocalFavorites'.tr,
           icon: const Icon(Icons.favorite_border, size: 18),

@@ -1,8 +1,22 @@
 import 'package:acervo_hc/src/model/gallery.dart';
+import 'package:acervo_hc/src/model/gallery_source.dart';
 import 'package:acervo_hc/src/model/gallery_tag.dart';
 
-/// Client-side filter for pages where E-Hentai has no native filter UI
-/// (Popular and Ranklist).
+/// Client-side sort orders for local lists (Already Read, Local Favorites, etc.).
+enum GallerySortOption {
+  recent('sortRecent'),
+  titleAsc('sortTitleAsc'),
+  titleDesc('sortTitleDesc'),
+  pagesDesc('sortPagesDesc'),
+  pagesAsc('sortPagesAsc'),
+  ;
+
+  final String labelKey;
+  const GallerySortOption(this.labelKey);
+}
+
+/// Client-side filter and optional sorter for pages without native filtering
+/// (Popular, Ranklist, Already Read, and Local Favorites).
 class GalleryClientFilter {
   static const List<String> allCategories = <String>[
     'Doujinshi',
@@ -30,34 +44,52 @@ class GalleryClientFilter {
   final Set<String> disabledCategories;
   final String? language;
 
+  /// When non-empty, only galleries from these providers match.
+  final Set<GallerySource> sources;
+
+  final GallerySortOption sortOrder;
+
   const GalleryClientFilter({
     this.keyword = '',
     this.disabledCategories = const <String>{},
     this.language,
+    this.sources = const <GallerySource>{},
+    this.sortOrder = GallerySortOption.recent,
   });
 
-  bool get isActive =>
+  bool get hasFilter =>
       keyword.trim().isNotEmpty ||
       disabledCategories.isNotEmpty ||
-      (language != null && language!.trim().isNotEmpty);
+      (language != null && language!.trim().isNotEmpty) ||
+      sources.isNotEmpty;
+
+  bool get isActive => hasFilter || sortOrder != GallerySortOption.recent;
 
   GalleryClientFilter copyWith({
     String? keyword,
     Set<String>? disabledCategories,
     String? language,
     bool clearLanguage = false,
+    Set<GallerySource>? sources,
+    GallerySortOption? sortOrder,
   }) {
     return GalleryClientFilter(
       keyword: keyword ?? this.keyword,
       disabledCategories: disabledCategories ?? this.disabledCategories,
       language: clearLanguage ? null : (language ?? this.language),
+      sources: sources ?? this.sources,
+      sortOrder: sortOrder ?? this.sortOrder,
     );
   }
 
   /// Returns true when [gallery] satisfies all active client-side criteria.
   bool matches(Gallery gallery) {
-    if (!isActive) {
+    if (!hasFilter) {
       return true;
+    }
+
+    if (sources.isNotEmpty && !sources.contains(gallery.galleryUrl.source)) {
+      return false;
     }
 
     if (disabledCategories.isNotEmpty) {
@@ -107,15 +139,37 @@ class GalleryClientFilter {
   }
 
   List<Gallery> apply(List<Gallery> source) {
-    if (!isActive) {
-      return List<Gallery>.from(source);
+    final List<Gallery> result = hasFilter ? source.where(matches).toList() : List<Gallery>.from(source);
+    if (sortOrder != GallerySortOption.recent) {
+      sortList(result, sortOrder);
     }
-    return source.where(matches).toList();
+    return result;
+  }
+
+  static void sortList(List<Gallery> galleries, GallerySortOption order) {
+    switch (order) {
+      case GallerySortOption.recent:
+        return;
+      case GallerySortOption.titleAsc:
+        galleries.sort((Gallery a, Gallery b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+        return;
+      case GallerySortOption.titleDesc:
+        galleries.sort((Gallery a, Gallery b) => b.title.toLowerCase().compareTo(a.title.toLowerCase()));
+        return;
+      case GallerySortOption.pagesDesc:
+        galleries.sort((Gallery a, Gallery b) => (b.pageCount ?? -1).compareTo(a.pageCount ?? -1));
+        return;
+      case GallerySortOption.pagesAsc:
+        galleries.sort((Gallery a, Gallery b) => (a.pageCount ?? 1 << 30).compareTo(b.pageCount ?? 1 << 30));
+        return;
+    }
   }
 
   static String _buildHaystack(Gallery gallery) {
     final StringBuffer sb = StringBuffer()
       ..write(gallery.title.toLowerCase())
+      ..write(' ')
+      ..write((gallery.altTitle ?? '').toLowerCase())
       ..write(' ')
       ..write((gallery.uploader ?? '').toLowerCase())
       ..write(' ')
