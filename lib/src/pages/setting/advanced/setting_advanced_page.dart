@@ -9,23 +9,22 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:acervo_hc/src/extension/widget_extension.dart';
-import 'package:acervo_hc/src/model/config.dart';
 import 'package:acervo_hc/src/network/eh_request.dart';
+import 'package:acervo_hc/src/service/acervo_backup_service.dart';
 import 'package:acervo_hc/src/service/cloud_service.dart';
 import 'package:acervo_hc/src/setting/advanced_setting.dart';
 import 'package:acervo_hc/src/service/path_service.dart';
 import 'package:acervo_hc/src/service/log.dart';
 import 'package:acervo_hc/src/utils/toast_util.dart';
+import 'package:acervo_hc/src/widget/acervo_backup_dialog.dart';
 import 'package:acervo_hc/src/widget/loading_state_indicator.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart';
 
 import '../../../config/ui_config.dart';
-import '../../../enum/config_type_enum.dart';
 import '../../../routes/routes.dart';
-import '../../../service/isolate_service.dart';
 import '../../../utils/byte_util.dart';
 import '../../../utils/route_util.dart';
-import '../../../widget/eh_config_type_select_dialog.dart';
 
 class SettingAdvancedPage extends StatefulWidget {
   const SettingAdvancedPage({Key? key}) : super(key: key);
@@ -337,7 +336,7 @@ class _SettingAdvancedPageState extends State<SettingAdvancedPage> {
       return;
     }
 
-    if (result == null) {
+    if (result == null || result.files.first.path == null) {
       return;
     }
 
@@ -348,15 +347,37 @@ class _SettingAdvancedPageState extends State<SettingAdvancedPage> {
     log.info('Import data from ${result.files.first.path}');
     setStateSafely(() => _importDataLoadingState = LoadingState.loading);
 
-    File file = File(result.files.first.path!);
-    String string = await file.readAsString();
+    final AcervoBackupDocument doc;
+    try {
+      final File file = File(result.files.first.path!);
+      final String raw = await file.readAsString();
+      doc = await acervoBackupService.inspectBackup(raw);
+    } catch (e, s) {
+      log.error('Parse import data failed', e, s);
+      toast('internalError'.tr);
+      setStateSafely(() => _importDataLoadingState = LoadingState.error);
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    final AcervoBackupImportSelection? selection = await showDialog<AcervoBackupImportSelection>(
+      context: context,
+      builder: (_) => AcervoBackupImportDialog(document: doc),
+    );
+    if (selection == null || selection.sections.isEmpty) {
+      setStateSafely(() => _importDataLoadingState = LoadingState.idle);
+      return;
+    }
 
     try {
-      List list = await isolateService.jsonDecodeAsync(string);
-      List<CloudConfig> configs = list.map((e) => CloudConfig.fromJson(e)).toList();
-      for (CloudConfig config in configs) {
-        await cloudConfigService.importConfig(config);
-      }
+      await acervoBackupService.importBackup(
+        doc,
+        sections: selection.sections,
+        mode: selection.mode,
+      );
 
       toast('success'.tr);
       setStateSafely(() => _importDataLoadingState = LoadingState.success);
@@ -369,48 +390,58 @@ class _SettingAdvancedPageState extends State<SettingAdvancedPage> {
   }
 
   Future<void> _exportData(BuildContext context) async {
-    List<CloudConfigTypeEnum>? result = await showDialog(
+    final Set<AcervoBackupSection>? sections = await showDialog<Set<AcervoBackupSection>>(
       context: context,
-      builder: (_) => EHConfigTypeSelectDialog(title: 'selectExportItems'.tr),
+      builder: (_) => const AcervoBackupExportDialog(),
     );
-    if (result?.isEmpty ?? true) {
+    if (sections == null || sections.isEmpty) {
       return;
     }
 
-    String fileName = '${CloudConfigService.configFileName}-${DateFormat('yyyyMMddHHmmss').format(DateTime.now())}.json';
+    final String fileName = '${CloudConfigService.configFileName}-${DateFormat('yyyyMMddHHmmss').format(DateTime.now())}.json';
     if (GetPlatform.isMobile) {
-      return _exportDataMobile(fileName, result);
+      return _exportDataMobile(fileName, sections);
     } else {
-      return _exportDataDesktop(fileName, result);
+      return _exportDataDesktop(fileName, sections);
     }
   }
 
-  Future<void> _exportDataMobile(String fileName, List<CloudConfigTypeEnum>? result) async {
+  Future<String?> _readAppVersion() async {
+    try {
+      final PackageInfo info = await PackageInfo.fromPlatform();
+      return info.buildNumber.isEmpty ? info.version : '${info.version}+${info.buildNumber}';
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _exportDataMobile(String fileName, Set<AcervoBackupSection> sections) async {
     if (_exportDataLoadingState == LoadingState.loading) {
       return;
     }
     setStateSafely(() => _exportDataLoadingState = LoadingState.loading);
 
-    List<CloudConfig> uploadConfigs = [];
-    for (CloudConfigTypeEnum type in result!) {
-      CloudConfig? config = await cloudConfigService.getLocalConfig(type);
-      if (config != null) {
-        uploadConfigs.add(config);
-      }
-    }
-
     try {
-      String? savedPath = await FilePicker.platform.saveFile(
+      final String? version = await _readAppVersion();
+      final Map<String, dynamic> backupMap = await acervoBackupService.buildBackupMap(
+        sections: sections,
+        appVersion: version,
+      );
+      final String encoded = await acervoBackupService.encodeBackup(backupMap);
+
+      final String? savedPath = await FilePicker.platform.saveFile(
         fileName: fileName,
         type: FileType.custom,
         allowedExtensions: ['json'],
-        bytes: utf8.encode(await isolateService.jsonEncodeAsync(uploadConfigs)),
+        bytes: utf8.encode(encoded),
         lockParentWindow: true,
       );
       if (savedPath != null) {
         log.info('Export data to $savedPath success');
         toast('success'.tr);
         setStateSafely(() => _exportDataLoadingState = LoadingState.success);
+      } else {
+        setStateSafely(() => _exportDataLoadingState = LoadingState.idle);
       }
     } on Exception catch (e) {
       log.error('Export data failed', e);
@@ -419,7 +450,7 @@ class _SettingAdvancedPageState extends State<SettingAdvancedPage> {
     }
   }
 
-  Future<void> _exportDataDesktop(String fileName, List<CloudConfigTypeEnum>? result) async {
+  Future<void> _exportDataDesktop(String fileName, Set<AcervoBackupSection> sections) async {
     if (_exportDataLoadingState == LoadingState.loading) {
       return;
     }
@@ -441,23 +472,23 @@ class _SettingAdvancedPageState extends State<SettingAdvancedPage> {
     }
 
     if (savedPath == null) {
+      setStateSafely(() => _exportDataLoadingState = LoadingState.idle);
       return;
     }
 
-    List<CloudConfig> uploadConfigs = [];
-    for (CloudConfigTypeEnum type in result!) {
-      CloudConfig? config = await cloudConfigService.getLocalConfig(type);
-      if (config != null) {
-        uploadConfigs.add(config);
-      }
-    }
-
-    File file = File(savedPath);
+    final File file = File(savedPath);
     try {
-      if (await file.exists()) {
+      final String? version = await _readAppVersion();
+      final Map<String, dynamic> backupMap = await acervoBackupService.buildBackupMap(
+        sections: sections,
+        appVersion: version,
+      );
+      final String encoded = await acervoBackupService.encodeBackup(backupMap);
+
+      if (!await file.exists()) {
         await file.create(recursive: true);
       }
-      await file.writeAsString(await isolateService.jsonEncodeAsync(uploadConfigs));
+      await file.writeAsString(encoded);
       log.info('Export data to $savedPath success');
       toast('success'.tr);
       setStateSafely(() => _exportDataLoadingState = LoadingState.success);
