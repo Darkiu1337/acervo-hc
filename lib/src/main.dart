@@ -12,6 +12,7 @@ import 'package:acervo_hc/src/network/jh_request.dart';
 import 'package:acervo_hc/src/routes/getx_router_observer.dart';
 import 'package:acervo_hc/src/routes/routes.dart';
 import 'package:acervo_hc/src/pages/home_page.dart';
+import 'package:acervo_hc/src/service/already_read_service.dart';
 import 'package:acervo_hc/src/service/app_update_service.dart';
 import 'package:acervo_hc/src/service/archive_download_service.dart';
 import 'package:acervo_hc/src/service/built_in_blocked_user_service.dart';
@@ -25,12 +26,14 @@ import 'package:acervo_hc/src/service/jh_service.dart';
 import 'package:acervo_hc/src/service/legacy_source_cleanup_service.dart';
 import 'package:acervo_hc/src/service/local_block_rule_service.dart';
 import 'package:acervo_hc/src/service/local_config_service.dart';
+import 'package:acervo_hc/src/service/local_favorite_service.dart';
 import 'package:acervo_hc/src/service/local_gallery_service.dart';
 import 'package:acervo_hc/src/service/log.dart';
 import 'package:acervo_hc/src/service/neural_upscale_service.dart';
 import 'package:acervo_hc/src/service/path_service.dart';
 import 'package:acervo_hc/src/service/quick_search_service.dart';
 import 'package:acervo_hc/src/service/read_progress_service.dart';
+import 'package:acervo_hc/src/service/release_update_service.dart';
 import 'package:acervo_hc/src/service/schedule_service.dart';
 import 'package:acervo_hc/src/service/search_history_service.dart';
 import 'package:acervo_hc/src/service/storage_service.dart';
@@ -103,6 +106,9 @@ List<JHLifeCircleBean> lifeCircleBeans = [
   keyboardShortcutSetting,
   builtInBlockedUserService,
   externalViewerService,
+  alreadyReadService,
+  localFavoriteService,
+  releaseUpdateService,
 ];
 
 void main(List<String> args) async {
