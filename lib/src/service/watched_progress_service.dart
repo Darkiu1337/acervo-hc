@@ -114,6 +114,69 @@ class WatchedProgressService {
         'lastAnchor': _lastAnchor?.toJson(),
       });
 
+  /// Imports Watched progress from a backup JSON string.
+  ///
+  /// When [merge] is `true`, unions seen gids, merges bookmarks by `gid`, and
+  /// keeps the newer `lastAnchor`. When `false`, replaces all stored progress.
+  Future<void> importFromJsonString(String raw, {bool merge = true, bool persist = true}) async {
+    if (persist) {
+      await ensureLoaded();
+    }
+    if (!merge) {
+      loadFromJsonString(raw);
+      revision.value++;
+      if (persist) {
+        await _persist();
+      }
+      return;
+    }
+
+    mergeFromJsonString(raw);
+    revision.value++;
+    if (persist) {
+      await _persist();
+    }
+  }
+
+  /// Pure in-memory merge helper (easy to unit-test without DB).
+  void mergeFromJsonString(String raw) {
+    final Map<String, dynamic> map = jsonDecode(raw) as Map<String, dynamic>;
+
+    final List<dynamic>? seenList = map['seenGids'] as List<dynamic>?;
+    if (seenList != null) {
+      for (final dynamic item in seenList) {
+        if (item is num) {
+          _seenGids.add(item.toInt());
+        }
+      }
+      while (_seenGids.length > _maxSeenGids) {
+        _seenGids.remove(_seenGids.first);
+      }
+    }
+
+    final List<dynamic>? bmList = map['bookmarks'] as List<dynamic>?;
+    if (bmList != null) {
+      final Set<int> existingBookmarkGids = _bookmarks.map((b) => b.gid).toSet();
+      for (final dynamic item in bmList) {
+        if (item is Map<String, dynamic>) {
+          final WatchedBookmark bm = WatchedBookmark.fromJson(item);
+          if (existingBookmarkGids.add(bm.gid)) {
+            _bookmarks.add(bm);
+          }
+        }
+      }
+      _bookmarks.sort((WatchedBookmark a, WatchedBookmark b) => b.createdAtMs.compareTo(a.createdAtMs));
+    }
+
+    final dynamic anchor = map['lastAnchor'];
+    if (anchor is Map<String, dynamic>) {
+      final WatchedBookmark incoming = WatchedBookmark.fromJson(anchor);
+      if (_lastAnchor == null || incoming.createdAtMs >= _lastAnchor!.createdAtMs) {
+        _lastAnchor = incoming;
+      }
+    }
+  }
+
   bool isSeen(int gid) => _seenGids.contains(gid);
 
   bool isBookmarked(int gid) => _bookmarks.any((b) => b.gid == gid);

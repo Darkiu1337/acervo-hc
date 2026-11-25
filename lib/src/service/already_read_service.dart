@@ -6,8 +6,12 @@ import 'package:get/get.dart';
 import 'package:acervo_hc/src/model/gallery.dart';
 import 'package:acervo_hc/src/model/gallery_history_model.dart';
 import 'package:acervo_hc/src/model/gallery_source.dart';
+import 'package:acervo_hc/src/service/isolate_service.dart';
+import 'package:acervo_hc/src/service/jh_service.dart';
 import 'package:acervo_hc/src/service/log.dart';
+import 'package:acervo_hc/src/service/path_service.dart';
 import 'package:acervo_hc/src/service/storage_service.dart';
+import 'package:acervo_hc/src/utils/atomic_json_store.dart';
 import 'package:acervo_hc/src/utils/cover_hash_util.dart';
 import 'package:acervo_hc/src/utils/gallery_identity_matcher.dart';
 
@@ -17,11 +21,11 @@ AlreadyReadService alreadyReadService = AlreadyReadService();
 ///
 /// The list has two roles:
 ///  1. it hides the gallery from the listing pages (home, search, popular,
-///     watched and the Xlecx source) — including cross-provider duplicates
-///     between E-Hentai/ExHentai and Xlecx — so already seen works do not come
-///     back on either provider;
+///     watched, Xlecx and nhentai) — including 3-way cross-provider duplicates
+///     between E-Hentai/ExHentai, Xlecx and nhentai — so already seen works do
+///     not come back on any provider;
 ///  2. it is the source of the "Already read" page in the sidebar, where they
-///     can be inspected and removed.
+///     can be searched, filtered, inspected and removed.
 ///
 /// Cross-provider deduplication uses a two-tier multi-signal strategy:
 ///  - Tier 1 (synchronous, sub-millisecond): strict normalized title variants
@@ -30,14 +34,24 @@ AlreadyReadService alreadyReadService = AlreadyReadService();
 ///  - Tier 2 (asynchronous, cache-first): 128-bit perceptual cover dHash
 ///    matching for galleries whose titles differ across providers or are too
 ///    short/generic to match safely by metadata alone.
-class AlreadyReadService {
-  static const String _storageKey = 'alreadyReadGalleries';
+class AlreadyReadService with JHLifeCircleBeanErrorCatch implements JHLifeCircleBean {
+  static const String _legacyStorageKey = 'alreadyReadGalleries';
+  static const String _fileName = 'already_read.json';
 
   /// Rows per page of the "Already read" page.
   static const int pageSize = 100;
 
   /// Max concurrent cover hash decodes for background visual deduplication.
   static const int _maxVisualConcurrency = 3;
+
+  final AtomicJsonStore _store;
+
+  AlreadyReadService({AtomicJsonStore? store})
+      : _store = store ??
+            AtomicJsonStore(
+              directoryProvider: () => pathService.getVisibleDir(),
+              fileName: _fileName,
+            );
 
   final RxList<GalleryHistoryModel> galleries = <GalleryHistoryModel>[].obs;
 
@@ -83,7 +97,52 @@ class AlreadyReadService {
 
   int get count => galleries.length;
 
-  /// Loads the stored list once, before the first read from a build.
+  @override
+  List<JHLifeCircleBean> get initDependencies =>
+      super.initDependencies..addAll([pathService, storageService, isolateService]);
+
+  @override
+  Future<void> doInitBean() async {
+    await restoreAsync();
+  }
+
+  @override
+  Future<void> doAfterBeanReady() async {
+    _scheduleBackfillMissingHashes();
+  }
+
+  /// Restores the already-read list off the UI thread from the atomic JSON
+  /// store, migrating once from legacy GetStorage if needed.
+  Future<void> restoreAsync() async {
+    if (_restored) {
+      return;
+    }
+    _restored = true;
+
+    try {
+      dynamic decoded = await _store.readJson();
+      bool migratedFromLegacy = false;
+
+      if (decoded == null) {
+        final String? legacyRaw = _tryReadLegacyStorage();
+        if (legacyRaw != null && legacyRaw.isNotEmpty) {
+          decoded = await AtomicJsonStore.decodeJsonString(legacyRaw);
+          migratedFromLegacy = true;
+        }
+      }
+
+      if (decoded is List) {
+        _applyDecodedList(decoded);
+        if (migratedFromLegacy) {
+          unawaited(_persist());
+        }
+      }
+    } catch (e, s) {
+      log.error('Restore already-read galleries async failed', e, s);
+    }
+  }
+
+  /// Synchronous fallback when accessed before [doInitBean] (e.g. in tests).
   void ensureRestored() {
     if (_restored) {
       return;
@@ -91,26 +150,61 @@ class AlreadyReadService {
     _restored = true;
 
     try {
-      final String? raw = storageService.read<String>(_storageKey);
-      if (raw == null || raw.isEmpty) {
-        return;
+      dynamic decoded;
+      bool migratedFromLegacy = false;
+      try {
+        decoded = _store.readJsonSync();
+      } catch (_) {
+        decoded = null;
       }
 
-      final List<dynamic> decoded = jsonDecode(raw) as List;
-      for (final dynamic entry in decoded) {
-        try {
-          final GalleryHistoryModel gallery = GalleryHistoryModel.fromJson(Map<String, dynamic>.from(entry as Map));
-          galleries.add(gallery);
-          gids.add(gallery.galleryUrl.gid);
-        } catch (e) {
-          log.error('Restore already-read entry failed', e);
+      if (decoded == null) {
+        final String? legacyRaw = _tryReadLegacyStorage();
+        if (legacyRaw != null && legacyRaw.isNotEmpty) {
+          decoded = jsonDecode(legacyRaw);
+          migratedFromLegacy = true;
         }
       }
-      _rebuildIndexes();
+
+      if (decoded is List) {
+        _applyDecodedList(decoded);
+        if (migratedFromLegacy) {
+          unawaited(_persist());
+        }
+      }
       _scheduleBackfillMissingHashes();
     } catch (e) {
       log.error('Restore already-read galleries failed', e);
     }
+  }
+
+  String? _tryReadLegacyStorage() {
+    try {
+      return storageService.read<String>(_legacyStorageKey);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void _applyDecodedList(List<dynamic> decoded) {
+    final List<GalleryHistoryModel> parsed = <GalleryHistoryModel>[];
+    final Set<int> parsedGids = <int>{};
+    for (final dynamic entry in decoded) {
+      try {
+        final GalleryHistoryModel gallery = GalleryHistoryModel.fromJson(Map<String, dynamic>.from(entry as Map));
+        if (parsedGids.add(gallery.galleryUrl.gid)) {
+          parsed.add(gallery);
+        }
+      } catch (e) {
+        log.error('Restore already-read entry failed', e);
+      }
+    }
+    gids
+      ..clear()
+      ..addAll(parsedGids);
+    galleries.value = parsed;
+    _rebuildIndexes();
+    revision.value++;
   }
 
   /// True when [gid] is directly marked as read OR has already been matched
@@ -509,6 +603,80 @@ class AlreadyReadService {
     }));
   }
 
+  /// Exports a JSON-safe list of all already-read entries (including cover hashes).
+  List<Map<String, dynamic>> exportEntries() {
+    ensureRestored();
+    return _serializeEntries();
+  }
+
+  /// Imports already-read entries from backup.
+  ///
+  /// When [merge] is `true`, unseen gids are appended and existing entries keep
+  /// whichever side already has a computed `coverHash`. When `false`, the list
+  /// is replaced wholesale. Returns the number of entries added or updated.
+  Future<int> importEntries(List<GalleryHistoryModel> incoming, {bool merge = true}) async {
+    ensureRestored();
+
+    if (!merge) {
+      final List<GalleryHistoryModel> deduped = <GalleryHistoryModel>[];
+      final Set<int> seen = <int>{};
+      for (final GalleryHistoryModel entry in incoming) {
+        if (seen.add(entry.galleryUrl.gid)) {
+          deduped.add(entry);
+        }
+      }
+      gids
+        ..clear()
+        ..addAll(seen);
+      _crossMatchedToSource.clear();
+      _visuallyCheckedEpoch.clear();
+      galleries.value = deduped;
+      _hashEpoch++;
+      _rebuildIndexes();
+      revision.value++;
+      await _persist();
+      return deduped.length;
+    }
+
+    final List<GalleryHistoryModel> next = List<GalleryHistoryModel>.of(galleries);
+    final Map<int, int> indexByGid = <int, int>{
+      for (int i = 0; i < next.length; i++) next[i].galleryUrl.gid: i,
+    };
+
+    int changed = 0;
+    for (final GalleryHistoryModel entry in incoming) {
+      final int gid = entry.galleryUrl.gid;
+      final int? existingIdx = indexByGid[gid];
+      if (existingIdx == null) {
+        indexByGid[gid] = next.length;
+        next.add(entry);
+        gids.add(gid);
+        changed++;
+      } else {
+        final GalleryHistoryModel existing = next[existingIdx];
+        if (existing.coverHash == null && entry.coverHash != null) {
+          existing.coverHash = entry.coverHash;
+          changed++;
+        }
+      }
+    }
+
+    if (changed > 0) {
+      _crossMatchedToSource.clear();
+      _hashEpoch++;
+      galleries.value = next;
+      _rebuildIndexes();
+      revision.value++;
+      await _persist();
+    }
+
+    return changed;
+  }
+
+  List<Map<String, dynamic>> _serializeEntries() {
+    return galleries.map((GalleryHistoryModel e) => e.toJson()).toList();
+  }
+
   void _scheduleDebouncedPersist() {
     _persistTimer?.cancel();
     _persistTimer = Timer(const Duration(seconds: 2), () {
@@ -518,6 +686,6 @@ class AlreadyReadService {
 
   Future<void> _persist() {
     _persistTimer?.cancel();
-    return storageService.write(_storageKey, jsonEncode(galleries.toList()));
+    return _store.writeJson(_serializeEntries());
   }
 }
