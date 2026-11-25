@@ -44,6 +44,14 @@ class NHentaiPage extends StatelessWidget {
         ),
         actions: [
           IconButton(
+            tooltip: 'multiSourceSearch'.tr,
+            icon: const Icon(Icons.travel_explore),
+            onPressed: () {
+              final String kw = logic.state.query.trim();
+              toRoute(Routes.multiSearch, arguments: kw.isEmpty ? null : kw);
+            },
+          ),
+          IconButton(
             tooltip: 'refresh'.tr,
             icon: const Icon(Icons.refresh),
             onPressed: logic.refresh,

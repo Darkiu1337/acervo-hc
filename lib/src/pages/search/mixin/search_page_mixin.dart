@@ -62,6 +62,17 @@ mixin SearchPageMixin<L extends SearchPageLogicMixin, S extends SearchPageStateM
         padding: buttonPadding,
       ),
       IconButton(
+        tooltip: 'multiSourceSearch'.tr,
+        icon: const Icon(Icons.travel_explore),
+        onPressed: () {
+          final String kw = state.searchConfig.computeFullKeywords().trim();
+          toRoute(Routes.multiSearch, arguments: kw.isEmpty ? null : kw);
+        },
+        visualDensity: visualDensity,
+        constraints: buttonConstraints,
+        padding: buttonPadding,
+      ),
+      IconButton(
         icon: const Icon(Icons.more_vert),
         onPressed: () => toRoute(Routes.quickSearch),
         visualDensity: visualDensity,

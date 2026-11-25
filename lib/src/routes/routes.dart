@@ -9,6 +9,7 @@ import 'package:acervo_hc/src/pages/xlecx/xlecx_details_page.dart';
 import 'package:acervo_hc/src/pages/xlecx/xlecx_page.dart';
 import 'package:acervo_hc/src/pages/nhentai/nhentai_details_page.dart';
 import 'package:acervo_hc/src/pages/nhentai/nhentai_page.dart';
+import 'package:acervo_hc/src/pages/multi_search/multi_search_page.dart';
 import 'package:acervo_hc/src/pages/already_read/already_read_page.dart';
 import 'package:acervo_hc/src/pages/gallery_image/gallery_image_page.dart';
 import 'package:acervo_hc/src/pages/gallery/dashboard/dashboard_page.dart';
@@ -91,6 +92,7 @@ class Routes {
   static const String downloadSearch = "/download_search";
   static const String xlecx = "/xlecx";
   static const String nhentai = "/nhentai";
+  static const String multiSearch = "/multi_search";
 
   /// right
   static const String details = "/details";
@@ -293,6 +295,12 @@ class Routes {
       name: nhentaiDetails,
       page: () => const NHentaiDetailsPage().withEscOrFifthButton2BackRightRoute(),
       transition: defaultTransition,
+    ),
+    EHPage(
+      name: multiSearch,
+      page: () => const MultiSearchPage(),
+      transition: defaultTransition,
+      side: Side.left,
     ),
     EHPage(
       name: archivePreview,

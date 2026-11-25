@@ -44,6 +44,14 @@ class XlecxPage extends StatelessWidget {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'multiSourceSearch'.tr,
+            icon: const Icon(Icons.travel_explore),
+            onPressed: () {
+              final String kw = logic.state.config.keyword.trim();
+              toRoute(Routes.multiSearch, arguments: kw.isEmpty ? null : kw);
+            },
+          ),
           GetBuilder<XlecxLogic>(
             id: logic.searchBarId,
             builder: (_) => IconButton(
